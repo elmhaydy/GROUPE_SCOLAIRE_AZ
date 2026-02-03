@@ -24,7 +24,15 @@ SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "CHANGE_ME")
 DEBUG = os.getenv("DJANGO_DEBUG", "False").lower() in ("1", "true", "yes", "on")
 
 # ALLOWED_HOSTS sous forme CSV: "ip,domain.com,www.domain.com"
-ALLOWED_HOSTS = [h.strip() for h in os.getenv("DJANGO_ALLOWED_HOSTS", "").split(",") if h.strip()]
+ALLOWED_HOSTS = [
+    "groupescolaireaz.cloud",
+    "www.groupescolaireaz.cloud",
+    "127.0.0.1",
+    "localhost",
+    "[::1]",
+    "2a02:4780:28:13d8::1",
+    "[2a02:4780:28:13d8::1]",
+]
 
 # CSRF trusted origins: "https://domain.com,https://www.domain.com"
 CSRF_TRUSTED_ORIGINS = [o.strip() for o in os.getenv("DJANGO_CSRF_TRUSTED_ORIGINS", "").split(",") if o.strip()]
@@ -155,7 +163,48 @@ WHITENOISE_MAX_AGE = int(os.getenv("WHITENOISE_MAX_AGE", "31536000"))  # 1 an
 LOGIN_URL = "accounts:login"
 LOGIN_REDIRECT_URL = "/"
 LOGOUT_REDIRECT_URL = "accounts:login"
+# =========================
+# LOGGING (tracebacks dans journalctl)
+# =========================
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
 
+    "formatters": {
+        "verbose": {
+            "format": "[{asctime}] {levelname} {name} {message}",
+            "style": "{",
+        },
+    },
+
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "verbose",
+        },
+    },
+
+    "loggers": {
+        # ✅ Exceptions HTTP 500 + tracebacks
+        "django.request": {
+            "handlers": ["console"],
+            "level": "ERROR",
+            "propagate": False,
+        },
+
+        # ✅ Erreurs générales Django
+        "django": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": True,
+        },
+
+        # ✅ Tes apps (core/prof/accounts/...)
+        "core": {"handlers": ["console"], "level": "DEBUG", "propagate": True},
+        "prof": {"handlers": ["console"], "level": "DEBUG", "propagate": True},
+        "accounts": {"handlers": ["console"], "level": "DEBUG", "propagate": True},
+    },
+}
 # =============================
 # DEFAULT PK
 # =============================

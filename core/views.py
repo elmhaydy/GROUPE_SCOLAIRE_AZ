@@ -2274,10 +2274,15 @@ def impayes_mensuels_list(request):
     if type_selected in ["ALL", "SCOLARITE"]:
         sco_qs = (
             EcheanceMensuelle.objects
-            .select_related("eleve", "annee", "groupe")
-            .filter(annee_id=annee_obj.id, eleve_id__in=eleve_ids)
+            .select_related(
+                "inscription",
+                "inscription__eleve",
+                "inscription__groupe",
+                "annee",
+            )
+            .filter(annee_id=annee_obj.id, inscription__eleve_id__in=eleve_ids)
             .filter(mois_index__lte=idx_limit)
-            .order_by("eleve__matricule", "mois_index")
+            .order_by("inscription__eleve__matricule", "mois_index")
         )
 
         for e in sco_qs:
@@ -2287,14 +2292,16 @@ def impayes_mensuels_list(request):
             if reste <= 0:
                 continue
 
-            insc = insc_by_eleve.get(e.eleve_id)
+            insc = e.inscription
+            eleve = insc.eleve if insc else None
+
             sco_rows.append({
                 "type": "SCOLARITE",
-                "eleve": e.eleve,
+                "eleve": eleve,
                 "inscription": insc,
-                "groupe": insc.groupe if insc else e.groupe,
+                "groupe": (insc.groupe if insc else None),
                 "mois_index": int(e.mois_index),
-                "mois_nom": mois_nom(int(e.mois_index)),   # ✅ NOM
+                "mois_nom": mois_nom(int(e.mois_index)),
                 "date_echeance": e.date_echeance,
                 "du": du,
                 "paye": paye,
@@ -2307,6 +2314,7 @@ def impayes_mensuels_list(request):
             sco_paye += paye
             sco_reste += reste
 
+
     # =========================
     # Transport impayé
     # =========================
@@ -2316,10 +2324,15 @@ def impayes_mensuels_list(request):
     if type_selected in ["ALL", "TRANSPORT"]:
         tr_qs = (
             EcheanceTransportMensuelle.objects
-            .select_related("eleve", "annee", "groupe")
-            .filter(annee_id=annee_obj.id, eleve_id__in=eleve_ids)
+            .select_related(
+                "inscription",
+                "inscription__eleve",
+                "inscription__groupe",
+                "annee",
+            )
+            .filter(annee_id=annee_obj.id, inscription__eleve_id__in=eleve_ids)
             .filter(mois_index__lte=idx_limit)
-            .order_by("eleve__matricule", "mois_index")
+            .order_by("inscription__eleve__matricule", "mois_index")
         )
 
         for e in tr_qs:
@@ -2329,14 +2342,16 @@ def impayes_mensuels_list(request):
             if reste <= 0:
                 continue
 
-            insc = insc_by_eleve.get(e.eleve_id)
+            insc = e.inscription
+            eleve = insc.eleve if insc else None
+
             tr_rows.append({
                 "type": "TRANSPORT",
-                "eleve": e.eleve,
+                "eleve": eleve,
                 "inscription": insc,
-                "groupe": insc.groupe if insc else e.groupe,
+                "groupe": (insc.groupe if insc else None),
                 "mois_index": int(e.mois_index),
-                "mois_nom": mois_nom(int(e.mois_index)),   # ✅ NOM
+                "mois_nom": mois_nom(int(e.mois_index)),
                 "date_echeance": e.date_echeance,
                 "du": du,
                 "paye": paye,
@@ -2348,7 +2363,6 @@ def impayes_mensuels_list(request):
             tr_du += du
             tr_paye += paye
             tr_reste += reste
-
     # =========================
     # Inscription impayée
     # =========================
@@ -2383,11 +2397,12 @@ def impayes_mensuels_list(request):
             ins_reste += reste
 
     rows = sco_rows + tr_rows + ins_rows
-
     def sort_key(r):
         type_rank = {"INSCRIPTION": 0, "SCOLARITE": 1, "TRANSPORT": 2}
         mi = r["mois_index"] if r["mois_index"] is not None else 0
-        return (r["eleve"].matricule or "", type_rank.get(r["type"], 9), mi)
+        matricule = (getattr(r["eleve"], "matricule", "") or "")
+        return (matricule, type_rank.get(r["type"], 9), mi)
+
 
     rows.sort(key=sort_key)
 
@@ -2479,9 +2494,13 @@ def impayes_mensuels_excel_export(request):
     if type_selected in ["ALL", "SCOLARITE"]:
         sco_qs = (
             EcheanceMensuelle.objects
-            .select_related("eleve", "groupe")
-            .filter(annee_id=annee_obj.id, eleve_id__in=eleve_ids, mois_index__lte=idx_limit)
-            .order_by("eleve__matricule", "mois_index")
+            .select_related("inscription__eleve", "inscription__groupe", "annee")
+            .filter(
+                annee_id=annee_obj.id,
+                inscription__eleve_id__in=eleve_ids,
+                mois_index__lte=idx_limit,
+            )
+            .order_by("inscription__eleve__matricule", "mois_index")
         )
         for e in sco_qs:
             du = e.montant_du or Decimal("0.00")
@@ -2489,17 +2508,24 @@ def impayes_mensuels_excel_export(request):
             reste = max(du - paye, Decimal("0.00"))
             if reste <= 0:
                 continue
-            insc = insc_by_eleve.get(e.eleve_id)
-            g = insc.groupe if insc else e.groupe
-            rows.append(("SCOLARITE", e.eleve, g, e.mois_nom, e.date_echeance, du, paye, reste))
+
+            insc = e.inscription
+            eleve = insc.eleve if insc else None
+            g = insc.groupe if insc else None
+            rows.append(("SCOLARITE", eleve, g, mois_nom(int(e.mois_index)), e.date_echeance, du, paye, reste))
+
 
     # transport
     if type_selected in ["ALL", "TRANSPORT"]:
         tr_qs = (
             EcheanceTransportMensuelle.objects
-            .select_related("eleve", "groupe")
-            .filter(annee_id=annee_obj.id, eleve_id__in=eleve_ids, mois_index__lte=idx_limit)
-            .order_by("eleve__matricule", "mois_index")
+            .select_related("inscription__eleve", "inscription__groupe", "annee")
+            .filter(
+                annee_id=annee_obj.id,
+                inscription__eleve_id__in=eleve_ids,
+                mois_index__lte=idx_limit,
+            )
+            .order_by("inscription__eleve__matricule", "mois_index")
         )
         for e in tr_qs:
             du = e.montant_du or Decimal("0.00")
@@ -2507,9 +2533,12 @@ def impayes_mensuels_excel_export(request):
             reste = max(du - paye, Decimal("0.00"))
             if reste <= 0:
                 continue
-            insc = insc_by_eleve.get(e.eleve_id)
-            g = insc.groupe if insc else e.groupe
-            rows.append(("TRANSPORT", e.eleve, g, e.mois_nom, e.date_echeance, du, paye, reste))
+
+            insc = e.inscription
+            eleve = insc.eleve if insc else None
+            g = insc.groupe if insc else None
+            rows.append(("TRANSPORT", eleve, g, mois_nom(int(e.mois_index)), e.date_echeance, du, paye, reste))
+
 
     # inscription
     if type_selected in ["ALL", "INSCRIPTION"]:
@@ -2528,14 +2557,14 @@ def impayes_mensuels_excel_export(request):
 
     ws.append(["Type", "Matricule", "Nom", "Prenom", "Groupe", "Mois", "Date", "Du", "Paye", "Reste"])
 
-    for t, eleve, groupe, mois_nom, dte, du, paye, reste in rows:
+    for t, eleve, groupe, mois_nom_str, dte, du, paye, reste in rows:
         ws.append([
             t,
-            eleve.matricule,
-            eleve.nom,
-            eleve.prenom,
+            getattr(eleve, "matricule", "") if eleve else "",
+            getattr(eleve, "nom", "") if eleve else "",
+            getattr(eleve, "prenom", "") if eleve else "",
             (groupe.nom if groupe else ""),
-            mois_nom,
+            mois_nom_str,
             str(dte),
             float(du),
             float(paye),
