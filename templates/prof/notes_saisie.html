@@ -1,0 +1,143 @@
+{% extends "prof/base_prof.html" %}
+{% load static %}
+{% load dict_extras %}
+
+{% block title %}Saisie des notes | AZ Espace Prof{% endblock %}
+{% block page_title %}Saisie des notes{% endblock %}
+{% block current_page %}Évaluations / Saisie{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'prof/css/notes_saisie.css' %}?v=3">
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'prof/js/notes_saisie.js' %}?v=3" defer></script>
+{% endblock %}
+
+{% block content %}
+<div class="azp">
+
+  <!-- EN-TÊTE DE PAGE -->
+  <div class="azp-head">
+    <div>
+      <div class="azp-pill">
+        <i class="fa-solid fa-pen-to-square"></i>
+        <span>Saisie de notes</span>
+        <span class="sep">•</span>
+        <span>{{ ev.matiere.nom }}</span>
+      </div>
+      <h1 class="azp-title">{{ ev.matiere.nom }}</h1>
+      <p class="azp-sub">
+        <i class="fa-solid fa-users-rectangle"></i> {{ ev.groupe.nom }} 
+        <span class="sep">|</span>
+        <i class="fa-solid fa-calendar-day"></i> {{ ev.date|date:"d/m/Y" }}
+        <span class="sep">|</span>
+        <i class="fa-solid fa-layer-group"></i> {{ ev.periode.nom }}
+      </p>
+    </div>
+
+    <div class="azp-actions">
+      <a class="azp-btn" href="{% url 'prof:evaluations' %}">
+        <i class="fa-solid fa-arrow-left"></i>
+        <span>Retour</span>
+      </a>
+      <div class="azp-kpi">
+        <div class="kpi-label muted">Barème</div>
+        <div class="kpi-val">/ {{ ev.note_max }}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FORMULAIRE DE SAISIE -->
+  <form method="post" class="azp-card">
+    {% csrf_token %}
+
+    <!-- BARRE D'OUTILS ERGONOMIQUE -->
+    <div class="azp-tools">
+      <div class="azp-input">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input id="q" type="text" placeholder="Rechercher un élève..." autocomplete="off">
+      </div>
+
+      <div class="azp-mini">
+        <label class="muted">Actions groupées</label>
+        <div class="mini-actions">
+          <button type="button" class="azp-btn sm" data-fill="0">
+            <i class="fa-solid fa-zero"></i> Remplir par 0
+          </button>
+          <button type="button" class="azp-btn sm" data-fill="max">
+            <i class="fa-solid fa-star"></i> Remplir par le Max
+          </button>
+          <button type="button" class="azp-btn sm" data-clear="1" style="color: #ef4444;">
+            <i class="fa-solid fa-eraser"></i> Tout effacer
+          </button>
+        </div>
+      </div>
+
+      <div class="azp-save">
+        <button class="azp-btn primary" type="submit" style="width: 100%;">
+          <i class="fa-solid fa-floppy-disk"></i>
+          <span>Enregistrer les notes</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- TABLEAU DE SAISIE -->
+    <div class="azp-table-wrap">
+      <table class="azp-table" id="notesTable" data-max="{{ ev.note_max }}">
+        <thead>
+          <tr>
+            <th style="width: 150px;">Matricule</th>
+            <th>Nom & Prénom de l'élève</th>
+            <th class="right" style="width: 120px;">Note</th>
+            <th class="right" style="width: 150px;">Statut</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for e in eleves %}
+          {% with n=notes_map|get_item:e.id %}
+          <tr class="nrow" data-search="{{ e.matricule|default:''|lower }} {{ e.nom|lower }} {{ e.prenom|lower }}">
+            <td>
+              <span class="pill" style="background: var(--bg-body); padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: 600;">
+                {{ e.matricule|default:"—" }}
+              </span>
+            </td>
+            <td>
+              <div class="cell-main">{{ e.nom }} {{ e.prenom }}</div>
+            </td>
+            <td class="right">
+              <input
+                class="note-input"
+                name="note_{{ e.id }}"
+                inputmode="decimal"
+                autocomplete="off"
+                placeholder="—"
+                value="{% if n %}{{ n.valeur }}{% endif %}">
+            </td>
+            <td class="right">
+              {% if n %}
+                <span class="badge ok"><i class="fa-solid fa-check"></i> Saisie</span>
+              {% else %}
+                <span class="badge warn"><i class="fa-solid fa-hourglass-half"></i> À saisir</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endwith %}
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- PIED DE PAGE INFOS -->
+    <div class="azp-footer muted">
+      <i class="fa-solid fa-circle-info" style="color: var(--accent);"></i>
+      <span>
+        <strong>Astuce :</strong> Utilisez les flèches <kbd>↑</kbd> <kbd>↓</kbd> ou la touche <kbd>Entrée</kbd> pour naviguer rapidement entre les élèves. 
+        Les notes sont validées automatiquement par rapport au barème de <strong>{{ ev.note_max }}</strong>.
+      </span>
+    </div>
+
+  </form>
+
+</div>
+{% endblock %}

@@ -1,0 +1,422 @@
+/* =========================================================
+   AZ — Profil Élève (NEBULA)
+   Dépend des tokens du portail:
+   --card --border --text --muted --shadow --shadow-soft --grad --ring
+   ========================================================= */
+
+.profile-hero2{
+  border-radius: 18px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  box-shadow: var(--shadow);
+  padding: 16px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:14px;
+  overflow:hidden;
+  position:relative;
+}
+
+.profile-hero2::after{
+  content:"";
+  position:absolute;
+  inset:-2px;
+  background: var(--grad);
+  opacity:.08;
+  filter: blur(14px);
+  pointer-events:none;
+}
+
+.p2-left{
+  display:flex;
+  align-items:center;
+  gap:14px;
+  min-width:0;
+}
+
+.p2-avatar{
+  width:74px;
+  height:74px;
+  border-radius: 18px;
+  overflow:hidden;
+  background: radial-gradient(circle at 30% 30%, rgba(99,102,241,.35), rgba(14,165,233,.18));
+  border: 1px solid color-mix(in srgb, var(--border), rgba(99,102,241,.25) 35%);
+  box-shadow: 0 14px 35px rgba(99,102,241,.20);
+  flex: 0 0 auto;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  cursor: zoom-in;
+}
+
+.p2-avatar img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  display:block;
+}
+
+.p2-fallback{
+  width:100%;
+  height:100%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:1000;
+  letter-spacing:.06em;
+  color:#fff;
+  background: var(--grad);
+  text-transform:uppercase;
+  font-size: 1.1rem;
+}
+
+.p2-id{
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+
+.p2-pill{
+  display:inline-flex;
+  align-items:center;
+  gap:10px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: rgba(148,163,184,.12);
+  font-weight:900;
+  font-size:.82rem;
+  width: fit-content;
+}
+
+.p2-pill .dot{
+  width:8px;
+  height:8px;
+  border-radius:50%;
+  background:#22c55e;
+  box-shadow: 0 0 0 4px rgba(34,197,94,.15);
+}
+
+.p2-pill .sep{
+  opacity:.6;
+}
+
+.p2-name{
+  font-size: 1.45rem;
+  font-weight: 1000;
+  letter-spacing:.01em;
+  line-height: 1.15;
+  word-break: break-word;
+}
+
+.p2-meta{
+  font-size: .92rem;
+}
+
+.p2-badges{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  margin-top: 2px;
+}
+
+.tag{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding: 7px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: rgba(148,163,184,.10);
+  font-weight:900;
+  font-size:.78rem;
+}
+
+.tag.ok{
+  background: rgba(16,185,129,.16);
+  border-color: rgba(16,185,129,.22);
+}
+.tag.warn{
+  background: rgba(245,158,11,.16);
+  border-color: rgba(245,158,11,.22);
+}
+
+.p2-right{
+  display:flex;
+  gap:10px;
+  align-items:center;
+  flex: 0 0 auto;
+}
+
+.btn{
+  border:none;
+  cursor:pointer;
+  border-radius: 999px;
+  padding: .6rem .95rem;
+  font-weight: 1000;
+  font-size:.9rem;
+  transition: transform .12s ease, box-shadow .12s ease, filter .12s ease;
+  display:inline-flex;
+  align-items:center;
+  gap:10px;
+}
+
+.btn.primary{
+  background: var(--grad);
+  color:#fff;
+  box-shadow: 0 14px 30px rgba(99,102,241,.25);
+}
+.btn.primary:hover{
+  transform: translateY(-1px);
+  filter: brightness(1.02);
+}
+
+/* GRID */
+.profile-grid2{
+  margin-top: 14px;
+  display:grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap:14px;
+}
+
+.section-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:10px;
+  margin-bottom: 10px;
+}
+
+/* Key/Value list */
+.kv2{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+
+.kv2-row{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+  padding: 10px 10px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--card), rgba(148,163,184,.08) 30%);
+}
+
+.kv2-row .k{
+  color: var(--muted);
+  font-weight: 900;
+  font-size: .85rem;
+  min-width: 120px;
+}
+
+.kv2-row .v{
+  text-align:right;
+  font-weight: 1000;
+  word-break: break-word;
+}
+
+.kv2-row .v[data-copy]{
+  cursor: copy;
+  border-radius: 10px;
+  padding: 2px 8px;
+  border: 1px dashed transparent;
+}
+.kv2-row .v[data-copy]:hover{
+  background: rgba(148,163,184,.12);
+  border-color: rgba(148,163,184,.25);
+}
+
+/* Empty */
+.empty-state{
+  display:flex;
+  gap:12px;
+  align-items:flex-start;
+  padding: 12px 12px;
+  border-radius: 14px;
+  border: 1px dashed var(--border);
+  background: rgba(148,163,184,.08);
+}
+.empty-ic{
+  width:40px;height:40px;
+  border-radius: 12px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background: rgba(59,130,246,.14);
+  border: 1px solid rgba(59,130,246,.22);
+  font-size: 18px;
+}
+
+/* Parents */
+.parents-grid{
+  display:grid;
+  grid-template-columns: repeat(2, minmax(0,1fr));
+  gap:12px;
+}
+
+.parent-card{
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--card), rgba(148,163,184,.08) 30%);
+  padding: 12px;
+  box-shadow: var(--shadow-soft);
+}
+
+.parent-top{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  margin-bottom: 10px;
+}
+
+.parent-avatar{
+  width:46px;height:46px;
+  border-radius: 14px;
+  background: var(--grad);
+  color:#fff;
+  font-weight:1000;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  letter-spacing:.06em;
+}
+
+.parent-id{
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+  gap:2px;
+}
+.parent-name{
+  font-weight:1000;
+}
+.parent-badge{
+  margin-left:auto;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: rgba(148,163,184,.12);
+  font-weight:1000;
+  font-size:.78rem;
+}
+
+.parent-kv{
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap:10px;
+}
+.parent-kv .full{ grid-column: span 2; }
+
+.parent-kv > div{
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  padding: 10px;
+  background: rgba(148,163,184,.08);
+}
+.parent-kv span{
+  display:block;
+  color: var(--muted);
+  font-weight:900;
+  font-size:.78rem;
+  margin-bottom: 3px;
+}
+.parent-kv b{
+  font-weight:1000;
+  word-break: break-word;
+}
+
+/* Toast */
+.az-toast{
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 1400;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  box-shadow: var(--shadow);
+  transform: translateY(10px);
+  opacity: 0;
+  pointer-events:none;
+  transition: opacity .16s ease, transform .16s ease;
+}
+.az-toast.show{
+  opacity: 1;
+  transform: translateY(0);
+}
+.az-toast i{
+  width:34px;height:34px;
+  border-radius: 12px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background: rgba(16,185,129,.16);
+  border: 1px solid rgba(16,185,129,.22);
+}
+
+/* Photo viewer modal */
+.pv{
+  position: fixed;
+  inset:0;
+  z-index: 1500;
+  display:none;
+}
+.pv.show{ display:block; }
+.pv-overlay{
+  position:absolute; inset:0;
+  background: rgba(0,0,0,.52);
+  backdrop-filter: blur(2px);
+}
+.pv-card{
+  position:relative;
+  width: min(520px, calc(100vw - 24px));
+  margin: 10vh auto 0;
+  border-radius: 18px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  overflow:hidden;
+}
+.pv-card img{
+  width:100%;
+  height:auto;
+  display:block;
+}
+.pv-close{
+  position:absolute;
+  top: 10px;
+  right: 10px;
+  width:40px;height:40px;
+  border:none;
+  cursor:pointer;
+  border-radius: 12px;
+  background: rgba(148,163,184,.14);
+  border: 1px solid var(--border);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+/* Responsive */
+@media (max-width: 1024px){
+  .profile-hero2{ flex-direction:column; align-items:flex-start; }
+  .p2-right{ width:100%; }
+  .p2-right .btn{ width:100%; justify-content:center; }
+  .profile-grid2{ grid-template-columns: 1fr; }
+  .parents-grid{ grid-template-columns: 1fr; }
+}
+@media (max-width: 520px){
+  .kv2-row{ flex-direction:column; align-items:flex-start; }
+  .kv2-row .v{ text-align:left; }
+  .parent-kv{ grid-template-columns: 1fr; }
+  .parent-kv .full{ grid-column: auto; }
+}

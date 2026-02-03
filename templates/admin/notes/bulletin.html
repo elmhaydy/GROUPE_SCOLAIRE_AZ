@@ -1,0 +1,215 @@
+{% extends "admin/base_admin.html" %}
+{% load static %}
+
+{% block title %}Bulletin | AZ{% endblock %}
+{% block page_title %}Bulletin{% endblock %}
+{% block breadcrumb %}Pédagogie / Bulletin{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'admin/css/notes/bulletin.css' %}?v=1">
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'admin/js/notes/bulletin.js' %}?v=1" defer></script>
+{% endblock %}
+
+{% block content %}
+<div class="azbul az-card" style="grid-column:span 12;">
+
+  <!-- Header -->
+  <div class="azbul-head">
+    <div class="azbul-left">
+      <div class="azbul-pill">
+        <i class="fa-solid fa-award"></i>
+        <span>Bulletin</span>
+        {% if periode %}<span class="sep">•</span><span>{{ periode.nom }}</span>{% endif %}
+      </div>
+
+      <div class="azbul-title">
+        <h3>Bulletin — {{ eleve.matricule }}</h3>
+        <div class="muted">{{ eleve.nom }} {{ eleve.prenom }}</div>
+        {% if groupe %}
+          <div class="muted">Groupe : <b>{{ groupe.niveau.nom }} • {{ groupe.nom }}</b></div>
+        {% endif %}
+        {% if rank and effectif %}
+          <div class="muted">Rang : <b>{{ rank }}</b> / <b>{{ effectif }}</b></div>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="azbul-right">
+      <form method="get" class="azbul-filters">
+        <div class="field">
+          <label>Année</label>
+          <select name="annee" id="azbulAnnee">
+            <option value="">Année</option>
+            {% for a in annees %}
+              <option value="{{ a.id }}" {% if a.id|stringformat:"s" == annee_selected %}selected{% endif %}>{{ a.nom }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Période</label>
+          <select name="periode" id="azbulPeriode">
+            <option value="">Période</option>
+            {% for p in periodes %}
+              <option value="{{ p.id }}" {% if p.id|stringformat:"s" == periode_selected %}selected{% endif %}>{{ p.nom }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="actions">
+          <button class="az-btn az-btn-primary" type="submit">
+            <i class="fa-solid fa-filter"></i> Afficher
+          </button>
+
+          {% if periode %}
+            <a class="az-btn az-btn-secondary" href="{% url 'core:bulletin_pdf' eleve.id %}?periode={{ periode.id }}">
+              <i class="fa-solid fa-file-pdf"></i> PDF
+            </a>
+            <a class="az-btn az-btn-secondary" href="#" onclick="window.print();return false;">
+              <i class="fa-solid fa-print"></i> Imprimer
+            </a>
+          {% endif %}
+        </div>
+      </form>
+
+      <div class="azbul-kpis">
+        <div class="kpi">
+          <div class="kpi-label">Moyenne élève</div>
+          <div class="kpi-value">
+            {% if data.moyenne_generale %}{{ data.moyenne_generale|floatformat:2 }}{% else %}—{% endif %}
+            <span class="muted">/20</span>
+          </div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Moyenne classe</div>
+          <div class="kpi-value">
+            {% if moyenne_classe %}{{ moyenne_classe|floatformat:2 }}{% else %}—{% endif %}
+            <span class="muted">/20</span>
+          </div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Meilleure note</div>
+          <div class="kpi-value">
+            {% if data.best %}{{ data.best|floatformat:2 }}{% else %}—{% endif %}
+            <span class="muted">/20</span>
+          </div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Notes</div>
+          <div class="kpi-value">{{ data.nb_notes|default:"0" }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Body -->
+  {% if not periode %}
+    <div class="azbul-empty muted">Aucune période disponible.</div>
+  {% elif data.rows|length == 0 %}
+    <div class="azbul-empty muted">Aucune note pour cette période.</div>
+  {% else %}
+
+    <div class="azbul-toolbar">
+      <div class="azbul-search">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input id="azbulSearch" placeholder="Rechercher une matière..." />
+        <button type="button" class="clear" id="azbulClear" aria-label="Vider">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div class="muted hint">
+        <i class="fa-regular fa-lightbulb"></i>
+        Clique sur une matière pour afficher les évaluations.
+      </div>
+    </div>
+
+    <div class="azbul-tablewrap">
+      <table class="azbul-table" id="azbulTable">
+        <thead>
+          <tr>
+            <th>Matière</th>
+            <th class="tc">Coef</th>
+            <th class="tc">Nb</th>
+            <th class="tr">Moyenne</th>
+            <th class="tr">Best</th>
+            <th class="tc">Détails</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {% for r in data.rows %}
+          <tr class="row" data-matiere="{{ r.matiere }}">
+            <td class="mat">
+              <div class="matbox">
+                <span class="dot"></span>
+                <div>
+                  <div class="matname">{{ r.matiere }}</div>
+                  <div class="muted matsub">Coef matière: {{ r.coef }}</div>
+                </div>
+              </div>
+            </td>
+            <td class="tc"><span class="badge">{{ r.coef|floatformat:2 }}</span></td>
+            <td class="tc"><span class="badge">{{ r.nb }}</span></td>
+            <td class="tr">
+              <b>{% if r.moyenne %}{{ r.moyenne|floatformat:2 }}{% else %}—{% endif %}</b>
+              <span class="muted">/20</span>
+              <div class="bar"><span class="fill" data-val="{% if r.moyenne %}{{ r.moyenne }}{% else %}0{% endif %}"></span></div>
+            </td>
+            <td class="tr">
+              <b>{% if r.best20 %}{{ r.best20|floatformat:2 }}{% else %}—{% endif %}</b>
+              <span class="muted">/20</span>
+            </td>
+            <td class="tc">
+              <button type="button" class="toggle" data-target="det{{ forloop.counter }}">
+                <i class="fa-solid fa-chevron-down"></i>
+              </button>
+            </td>
+          </tr>
+
+          <tr class="detail" id="det{{ forloop.counter }}">
+            <td colspan="6">
+              <div class="detailbox">
+                <div class="detailhead">
+                  <div class="detailtitle">
+                    <i class="fa-solid fa-layer-group"></i>
+                    Détails — {{ r.matiere }}
+                  </div>
+                </div>
+
+                <div class="dlist">
+                  {% for it in r.items %}
+                  <div class="ditem">
+                    <div class="dl">
+                      <div class="dt">{{ it.titre }}</div>
+                      <div class="muted ds">
+                        {{ it.type }} • {{ it.date|date:"d/m/Y" }} • Coef eval: {{ it.coef }}
+                      </div>
+                      <div class="muted ds">Enseignant: {{ it.enseignant }}</div>
+                    </div>
+                    <div class="dr">
+                      <div class="dn">
+                        <b>{{ it.note }}</b><span class="muted">/ {{ it.note_max }}</span>
+                      </div>
+                      <div class="badge-grade">≈ {{ it.note20|floatformat:2 }} /20</div>
+                    </div>
+                  </div>
+                  {% endfor %}
+                </div>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="azbul-empty muted" id="azbulEmpty" style="display:none;">
+      Aucun résultat ne correspond à ta recherche.
+    </div>
+
+  {% endif %}
+</div>
+{% endblock %}

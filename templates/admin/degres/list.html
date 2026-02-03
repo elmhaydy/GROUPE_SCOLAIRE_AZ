@@ -1,0 +1,116 @@
+{% extends "admin/base_admin.html" %}
+{% load static %}
+
+{% load core_extras %}
+
+{% block title %}Degrés | AZ{% endblock %}
+{% block page_title %}Degrés{% endblock %}
+{% block current_page %}Structure / Degrés{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'admin/css/degres/list.css' %}?v=4">
+{% endblock %}
+
+{% block content %}
+
+<div class="az-page-head">
+  <div class="az-page-head-left">
+    <div class="az-pill">
+      {% if annee_active %}
+        <i class="fa-solid fa-circle-check"></i>
+        <span>Année active : <b>{{ annee_active.nom }}</b></span>
+      {% else %}
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        <span>Aucune année active</span>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="az-page-head-right">
+    <a class="az-btn az-btn-primary" href="{% url 'core:degre_create' %}">
+      <i class="fa-solid fa-plus"></i> Ajouter
+    </a>
+  </div>
+</div>
+
+<!-- Filter bar (chip Filtres) -->
+<div class="az-filter-bar">
+  <form method="get" class="az-filter-form">
+    <div class="az-filter-label">
+      <i class="fa-solid fa-filter"></i>
+      <span>Filtres</span>
+    </div>
+
+    <div class="az-export">
+      <a class="az-btn az-btn-ghost" href="{% url 'core:degre_list' %}">
+        <i class="fa-solid fa-rotate-right"></i> Reset
+      </a>
+    </div>
+  </form>
+</div>
+
+<div class="az-degre-card">
+  <div class="az-card-head">
+    <h3 class="az-card-title">
+      <i class="fa-solid fa-school"></i>
+      Liste des degrés
+    </h3>
+
+    <div class="az-card-sub">
+      💡 Les prix (inscription + mensuel) se définissent maintenant <b>par niveau</b> dans “Structure / Niveaux”.
+    </div>
+  </div>
+
+  <div class="az-table">
+    <div class="az-thead">
+      <div>Ordre</div>
+      <div>Nom</div>
+      <div>Code</div>
+      <div>Capacité</div>
+      <div class="az-th-actions">Actions</div>
+    </div>
+
+    <div class="az-tbody">
+      {% for d in degres %}
+        <div class="az-row">
+          <div class="az-cell">
+            <span class="az-badge az-badge-muted">
+              <i class="fa-solid fa-hashtag"></i> {{ d.ordre }}
+            </span>
+          </div>
+
+          <div class="az-cell az-strong">{{ d.nom }}</div>
+
+          <div class="az-cell">
+            <span class="az-badge az-badge-muted">
+              <i class="fa-solid fa-code"></i> {{ d.code }}
+            </span>
+          </div>
+<div class="az-cell">
+  <span class="az-badge az-badge-muted">
+    <i class="fa-solid fa-users"></i>
+    <b>{{ cap_by_degre_id|get_item:d.id|default:0 }}</b> élèves
+  </span>
+</div>
+
+          <div class="az-cell az-actions">
+            <a class="az-btn az-btn-outline" href="{% url 'core:degre_update' d.id %}">
+              <i class="fa-solid fa-pen"></i> Modifier
+            </a>
+
+            <a class="az-btn az-btn-sm az-btn-danger-soft" href="{% url 'core:degre_delete' d.id %}">
+              <i class="fas fa-trash"></i> Supprimer
+            </a>
+          </div>
+        </div>
+      {% empty %}
+        <div class="az-empty">
+          <i class="fa-solid fa-inbox"></i>
+          <div>Aucun degré pour le moment.</div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+{% endblock %}

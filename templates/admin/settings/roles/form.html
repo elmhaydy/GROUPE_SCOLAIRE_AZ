@@ -1,0 +1,88 @@
+{% extends "admin/base_admin.html" %}
+{% load static %}
+
+{% block title %}{% if mode == "create" %}Nouveau rôle{% else %}Modifier rôle{% endif %} | AZ{% endblock %}
+{% block page_title %}{% if mode == "create" %}Nouveau rôle{% else %}Modifier rôle{% endif %}{% endblock %}
+{% block breadcrumb %}Paramètres / Rôles{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'admin/css/settings/form.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="role-form-container">
+    <div class="modern-card">
+        <div class="form-header">
+            <h3>
+                {% if mode == "create" %}
+                    <i class="fas fa-shield-plus"></i> Créer un nouveau rôle
+                {% else %}
+                    <i class="fas fa-shield-halved"></i> Modifier le rôle : {{ name }}
+                {% endif %}
+            </h3>
+            <p style="color: var(--text-muted); margin-top: 0.5rem; font-weight: 500;">
+                Définissez le nom du rôle et attribuez les permissions nécessaires.
+            </p>
+        </div>
+
+        <form method="post" novalidate>
+            {% csrf_token %}
+
+            <!-- Role Name -->
+            <div class="field-group">
+                <label for="id_name">Nom du rôle</label>
+                <input type="text" class="input-modern" id="id_name" name="name" value="{{ name }}" placeholder="Ex: PARENT, COMPTA, DIRECTEUR..." required>
+            </div>
+
+            <!-- Permissions Section -->
+            <div class="perms-section">
+                <div style="margin-bottom: 1.5rem;">
+                    <h4 style="margin: 0; font-size: 1.25rem; font-weight: 800; color: var(--text-main);">Permissions</h4>
+                    <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 0.25rem;">Cochez les actions autorisées pour ce rôle.</p>
+                </div>
+
+                {% for app, models in perms_tree.items %}
+                    <div class="app-block">
+                        <div class="app-title">
+                            <i class="fas fa-cube"></i> {{ app }}
+                        </div>
+
+                        <div class="model-grid">
+                            {% for model, perms in models.items %}
+                                <div class="model-box">
+                                    <div class="model-name">
+                                        <span>{{ model|title }}</span>
+                                    </div>
+
+                                    <div class="perm-list">
+                                        {% for p in perms %}
+                                            <label class="perm-item">
+                                                <input type="checkbox" name="perms" value="{{ p.id }}" {% if p.id in selected %}checked{% endif %}>
+                                                <span>{{ p.name }}</span>
+                                            </label>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+
+            <!-- Form Actions -->
+            <div class="form-actions">
+                <a class="btn-modern btn-cancel" href="{% url 'core:role_list' %}">
+                    Annuler
+                </a>
+                <button class="btn-modern btn-save" type="submit">
+                    <i class="fas fa-check-circle"></i> Enregistrer le rôle
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'admin/js/settings/form.js' %}"></script>
+{% endblock %}

@@ -1,0 +1,484 @@
+/* =========================================================
+   AZ — Pages Élève : Cahier (NEBULA) — FINAL MODERNE
+   - Filtres premium
+   - Cartes & badges
+   - Grille "Emploi du temps" par semaine (Lun→Dim)
+   - Responsive
+   ========================================================= */
+
+/* Base page */
+.az-page{ padding: 14px 14px; }
+
+.az-page-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:12px;
+  margin-bottom: 12px;
+}
+
+.muted{ opacity:.75; }
+
+/* =========================================================
+   FILTERS (NEBULA)
+   ========================================================= */
+.az-filters{
+  display:grid;
+  grid-template-columns: 1.4fr 1fr 1fr auto;
+  gap:12px;
+  margin-bottom: 12px;
+}
+
+.az-filter{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+
+.az-filter label{
+  font-weight:1000;
+  font-size:.82rem;
+  letter-spacing:.02em;
+}
+
+/* input group */
+.az-input{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding: 11px 12px;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--card), rgba(148,163,184,.10) 32%);
+  box-shadow:
+    0 1px 0 rgba(255,255,255,.05) inset,
+    0 10px 25px rgba(2,6,23,.12);
+  transition: border-color .15s ease, box-shadow .15s ease, transform .15s ease;
+}
+
+.az-input i{ opacity:.75; }
+
+.az-input input{
+  width:100%;
+  border:none;
+  outline:none;
+  background: transparent;
+  color: var(--text);
+  font-weight:800;
+}
+
+.az-select,
+.az-date{
+  width:100%;
+  padding: 11px 12px;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--card), rgba(148,163,184,.10) 32%);
+  color: var(--text);
+  font-weight:1000;
+  outline:none;
+  box-shadow:
+    0 1px 0 rgba(255,255,255,.05) inset,
+    0 10px 25px rgba(2,6,23,.10);
+  transition: border-color .15s ease, box-shadow .15s ease, transform .15s ease;
+}
+
+/* Focus glow violet (AZ NEBULA) */
+.az-input:focus-within,
+.az-select:focus,
+.az-date:focus{
+  border-color: color-mix(in srgb, var(--primary), #8b5cf6 55%);
+  box-shadow:
+    0 0 0 4px rgba(139,92,246,.18),
+    0 14px 35px rgba(2,6,23,.14);
+}
+
+.az-filter-actions{
+  justify-content:flex-end;
+  flex-direction:row;
+  align-items:flex-end;
+  gap:10px;
+}
+
+/* Buttons */
+.az-btn{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  padding: 10px 12px;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background: rgba(148,163,184,.14);
+  color: var(--text);
+  font-weight:1000;
+  cursor:pointer;
+  text-decoration:none;
+  white-space:nowrap;
+  transition: transform .15s ease, box-shadow .15s ease, background .15s ease, border-color .15s ease;
+  box-shadow: 0 10px 25px rgba(2,6,23,.10);
+}
+
+.az-btn.primary{
+  background: var(--grad);
+  color:#fff;
+  border-color: transparent;
+  box-shadow:
+    0 12px 25px rgba(99,102,241,.25),
+    0 0 0 1px rgba(255,255,255,.08) inset;
+}
+
+.az-btn:hover{
+  transform: translateY(-1px);
+  box-shadow: 0 16px 40px rgba(2,6,23,.14);
+}
+
+.az-btn:active{
+  transform: translateY(0);
+}
+
+.az-link{
+  color: color-mix(in srgb, var(--text), #6366f1 35%);
+  text-decoration:none;
+  font-weight:1000;
+}
+.az-link:hover{ text-decoration: underline; }
+
+/* Pills / tags */
+.az-tag{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: rgba(148,163,184,.12);
+  font-weight:1000;
+  font-size:.82rem;
+}
+
+.az-cta{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  font-weight:1000;
+  font-size:.9rem;
+  color: color-mix(in srgb, var(--text), #6366f1 35%);
+  text-decoration:none;
+}
+.az-cta:hover{ text-decoration: underline; }
+
+/* Badges (tu les as déjà dans ton base.css normalement, mais on sécurise) */
+.az-badge{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-weight:1000;
+  font-size:.78rem;
+  border: 1px solid rgba(148,163,184,.25);
+  background: rgba(148,163,184,.12);
+}
+.az-badge.now{
+  border-color: rgba(99,102,241,.35);
+  background: rgba(99,102,241,.14);
+}
+.az-badge.warn{
+  border-color: rgba(245,158,11,.35);
+  background: rgba(245,158,11,.14);
+}
+
+.az-text{
+  line-height:1.65;
+  color: var(--text);
+  white-space: normal;
+}
+
+/* =========================================================
+   WEEK BAR (header semaine + nav)
+   ========================================================= */
+.az-weekbar{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-end;
+  gap:12px;
+  margin: 8px 0 12px;
+  padding: 12px 12px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--card), rgba(148,163,184,.10) 32%);
+  box-shadow:
+    0 1px 0 rgba(255,255,255,.05) inset,
+    0 18px 50px rgba(2,6,23,.10);
+  position: relative;
+  overflow:hidden;
+}
+
+.az-weekbar::after{
+  content:"";
+  position:absolute;
+  inset:-2px;
+  background: var(--grad);
+  opacity:.07;
+  filter: blur(16px);
+  pointer-events:none;
+}
+
+.az-week-title{
+  font-weight:1000;
+}
+
+.az-weekbar-actions{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  position: relative;
+  z-index: 1;
+}
+
+/* =========================================================
+   WEEK GRID (Emploi du temps)
+   ========================================================= */
+.az-week-wrap{
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  overflow:auto;
+  background: color-mix(in srgb, var(--card), rgba(148,163,184,.10) 32%);
+  box-shadow:
+    0 1px 0 rgba(255,255,255,.05) inset,
+    0 22px 65px rgba(2,6,23,.12);
+}
+
+.az-week{
+  width:100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  min-width: 1050px;
+}
+
+/* header sticky */
+.az-week thead th{
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  text-align:left;
+  padding: 12px 12px;
+  border-bottom: 1px solid rgba(148,163,184,.18);
+  background: rgba(2,6,23,.62);
+  backdrop-filter: blur(12px);
+}
+
+.az-week thead th:not(:last-child){
+  border-right: 1px solid rgba(148,163,184,.12);
+}
+
+.az-week-head{
+  display:flex;
+  align-items:baseline;
+  justify-content:space-between;
+  gap:10px;
+}
+
+.az-week-day{
+  font-weight:1100;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  font-size: .80rem;
+  opacity: .95;
+}
+
+.az-week-date{
+  font-weight:1000;
+  font-size: .85rem;
+}
+
+/* cells */
+.az-week tbody td{
+  vertical-align: top;
+  border-right: 1px solid rgba(148,163,184,.12);
+}
+.az-week tbody td:last-child{ border-right: none; }
+
+.az-week-cell{
+  padding: 10px 10px;
+  min-height: 190px;
+  position: relative;
+}
+
+/* Empty */
+.az-week-empty{
+  opacity:.7;
+  padding: 6px 0;
+}
+
+/* list in cell */
+.az-week-items{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+
+/* Item card in cell */
+.az-week-item{
+  border: 1px solid rgba(148,163,184,.22);
+  border-radius: 18px;
+  background: rgba(148,163,184,.10);
+  overflow:hidden;
+  position: relative;
+  transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+}
+
+.az-week-item::after{
+  content:"";
+  position:absolute;
+  inset:-2px;
+  background: var(--grad);
+  opacity:.05;
+  filter: blur(14px);
+  pointer-events:none;
+}
+
+.az-week-item:hover{
+  transform: translateY(-1px);
+  border-color: rgba(139,92,246,.28);
+  box-shadow: 0 18px 45px rgba(2,6,23,.14);
+}
+
+/* details/summary */
+.az-week-item summary{
+  list-style:none;
+  cursor:pointer;
+  padding: 10px 10px;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+  position: relative;
+  z-index: 1;
+}
+
+.az-week-item summary::-webkit-details-marker{ display:none; }
+
+.az-week-item[open] summary{
+  border-bottom: 1px solid rgba(148,163,184,.14);
+  background: rgba(148,163,184,.12);
+}
+
+.az-week-item-title{
+  font-weight:1100;
+  font-size: .92rem;
+}
+
+/* body */
+.az-week-item-body{
+  padding: 10px 10px;
+  display:grid;
+  gap:10px;
+  position: relative;
+  z-index: 1;
+}
+
+.az-week-block{
+  border-radius: 16px;
+  border: 1px solid rgba(148,163,184,.22);
+  background: rgba(148,163,184,.08);
+  padding: 10px 10px;
+}
+
+.az-week-block-head{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  margin-bottom: 8px;
+}
+
+.az-week-foot{
+  padding-top: 6px;
+}
+
+/* =========================================================
+   OPTIONAL: old list styling (si tu gardes encore une page liste)
+   ========================================================= */
+.az-list{ display:flex; flex-direction:column; gap:12px; }
+
+.az-item{
+  border-radius: 18px;
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--card), rgba(148,163,184,.08) 30%);
+  padding: 12px 12px;
+  overflow:hidden;
+  position:relative;
+}
+
+.az-item::after{
+  content:"";
+  position:absolute;
+  inset:-2px;
+  background: var(--grad);
+  opacity:.06;
+  filter: blur(14px);
+  pointer-events:none;
+}
+
+.az-item-top{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+}
+
+.az-item-left{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+
+.az-dot{
+  width:6px; height:6px;
+  border-radius:999px;
+  background: rgba(148,163,184,.65);
+}
+
+.az-item-title{
+  margin: 10px 0 6px;
+  font-size: 1.02rem;
+  font-weight: 1100;
+}
+
+.az-item-body{
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap:12px;
+}
+
+.az-block{
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background: rgba(148,163,184,.10);
+  padding: 10px 10px;
+}
+.az-block-head{ margin-bottom:8px; display:flex; gap:8px; align-items:center; }
+
+.az-item-foot{
+  margin-top: 10px;
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+}
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+@media (max-width: 1024px){
+  .az-filters{ grid-template-columns: 1fr 1fr; }
+  .az-filter-actions{ grid-column: span 2; }
+  .az-weekbar{ flex-direction:column; align-items:flex-start; }
+  .az-item-body{ grid-template-columns: 1fr; }
+}
+
+@media (max-width: 560px){
+  .az-filters{ grid-template-columns: 1fr; }
+  .az-filter-actions{ grid-column: auto; }
+}
+.az-week-actions{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+}

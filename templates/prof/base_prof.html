@@ -1,0 +1,206 @@
+{% load static %}
+<!doctype html>
+<html data-theme="dark" lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>{% block title %}AZ • Espace Prof{% endblock %}</title>
+
+  <!-- Pré-chargement du thème pour éviter le flash blanc -->
+  <script>
+    (function () {
+      try {
+        const saved = localStorage.getItem("az-theme");
+        const theme = (saved === "light" || saved === "dark") ? saved : "dark";
+        document.documentElement.setAttribute("data-theme", theme);
+      } catch (e) {}
+    })();
+  </script>
+
+  <!-- Fonts & Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <!-- Styles Modernes -->
+  <link rel="stylesheet" href="{% static 'prof/css/prof.css' %}?v=3">
+  {% block extra_css %}{% endblock %}
+
+  <link rel="icon" type="image/png" sizes="32x32" href="{% static 'img/favicon.png' %}">
+</head>
+
+<body class="az-body">
+  <div class="az-zoom" id="azZoom">
+    
+    <!-- Overlay pour mobile -->
+    <div class="az-overlay" id="azOverlay"></div>
+
+    <!-- SIDEBAR -->
+    <aside class="az-sidebar" id="sidebar">
+      <div class="az-sidebar-header">
+        <a href="{% url 'prof:dashboard' %}" class="az-logo-container">
+          <div class="az-logo-glow"></div>
+          <img src="{% static 'img/logo_AZ.png' %}" class="az-logo-img" alt="AZ Logo">
+        </a>
+        <div class="az-brand">
+          <h1 class="az-brand-title">
+            <span class="az-brand-a">A</span><span class="az-brand-z">Z</span> GROUPS
+          </h1>
+          <div class="az-brand-subtitle">Espace Prof</div>
+        </div>
+      </div>
+
+      <nav class="az-nav" id="azNav">
+        <a href="{% url 'prof:dashboard' %}"
+           class="az-nav-item {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+          <i class="fas fa-gauge-high"></i>
+          <span>Tableau de bord</span>
+          <div class="az-nav-indicator"></div>
+        </a>
+
+        <!-- Section Pédagogie -->
+        <div class="az-nav-drop" data-open="true">
+          <button class="az-nav-section az-nav-drop-btn" type="button">
+            <span>Pédagogie</span>
+            <i class="fas fa-chevron-down az-nav-drop-caret"></i>
+          </button>
+
+          <div class="az-nav-drop-panel">
+            <a href="{% url 'prof:evaluations' %}"
+               class="az-nav-item {% if request.resolver_match.url_name == 'evaluations' or request.resolver_match.url_name == 'evaluation_create' or request.resolver_match.url_name == 'notes_saisie' %}active{% endif %}">
+              <i class="fas fa-clipboard-check"></i><span>Évaluations</span>
+              <div class="az-nav-indicator"></div>
+            </a>
+
+            <a href="{% url 'prof:cahier_list' %}"
+               class="az-nav-item {% if request.resolver_match.url_name == 'cahier_list' or request.resolver_match.url_name == 'cahier_create' or request.resolver_match.url_name == 'cahier_update' %}active{% endif %}">
+              <i class="fas fa-book-open"></i><span>Cahier de texte</span>
+              <div class="az-nav-indicator"></div>
+            </a>
+
+            <a href="{% url 'prof:resumes_list' %}"
+               class="az-nav-item {% if request.resolver_match.url_name == 'resumes_list' or request.resolver_match.url_name == 'resume_create' %}active{% endif %}">
+              <i class="fas fa-file-pdf"></i><span>Résumés PDF</span>
+              <div class="az-nav-indicator"></div>
+            </a>
+
+            <a href="{% url 'prof:edt' %}"
+               class="az-nav-item {% if request.resolver_match.url_name == 'edt' %}active{% endif %}">
+              <i class="fas fa-calendar-days"></i><span>Emploi du temps</span>
+              <div class="az-nav-indicator"></div>
+            </a>
+          </div>
+        </div>
+      </nav>
+
+      <div class="az-sidebar-footer">
+        <div class="az-user-info">
+          <div class="az-user-avatar">
+            {{ request.user.first_name|first|default:"E" }}{{ request.user.last_name|first|default:"P" }}
+          </div>
+          <div class="az-user-details">
+            <span class="az-user-name">{{ request.user.get_full_name|default:request.user.username }}</span>
+            <span class="az-user-role">Professeur</span>
+          </div>
+        </div>
+
+        <a href="{% url 'accounts:logout' %}" class="az-logout-btn">
+          <i class="fas fa-sign-out-alt"></i><span>Déconnexion</span>
+        </a>
+        <div class="az-prof-version" style="font-size: 0.7rem; color: var(--text-muted); margin-top: 10px; text-align: center;">Prof v2.0</div>
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="az-main">
+      <header class="az-topbar">
+        <button class="az-sidebar-toggle" id="sidebarToggle" aria-label="Menu">
+          <i class="fas fa-bars"></i>
+        </button>
+
+        <div class="az-breadcrumb">
+          <span>Espace Prof</span>
+          <i class="fas fa-chevron-right"></i>
+          <span class="az-current-page">{% block current_page %}{% endblock %}</span>
+        </div>
+
+        <div class="az-topbar-actions">
+          <div class="az-user-dropdown">
+            <button class="az-user-menu-toggle" id="userMenuToggle" type="button">
+              <div class="az-user-avatar-sm">
+                {{ request.user.first_name|first|default:"E" }}{{ request.user.last_name|first|default:"P" }}
+              </div>
+              <span class="az-user-greeting">
+                Bonjour, <strong>{{ request.user.first_name|default:"Prof" }}</strong>
+              </span>
+              <i class="fas fa-chevron-down"></i>
+            </button>
+
+            <div class="az-user-menu" id="userMenu">
+              <div class="az-user-menu-header">
+                <div class="az-user-avatar-lg">
+                  {{ request.user.first_name|first|default:"E" }}{{ request.user.last_name|first|default:"P" }}
+                </div>
+                <h4>{{ request.user.get_full_name|default:request.user.username }}</h4>
+              </div>
+
+              <div class="az-user-menu-items">
+                <a href="{% url 'prof:profil' %}" class="az-user-menu-item">
+                  <i class="fas fa-user"></i><span>Mon profil</span>
+                </a>
+                <button type="button" class="az-user-menu-item" id="azThemeToggleDropdown">
+                  <i class="fas fa-moon" id="azThemeIconDropdown"></i>
+                  <span id="azThemeLabelDropdown">Mode sombre</span>
+                </button>
+                <div class="az-user-menu-divider"></div>
+                <a href="{% url 'accounts:logout' %}" class="az-user-menu-item az-logout">
+                  <i class="fas fa-sign-out-alt"></i><span>Déconnexion</span>
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- Messages Django -->
+      {% if messages %}
+      <div class="az-messages">
+        {% for message in messages %}
+        <div class="az-alert az-alert-{{ message.tags }}">
+          <i class="fas fa-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}exclamation-circle{% elif message.tags == 'warning' %}exclamation-triangle{% else %}info-circle{% endif %}"></i>
+          <span>{{ message }}</span>
+          <button class="az-alert-close" type="button">&times;</button>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <!-- Content Area -->
+      <div class="az-content">
+        <div class="az-content-header">
+          <h1 class="az-page-title">{% block page_title %}{% endblock %}</h1>
+          <div class="az-page-actions">{% block page_actions %}{% endblock %}</div>
+        </div>
+
+        <div class="az-content-body">
+          {% block content %}{% endblock %}
+        </div>
+      </div>
+
+      <footer class="az-footer">
+        <div class="az-footer-content">
+          <span>© 2026 AZ GROUPS — Espace Prof</span>
+          <div class="az-footer-links">
+            <a href="#"><i class="fas fa-question-circle"></i> Aide</a>
+            <a href="#"><i class="fas fa-shield-alt"></i> Confidentialité</a>
+          </div>
+        </div>
+      </footer>
+    </main>
+  </div>
+
+  <script src="{% static 'prof/js/prof.js' %}?v=3"></script>
+  {% block extra_js %}{% endblock %}
+</body>
+</html>

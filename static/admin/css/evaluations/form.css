@@ -1,0 +1,344 @@
+/* =========================================================
+   AZ — Évaluations (form.css) — AZ NEBULA (2026) — FINAL
+   Pour ton template exact: .az-eval-card / .az-eval-head / .az-grid-2 ...
+   - Dark/Light via html[data-theme]
+   - Chip + focus glow violet
+   - TomSelect skin
+   - Sticky actions
+   - Fix dropdown select dark (Windows/Chrome)
+   ========================================================= */
+
+/* ---------- Card globale ---------- */
+.az-eval-card{
+  border-radius: 18px;
+  border: 1px solid var(--az-border);
+  background: linear-gradient(180deg, var(--az-bg-secondary), var(--az-bg-primary));
+  box-shadow: var(--az-shadow-md);
+  overflow:hidden;
+  animation: az-fadeUp .45s ease both;
+}
+
+/* ---------- Header ---------- */
+.az-eval-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap: 14px;
+  padding: 18px 18px 12px;
+  border-bottom: 1px solid var(--az-border);
+}
+
+.az-eval-title{
+  margin:0;
+  font-weight: 950;
+  letter-spacing: -.02em;
+  color: var(--az-text-primary);
+  font-size: 1.1rem;
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+
+.az-eval-sub{
+  margin: 6px 0 0;
+  color: var(--az-text-secondary);
+  font-weight: 700;
+  line-height: 1.35;
+  max-width: 780px;
+}
+
+/* Badge */
+.az-badge{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-weight: 900;
+  border: 1px solid rgba(148,163,184,.22);
+  background: rgba(148,163,184,.10);
+  color: var(--az-text-secondary);
+  white-space:nowrap;
+  box-shadow: var(--az-shadow-sm);
+}
+.az-badge i{ color: var(--az-primary); }
+
+/* ---------- Form ---------- */
+.az-eval-form{
+  padding: 16px 18px 18px;
+}
+
+.az-section{
+  margin-top: 6px;
+}
+
+.az-section-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+
+.az-section-title{
+  margin:0;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  font-weight: 950;
+  color: var(--az-text-primary);
+  font-size: 1.02rem;
+}
+.az-section-title i{ color: var(--az-primary); }
+
+.az-section-sub{
+  margin: 6px 0 0;
+  color: var(--az-text-secondary);
+  font-weight: 700;
+}
+
+/* ---------- Grid 2 colonnes ---------- */
+.az-grid-2{
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+/* ---------- Champs ---------- */
+.az-field{
+  display:flex;
+  flex-direction:column;
+  gap: 8px;
+  min-width:0;
+}
+
+.az-field label{
+  font-size: .92rem;
+  font-weight: 950;
+  color: var(--az-text-secondary);
+}
+
+/* Inputs / selects premium */
+.az-eval-form input,
+.az-eval-form select,
+.az-eval-form textarea{
+  width:100%;
+  min-height: 46px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(148, 163, 184, .35);
+  background: var(--az-bg-primary);
+  color: var(--az-text-primary);
+  font-family: inherit;
+  font-size: .96rem;
+  transition: var(--az-transition-fast);
+}
+
+html[data-theme="dark"] .az-eval-form input,
+html[data-theme="dark"] .az-eval-form select,
+html[data-theme="dark"] .az-eval-form textarea{
+  border-color: rgba(148, 163, 184, .22);
+  background: rgba(2,6,23,.18);
+}
+
+/* Focus violet glow */
+.az-eval-form input:focus,
+.az-eval-form select:focus,
+.az-eval-form textarea:focus{
+  outline:none;
+  border-color: rgba(99,102,241,.65);
+  box-shadow:
+    0 0 0 4px rgba(99,102,241,.18),
+    0 10px 22px rgba(99,102,241,.10);
+  transform: translateY(-1px);
+}
+
+html[data-theme="dark"] .az-eval-form input:focus,
+html[data-theme="dark"] .az-eval-form select:focus,
+html[data-theme="dark"] .az-eval-form textarea:focus{
+  border-color: rgba(129,140,248,.75);
+  box-shadow:
+    0 0 0 4px rgba(129,140,248,.22),
+    0 14px 28px rgba(99,102,241,.12);
+}
+
+/* Help */
+.az-help{
+  font-size: .85rem;
+  color: var(--az-text-tertiary);
+  font-weight: 700;
+  opacity: .95;
+}
+
+/* ---------- Messages / erreurs ---------- */
+.az-msg{
+  margin: 10px 0 0;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--az-border);
+  background: rgba(148,163,184,.08);
+  color: var(--az-text-secondary);
+  box-shadow: var(--az-shadow-sm);
+}
+.az-msg--error{
+  background: rgba(239,68,68,.10);
+  border-color: rgba(239,68,68,.25);
+  color: var(--az-text-primary);
+}
+.az-msg--error b{ color: var(--az-text-primary); }
+
+/* ---------- Actions sticky ---------- */
+.az-eval-actions{
+  margin-top: 16px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 16px;
+  border: 1px solid var(--az-border);
+  background: linear-gradient(180deg, rgba(255,255,255,.55), rgba(255,255,255,.38));
+  box-shadow: var(--az-shadow-md);
+  backdrop-filter: blur(10px);
+}
+
+html[data-theme="dark"] .az-eval-actions{
+  background: linear-gradient(180deg, rgba(2,6,23,.55), rgba(2,6,23,.35));
+}
+
+.az-eval-actions--sticky{
+  position: sticky;
+  bottom: 12px;
+  z-index: 5;
+}
+
+.az-actions-left,
+.az-actions-right{
+  display:flex;
+  align-items:center;
+  gap: 10px;
+  flex-wrap:wrap;
+}
+
+/* Hint chip */
+.az-hint{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding: 8px 10px;
+  border-radius: 999px;
+  border: 1.6px dashed rgba(100, 116, 139, .35);
+  background: rgba(148,163,184,.10);
+  color: var(--az-text-secondary);
+  font-weight: 900;
+  font-size: .85rem;
+  user-select:none;
+}
+.az-hint i{
+  color:#6366f1;
+  filter: drop-shadow(0 6px 16px rgba(99,102,241,.25));
+}
+html[data-theme="dark"] .az-hint{
+  background: rgba(255,255,255,.05);
+  border-color: rgba(255,255,255,.10);
+  color: rgba(226,232,240,.80);
+}
+
+/* ---------- Tom Select (skin Nebula) ---------- */
+.ts-wrapper{ width:100%; }
+
+.ts-control{
+  min-height: 46px;
+  border-radius: 14px !important;
+  border: 1px solid rgba(148, 163, 184, .35) !important;
+  background: var(--az-bg-primary) !important;
+  padding: 6px 10px !important;
+  transition: var(--az-transition-fast);
+  box-shadow: none !important;
+}
+
+html[data-theme="dark"] .ts-control{
+  border-color: rgba(148, 163, 184, .22) !important;
+  background: rgba(2,6,23,.18) !important;
+}
+
+.ts-wrapper.focus .ts-control{
+  border-color: rgba(99,102,241,.65) !important;
+  box-shadow:
+    0 0 0 4px rgba(99,102,241,.18),
+    0 10px 22px rgba(99,102,241,.10) !important;
+}
+
+.ts-dropdown{
+  border-radius: 14px !important;
+  border: 1px solid rgba(148,163,184,.25) !important;
+  overflow:hidden;
+}
+
+.ts-dropdown .option{
+  padding: 10px 12px !important;
+  font-weight: 800;
+}
+
+.ts-dropdown .active{
+  background: rgba(99,102,241,.12) !important;
+}
+
+html[data-theme="dark"] .ts-dropdown{
+  background: #0b1220 !important;
+  color: #e5e7eb !important;
+}
+html[data-theme="dark"] .ts-dropdown .option{
+  color: #e5e7eb !important;
+}
+html[data-theme="dark"] .ts-dropdown .active{
+  background: rgba(99,102,241,.18) !important;
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 980px){
+  .az-eval-head{ flex-direction:column; align-items:flex-start; }
+  .az-grid-2{ grid-template-columns: 1fr; }
+}
+
+/* ---------- Anim ---------- */
+@keyframes az-fadeUp{
+  from{ opacity:0; transform: translateY(10px); }
+  to{ opacity:1; transform: translateY(0); }
+}
+
+/* =========================================================
+   AZ — FIX SELECT DROPDOWN (Dark mode) — FINAL
+   Corrige menu gris clair (Windows/Chrome)
+   ========================================================= */
+html[data-theme="dark"] select{ color-scheme: dark; }
+
+html[data-theme="dark"] .az-eval-form select{
+  background-color: #0b1220 !important;
+  color: #f1f5f9 !important;
+  border-color: rgba(148,163,184,.22) !important;
+}
+
+html[data-theme="dark"] .az-eval-form select option,
+html[data-theme="dark"] .az-eval-form select optgroup{
+  background-color: #0b1220 !important;
+  color: #e5e7eb !important;
+}
+
+html[data-theme="dark"] .az-eval-form select option:checked{
+  background-color: #2563eb !important;
+  color: #ffffff !important;
+}
+
+html[data-theme="dark"] .az-eval-form select option:hover{
+  background-color: #1e293b !important;
+}
+
+html[data-theme="dark"] .az-eval-form select optgroup{
+  font-weight: 800;
+  color: #cbd5f5 !important;
+}
+
+html[data-theme="dark"] select:-internal-list-box{
+  background-color: #0b1220 !important;
+}

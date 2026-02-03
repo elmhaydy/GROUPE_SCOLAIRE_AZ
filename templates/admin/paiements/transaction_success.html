@@ -1,0 +1,29 @@
+{% extends "admin/base_admin.html" %}
+{% load static %}
+
+{% block title %}Transaction enregistrée | AZ{% endblock %}
+{% block page_title %}Transaction{% endblock %}
+{% block breadcrumb %}Finance / Paiements / Succès{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'admin/css/az-nebula.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="az-container">
+  <div class="az-card">
+    <h2 class="az-title" style="margin:0 0 6px;">✅ Transaction enregistrée</h2>
+    <p class="az-muted" style="margin:0 0 14px;">
+      ID: <b>#{{ tx.id }}</b> — Total: <b>{{ tx.montant_total }} MAD</b> — Type: <b>{{ tx.get_type_transaction_display }}</b>
+    </p>
+
+    <div class="az-actions">
+      <a class="az-btn" href="{% url 'core:transaction_wizard' %}">Nouveau paiement</a>
+      <a class="az-btn az-btn-primary" target="_blank" href="{% url 'core:transaction_pdf' tx.id %}">
+        Voir / Télécharger PDF
+      </a>
+      <a class="az-btn az-btn-ghost" href="{% url 'core:paiement_list' %}">Retour liste</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

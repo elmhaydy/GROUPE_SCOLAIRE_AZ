@@ -1,0 +1,347 @@
+/* =========================================================
+   AZ — Variables (Detail / Parent / Eleve ...)
+   - Light par défaut
+   - Dark via html[data-theme="dark"]
+   - Fallback auto si pas de data-theme
+   ========================================================= */
+
+/* ===== LIGHT (default) ===== */
+:root{
+  color-scheme: light;
+
+  --az-bg-page: #f8fafc;
+  --az-bg-card: #ffffff;
+  --az-bg-item: #f1f5f9;
+
+  --az-text-main: #1e293b;
+  --az-text-sub: #64748b;
+
+  --az-border: #e2e8f0;
+
+  --az-primary: #4f46e5;
+  --az-primary-dark: #4338ca;
+  --az-primary-soft: #eef2ff;
+
+  --az-success: #10b981;
+  --az-danger: #ef4444;
+
+  --az-shadow: 0 10px 15px -3px rgba(0,0,0,.10);
+  --az-radius: 16px;
+}
+
+/* ===== DARK (forced) ===== */
+html[data-theme="dark"]{
+  color-scheme: dark;
+
+  --az-bg-page: #0f172a;
+  --az-bg-card: #1e293b;
+  --az-bg-item: #334155;
+
+  --az-text-main: #f1f5f9;
+  --az-text-sub: #94a3b8;
+
+  --az-border: #334155;
+
+  /* garde primaire identique, adoucit le soft */
+  --az-primary-soft: rgba(79,70,229,.15);
+
+  --az-shadow: 0 10px 15px -3px rgba(0,0,0,.30);
+}
+
+/* ===== AUTO fallback (uniquement si pas de data-theme défini) ===== */
+@media (prefers-color-scheme: dark){
+  html:not([data-theme]){
+    color-scheme: dark;
+
+    --az-bg-page: #0f172a;
+    --az-bg-card: #1e293b;
+    --az-bg-item: #334155;
+
+    --az-text-main: #f1f5f9;
+    --az-text-sub: #94a3b8;
+
+    --az-border: #334155;
+    --az-primary-soft: rgba(79,70,229,.15);
+
+    --az-shadow: 0 10px 15px -3px rgba(0,0,0,.30);
+  }
+}
+
+/* =========================================================
+   BONUS (optionnel mais recommandé)
+   applique le background du page si tu veux
+   ========================================================= */
+body{
+  background: var(--az-bg-page);
+  color: var(--az-text-main);
+}
+
+
+.az-detail-container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 1rem;
+    animation: fadeIn 0.5s ease-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Barre d'actions */
+.az-action-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.az-action-group {
+    display: flex;
+    gap: 0.75rem;
+}
+
+/* Boutons */
+.az-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 1.2rem;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    text-decoration: none;
+    transition: 0.2s;
+    border: 1px solid transparent;
+}
+
+.az-btn-outline {
+    background: var(--az-bg-card);
+    border-color: var(--az-border);
+    color: var(--az-text-main);
+}
+
+.az-btn-edit {
+    background: var(--az-primary-soft);
+    color: var(--az-primary);
+}
+
+.az-btn-delete {
+    background: #fef2f2;
+    color: var(--az-danger);
+}
+
+.az-btn-delete:hover { background: #fee2e2; }
+
+/* Grille */
+.az-main-grid {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 1.5rem;
+}
+
+.az-card {
+    background: var(--az-bg-card);
+    border-radius: var(--az-radius);
+    border: 1px solid var(--az-border);
+    box-shadow: var(--az-shadow);
+    padding: 1.5rem;
+    color: var(--az-text-main);
+}
+
+.az-card-info { grid-column: span 5; }
+.az-card-children { grid-column: span 7; }
+
+@media (max-width: 992px) {
+    .az-card-info, .az-card-children { grid-column: span 12; }
+}
+
+/* Header Carte */
+.az-card-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+    color: var(--az-primary);
+}
+
+.az-card-header h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--az-text-main);
+}
+
+/* Identité */
+.az-identity-header {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    margin-bottom: 2rem;
+}
+
+.az-avatar-placeholder {
+    width: 64px;
+    height: 64px;
+    background: var(--az-primary-soft);
+    color: var(--az-primary);
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.75rem;
+}
+
+.az-name {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 800;
+}
+
+.az-badge-soft {
+    background: var(--az-primary-soft);
+    color: var(--az-primary);
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+/* Liste d'infos */
+.az-info-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.az-info-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.az-info-icon {
+    width: 36px;
+    height: 36px;
+    background: var(--az-bg-item);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--az-text-sub);
+    flex-shrink: 0;
+}
+
+.az-info-content {
+    display: flex;
+    flex-direction: column;
+}
+
+.label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--az-text-sub);
+    text-transform: uppercase;
+}
+
+.value {
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+
+/* Liste Enfants */
+.az-children-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.az-child-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background: var(--az-bg-item);
+    border-radius: 12px;
+    border: 1px solid var(--az-border);
+    transition: 0.2s;
+}
+
+.az-child-item:hover {
+    border-color: var(--az-primary);
+    transform: translateX(5px);
+}
+
+.az-child-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 10px;
+    background: var(--az-bg-card);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    color: var(--az-primary);
+    border: 1px solid var(--az-border);
+}
+
+.az-child-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.az-child-info {
+    flex-grow: 1;
+}
+
+.az-child-main {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.25rem;
+}
+
+.az-child-matricule {
+    font-size: 0.75rem;
+    font-weight: 700;
+    background: var(--az-primary);
+    color: white;
+    padding: 1px 6px;
+    border-radius: 4px;
+}
+
+.az-child-name {
+    font-weight: 700;
+}
+
+.az-child-relation {
+    font-size: 0.85rem;
+    color: var(--az-text-sub);
+}
+
+.az-child-link {
+    color: var(--az-text-sub);
+    transition: 0.2s;
+}
+
+.az-child-link:hover {
+    color: var(--az-primary);
+}
+
+.az-empty-state {
+    text-align: center;
+    padding: 3rem;
+    color: var(--az-text-sub);
+}
+
+.az-empty-state i {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}

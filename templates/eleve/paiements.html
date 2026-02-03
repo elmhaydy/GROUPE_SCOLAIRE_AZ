@@ -1,0 +1,121 @@
+{% extends "eleve/base.html" %}
+{% load static %}
+{% block title %}Paiements | Portail Élève{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'eleve/css/paiements.css' %}?v=1">
+{% endblock %}
+
+{% block content %}
+<div class="az-pay">
+
+  <!-- HEADER -->
+  <div class="az-pay-head">
+    <div>
+      <h2>Paiements</h2>
+      <div class="muted">Historique & suivi • scolarité</div>
+    </div>
+
+    <div class="az-pay-tools">
+      <input id="paySearch" placeholder="Rechercher (montant, mode, ref...)">
+
+    </div>
+  </div>
+
+  <!-- KPI -->
+  <div class="az-pay-kpis">
+    <div class="kpi">
+      <div class="kpi-label">Total payé</div>
+      <div class="kpi-value">{{ total_paye }} <span>MAD</span></div>
+    </div>
+
+    <div class="kpi">
+      <div class="kpi-label">Dernier paiement</div>
+      {% if dernier_paiement %}
+        <div class="kpi-value">{{ dernier_paiement.montant }} <span>MAD</span></div>
+        <div class="muted">
+          {{ dernier_paiement.date_paiement|date:"d/m/Y" }} • {{ dernier_paiement.get_mode_display }}
+        </div>
+      {% else %}
+        <div class="kpi-value">—</div>
+      {% endif %}
+    </div>
+
+    <div class="kpi kpi-mini">
+      <div class="kpi-label">Affichés</div>
+      <div class="kpi-value" id="kpiShown">0</div>
+    </div>
+  </div>
+
+  <!-- SUIVI -->
+  <section class="az-pay-follow">
+    <h3><i class="fa-solid fa-calendar-check"></i> Suivi de paiement</h3>
+
+    <div class="az-follow-grid">
+
+      {% if bloc_inscription %}
+      <div class="follow-card {% if bloc_inscription.status == 'PAYE' %}ok{% else %}warn{% endif %}">
+        <b>Frais d'inscription</b>
+        <div>Payé : {{ bloc_inscription.paid }} MAD</div>
+        <div>Reste : {{ bloc_inscription.reste }} MAD</div>
+      </div>
+      {% endif %}
+
+      {% for m in suivi %}
+      <div class="follow-card {% if m.status == 'PAYE' %}ok{% elif m.status == 'PARTIEL' %}mid{% else %}warn{% endif %}">
+        <b>{{ m.label }}</b>
+        <div>Payé : {{ m.paid }} MAD</div>
+        <div>Reste : {{ m.reste }} MAD</div>
+        <span class="badge">{{ m.status }}</span>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <!-- TABLE -->
+<section class="az-pay-table">
+  {% if paiements %}
+  <table id="payTable">
+    <thead>
+      <tr>
+        <th data-sort="date">Date</th>
+        <th data-sort="nature">Nature</th>
+        <th data-sort="mode">Mode</th>
+        <th data-sort="montant">Montant</th>
+        <th>Réf</th>
+      </tr>
+    </thead>
+
+    <tbody id="payTbody">
+      {% for p in paiements %}
+      <tr class="pay-row"
+          data-date="{{ p.date_paiement|date:'Y-m-d' }}"
+          data-nature="{{ p.nature }}"
+          data-mode="{{ p.mode }}"
+          data-montant="{{ p.montant }}"
+          data-haystack="{{ p.date_paiement|date:'d/m/Y' }} {{ p.get_nature_display }} {{ p.get_mode_display }} {{ p.montant }} {{ p.reference }} {{ p.note }}">
+        <td>{{ p.date_paiement|date:"d/m/Y" }}</td>
+        <td>{{ p.get_nature_display }}</td>
+        <td>{{ p.get_mode_display }}</td>
+        <td><b>{{ p.montant }}</b> MAD</td>
+        <td>{{ p.reference|default:"—" }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div id="payEmpty" class="az-empty" style="display:none">
+    Aucun paiement trouvé.
+  </div>
+
+  {% else %}
+    <div class="az-empty" id="payEmpty">Aucun paiement enregistré</div>
+  {% endif %}
+</section>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'eleve/js/paiements.js' %}?v=3"></script>
+{% endblock %}

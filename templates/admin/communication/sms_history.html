@@ -1,0 +1,95 @@
+{% extends "admin/base_admin.html" %}
+{% load static %}
+
+{% block title %}Historique SMS | AZ{% endblock %}
+{% block page_title %}Historique SMS{% endblock %}
+{% block current_page %}Communication / SMS / Historique{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'admin/css/sms.css' %}">
+{% endblock %}
+
+{% block content %}
+
+<div class="az-page-head">
+  <div class="az-page-head-left">
+    <h2 class="az-page-title-xl">🕘 Historique SMS</h2>
+    <p class="az-page-sub">Journal des envois SMS (statut + erreur éventuelle).</p>
+  </div>
+
+  <div class="az-page-head-right">
+    <a class="az-btn az-btn-primary" href="{% url 'core:sms_send' %}">
+      <i class="fa-solid fa-paper-plane"></i> Nouveau SMS
+    </a>
+  </div>
+</div>
+
+<div class="az-card az-sms-card">
+  <div class="az-card-head">
+    <h3 class="az-card-title">
+      <i class="fa-solid fa-message"></i>
+      Liste des SMS
+    </h3>
+  </div>
+
+  <div class="az-table">
+    <div class="az-thead">
+      <div>Date</div>
+      <div>Parent</div>
+      <div>Téléphone</div>
+      <div>Statut</div>
+      <div>Erreur</div>
+    </div>
+
+    <div class="az-tbody">
+      {% for s in items %}
+        <div class="az-row">
+          <div class="az-cell">
+            <b>{{ s.created_at|date:"d/m/Y H:i" }}</b>
+          </div>
+
+          <div class="az-cell az-strong">
+            {{ s.parent }}
+          </div>
+
+          <div class="az-cell">
+            <span class="az-code">{{ s.telephone }}</span>
+          </div>
+
+          <div class="az-cell">
+            {% if s.status == "SENT" or s.status == "DELIVERED" %}
+              <span class="az-badge az-badge-success">
+                <i class="fa-solid fa-check"></i> {{ s.status }}
+              </span>
+            {% elif s.status == "FAILED" or s.status == "ERROR" %}
+              <span class="az-badge az-badge-danger">
+                <i class="fa-solid fa-triangle-exclamation"></i> {{ s.status }}
+              </span>
+            {% else %}
+              <span class="az-badge az-badge-muted">{{ s.status|default:"—" }}</span>
+            {% endif %}
+          </div>
+
+          <div class="az-cell">
+            {% if s.error_message %}
+              <span class="az-ellipsis" title="{{ s.error_message }}">{{ s.error_message }}</span>
+            {% else %}
+              <span class="az-muted">—</span>
+            {% endif %}
+          </div>
+        </div>
+      {% empty %}
+        <div class="az-empty">
+          <i class="fa-solid fa-inbox"></i>
+          <div>
+            <b>Aucun SMS</b>
+            <div class="az-empty-sub">L’historique est vide pour le moment.</div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+
+  </div>
+</div>
+
+{% endblock %}

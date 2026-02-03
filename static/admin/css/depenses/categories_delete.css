@@ -1,0 +1,160 @@
+/* =========================================================
+   AZ NEBULA — Dépenses • Catégorie Delete (categories_delete.css)
+   - Card premium, glow violet, danger accent
+   ========================================================= */
+
+.az-page-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap: var(--az-spacing-lg);
+  flex-wrap:wrap;
+  margin-bottom: var(--az-spacing-lg);
+}
+.az-page-head-left,
+.az-page-head-right{
+  display:flex;
+  align-items:center;
+  gap: var(--az-spacing-md);
+  flex-wrap:wrap;
+}
+
+/* Pill */
+.az-pill{
+  display:inline-flex;
+  align-items:center;
+  gap:10px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--az-border);
+  background: linear-gradient(180deg, var(--az-bg-primary), var(--az-bg-secondary));
+  box-shadow: var(--az-shadow-sm);
+  color: var(--az-text-secondary);
+  font-weight: 900;
+  animation: az-fadeUp .35s ease both;
+}
+.az-pill i{ color: var(--az-warning); }
+
+html[data-theme="dark"] .az-pill{
+  background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.02));
+}
+
+/* Wrap */
+.az-del{
+  display:block;
+}
+
+.az-del-card{
+  border-radius: 18px;
+  background: linear-gradient(180deg, var(--az-bg-primary), var(--az-bg-secondary));
+  border: 1px solid var(--az-border);
+  box-shadow: var(--az-shadow-md);
+  overflow:hidden;
+  animation: az-fadeUp .55s ease both;
+  max-width: 820px;
+}
+
+/* Top head */
+.az-del-top{
+  display:flex;
+  align-items:center;
+  gap: 14px;
+  padding: 18px 18px 12px;
+  border-bottom: 1px solid rgba(148,163,184,.18);
+}
+
+.az-del-icon{
+  width:46px;
+  height:46px;
+  border-radius: 14px;
+  display:grid;
+  place-items:center;
+  border: 1px solid rgba(239,68,68,.35);
+  background: rgba(239,68,68,.12);
+  box-shadow: var(--az-shadow-sm);
+}
+.az-del-icon i{
+  color: #ef4444;
+  filter: drop-shadow(0 10px 20px rgba(239,68,68,.20));
+}
+
+.az-del-title{
+  margin:0;
+  color: var(--az-text-primary);
+  font-weight: 1000;
+  font-size: 1.15rem;
+}
+.az-del-sub{
+  margin:4px 0 0;
+  color: var(--az-text-tertiary);
+  font-weight: 700;
+}
+
+/* Body */
+.az-del-body{
+  padding: 16px 18px 10px;
+}
+
+.az-del-text{
+  margin:0 0 12px;
+  color: var(--az-text-secondary);
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.az-del-name{
+  display:inline-flex;
+  align-items:center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(239,68,68,.35);
+  background: rgba(239,68,68,.10);
+  color: var(--az-text-primary);
+  font-weight: 1000;
+  margin-left: 6px;
+}
+
+/* Hint */
+.az-del-hint{
+  display:flex;
+  align-items:flex-start;
+  gap:10px;
+  padding: 12px 12px;
+  border-radius: 14px;
+  border: 1px dashed rgba(148,163,184,.28);
+  background: rgba(148,163,184,.06);
+  color: var(--az-text-tertiary);
+  font-weight: 750;
+}
+.az-del-hint i{
+  margin-top:2px;
+  color: var(--az-primary);
+  opacity:.95;
+}
+
+/* Actions */
+.az-del-actions{
+  display:flex;
+  gap: 10px;
+  flex-wrap:wrap;
+  padding: 0 18px 18px;
+}
+
+/* Disabled button */
+.az-btn-disabled{
+  opacity: .55;
+  pointer-events: none;
+  cursor: not-allowed;
+}
+
+/* Anim */
+@keyframes az-fadeUp{
+  from{ opacity:0; transform: translateY(10px); }
+  to{ opacity:1; transform: translateY(0); }
+}
+
+/* Responsive */
+@media (max-width: 900px){
+  .az-del-card{ width:100%; }
+  .az-del-top{ align-items:flex-start; }
+}

@@ -1,0 +1,19 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}Période | AZ{% endblock %}
+{% block page_title %}Période{% endblock %}
+{% block breadcrumb %}Pédagogie / Périodes{% endblock %}
+
+{% block content %}
+<div class="az-card" style="grid-column:span 12;max-width:760px;">
+  <h3>{% if mode == "create" %}Ajouter{% else %}Modifier{% endif %} une période</h3>
+
+  <form method="post" style="margin-top:12px;display:flex;flex-direction:column;gap:10px;">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <button class="az-btn az-btn-gradient" type="submit">💾 Enregistrer</button>
+      <a class="az-btn" href="{% url 'core:periode_list' %}">↩️ Retour</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,156 @@
+{% extends "prof/base_prof.html" %}
+{% load static %}
+
+{% block title %}Mes évaluations | Prof{% endblock %}
+{% block page_title %}Évaluations{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'prof/css/evaluations.css' %}?v=3">
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'prof/js/evaluations.js' %}?v=3" defer></script>
+{% endblock %}
+
+{% block content %}
+<div class="azp">
+
+  <!-- HEADER -->
+  <div class="azp-head">
+    <div>
+      <div class="azp-pill">
+        <i class="fa-solid fa-chalkboard-user"></i>
+        <span>Prof</span>
+        <span class="sep">•</span>
+        <span>Évaluations</span>
+      </div>
+      <h1 class="azp-title">Mes évaluations</h1>
+      <p class="azp-sub">Gérer tes évaluations et accéder à la saisie des notes.</p>
+    </div>
+
+    <div class="azp-actions">
+      <a class="azp-btn primary" href="{% url 'prof:evaluation_create' %}">
+        <i class="fa-solid fa-plus"></i>
+        <span>Nouvelle évaluation</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- FILTRES -->
+  <div class="azp-card azp-filters">
+    <div class="azp-filters-row">
+
+      <div class="azp-field">
+        <label>Recherche</label>
+        <div class="azp-input">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input id="q" class="az-field" type="text" placeholder="Matière, groupe, période…" autocomplete="off">
+        </div>
+      </div>
+
+      <div class="azp-field">
+        <label>Groupe</label>
+        <select id="groupe" class="az-field">
+          <option value="">Tous</option>
+          {% for g in groupes %}
+            <option value="{{ g.id }}">{{ g.niveau.degre.nom }} • {{ g.niveau.nom }} • {{ g.nom }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="azp-field">
+        <label>Trier</label>
+        <select id="sort" class="az-field">
+          <option value="date_desc">Plus récentes</option>
+          <option value="date_asc">Plus anciennes</option>
+          <option value="groupe_asc">Groupe A→Z</option>
+          <option value="matiere_asc">Matière A→Z</option>
+        </select>
+      </div>
+
+
+
+    </div>
+  </div>
+
+  <!-- TABLE / CARDS -->
+  <div class="azp-card">
+    <div class="azp-table-top">
+      <div class="azp-table-title">
+        <i class="fa-solid fa-list-check"></i>
+        <span>Liste</span>
+        <span class="muted" id="count"></span>
+      </div>
+      <div class="azp-hint muted">
+        Astuce : clique sur une ligne pour ouvrir la saisie.
+      </div>
+    </div>
+
+    <div class="azp-table-wrap">
+      <table class="azp-table" id="evTable">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Matière</th>
+            <th>Période</th>
+            <th>Groupe</th>
+            <th class="right">/20</th>
+            <th class="right">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for ev in evaluations %}
+          <tr class="ev-row"
+              data-groupe="{{ ev.groupe_id }}"
+              data-date="{{ ev.date|date:'Y-m-d' }}"
+              data-matiere="{{ ev.matiere.nom|default_if_none:''|lower }}"
+              data-periode="{{ ev.periode.nom|default_if_none:''|lower }}"
+              data-groupe-txt="{{ ev.groupe.niveau.degre.nom }} {{ ev.groupe.niveau.nom }} {{ ev.groupe.nom }}"
+              data-href="{% url 'prof:notes_saisie' evaluation_id=ev.id %}">
+            <td>
+              <div class="cell-main">{{ ev.date|date:"d/m/Y" }}</div>
+              <div class="cell-sub muted">#{{ ev.id }}</div>
+            </td>
+            <td>
+              <div class="cell-main">{{ ev.matiere.nom }}</div>
+              <div class="cell-sub muted">{{ ev.matiere.code|default:"" }}</div>
+            </td>
+            <td>
+              <span class="badge">{{ ev.periode.nom }}</span>
+            </td>
+            <td>
+              <div class="cell-main">{{ ev.groupe.niveau.degre.nom }} • {{ ev.groupe.niveau.nom }}</div>
+              <div class="cell-sub muted">{{ ev.groupe.nom }}</div>
+            </td>
+            <td class="right">
+              <span class="pill">{{ ev.note_max }}</span>
+            </td>
+            <td class="right">
+              <a class="azp-btn sm" href="{% url 'prof:notes_saisie' evaluation_id=ev.id %}">
+                <i class="fa-solid fa-pen-to-square"></i>
+                <span>Saisir</span>
+              </a>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="6" class="empty">
+              <i class="fa-regular fa-folder-open"></i>
+              <div>
+                <div class="empty-title">Aucune évaluation</div>
+                <div class="muted">Crée une première évaluation pour commencer.</div>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      <!-- Container Cards mobile (rempli en JS) -->
+      <div id="evCards" class="ev-cards" hidden></div>
+    </div>
+
+  </div>
+
+</div>
+{% endblock %}

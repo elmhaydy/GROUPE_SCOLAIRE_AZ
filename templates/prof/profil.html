@@ -1,0 +1,150 @@
+{% extends "prof/base_prof.html" %}
+{% load static %}
+
+{% block title %}Mon profil | AZ Espace Prof{% endblock %}
+{% block page_title %}Mon profil{% endblock %}
+{% block current_page %}Profil{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'prof/css/profil.css' %}?v=3">
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'prof/js/profil.js' %}?v=3" defer></script>
+{% endblock %}
+
+{% block content %}
+<div class="azp">
+
+  <!-- HEADER CARD (HERO) -->
+  <div class="azp-hero">
+    <div class="azp-avatar" aria-hidden="true">
+      {{ request.user.first_name|default:"P"|slice:":1" }}{{ request.user.last_name|default:"R"|slice:":1" }}
+    </div>
+
+    <div class="azp-hero-meta">
+      <div class="azp-name">
+        <h2>{{ request.user.get_full_name|default:request.user.username }}</h2>
+        <span class="azp-badge">Professeur</span>
+      </div>
+
+      <p class="azp-sub muted">
+        <i class="fa-solid fa-id-card" style="margin-right: 8px; opacity: 0.5;"></i>
+        {% if ens and ens.matricule %}{{ ens.matricule }}{% else %}{{ request.user.username }}{% endif %}
+        {% if ens and ens.specialite %} 
+          <span style="margin: 0 10px; opacity: 0.3;">|</span>
+          <i class="fa-solid fa-book-bookmark" style="margin-right: 8px; opacity: 0.5;"></i>
+          {{ ens.specialite }}
+        {% endif %}
+      </p>
+
+      <div class="azp-kpis">
+        <div class="azp-kpi">
+          <span>{{ stats.nb_groupes|default:"0" }}</span>
+          <small>Groupes</small>
+        </div>
+        <div class="azp-kpi">
+          <span>{{ stats.nb_seances|default:"0" }}</span>
+          <small>Séances</small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- GRID LAYOUT -->
+  <div class="azp-grid">
+
+    <!-- INFORMATIONS PERSONNELLES -->
+    <section class="azp-card">
+      <div class="azp-card-head">
+        <h3>Informations personnelles</h3>
+        <p class="muted">Gérez vos coordonnées et informations de contact.</p>
+      </div>
+
+      <form method="post" class="azp-form" novalidate>
+        {% csrf_token %}
+        <input type="hidden" name="tab" value="infos">
+
+        <div class="azp-row-2">
+          <div class="azp-field">
+            <label for="id_first_name">Prénom</label>
+            <input type="text" id="id_first_name" name="first_name" value="{{ request.user.first_name }}" autocomplete="given-name" placeholder="Votre prénom">
+          </div>
+          <div class="azp-field">
+            <label for="id_last_name">Nom</label>
+            <input type="text" id="id_last_name" name="last_name" value="{{ request.user.last_name }}" autocomplete="family-name" placeholder="Votre nom">
+          </div>
+        </div>
+
+        <div class="azp-field">
+          <label for="id_email">Adresse Email</label>
+          <input type="email" id="id_email" name="email" value="{{ request.user.email }}" autocomplete="email" placeholder="votre@email.com">
+        </div>
+
+        <div class="azp-field">
+          <label for="id_telephone">Téléphone</label>
+          <input type="text" id="id_telephone" name="telephone" value="{% if ens and ens.telephone %}{{ ens.telephone }}{% endif %}" autocomplete="tel" placeholder="06 XX XX XX XX">
+        </div>
+
+        <div class="azp-actions">
+          <button class="azp-btn primary" type="submit">
+            <i class="fa-solid fa-floppy-disk"></i>
+            Enregistrer les modifications
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <!-- SÉCURITÉ & MOT DE PASSE -->
+    <section class="azp-card">
+      <div class="azp-card-head">
+        <h3>Sécurité du compte</h3>
+        <p class="muted">Protégez votre accès en changeant régulièrement votre mot de passe.</p>
+      </div>
+
+      <form method="post" class="azp-form" novalidate>
+        {% csrf_token %}
+        <input type="hidden" name="tab" value="password">
+
+        <div class="azp-field">
+          <label>Ancien mot de passe</label>
+          {{ pwd_form.old_password }}
+          {% if pwd_form.old_password.errors %}
+            <div class="azp-error"><i class="fa-solid fa-circle-exclamation"></i> {{ pwd_form.old_password.errors|striptags }}</div>
+          {% endif %}
+        </div>
+
+        <div class="azp-field">
+          <label>Nouveau mot de passe</label>
+          {{ pwd_form.new_password1 }}
+          {% if pwd_form.new_password1.errors %}
+            <div class="azp-error"><i class="fa-solid fa-circle-exclamation"></i> {{ pwd_form.new_password1.errors|striptags }}</div>
+          {% endif %}
+        </div>
+
+        <div class="azp-field">
+          <label>Confirmer le nouveau mot de passe</label>
+          {{ pwd_form.new_password2 }}
+          {% if pwd_form.new_password2.errors %}
+            <div class="azp-error"><i class="fa-solid fa-circle-exclamation"></i> {{ pwd_form.new_password2.errors|striptags }}</div>
+          {% endif %}
+        </div>
+
+        <div class="azp-actions">
+          <button class="azp-btn" type="button" id="togglePwd">
+            <i class="fa-solid fa-eye"></i>
+            Afficher
+          </button>
+
+          <button class="azp-btn primary" type="submit">
+            <i class="fa-solid fa-key"></i>
+            Mettre à jour le mot de passe
+          </button>
+        </div>
+      </form>
+    </section>
+
+  </div>
+
+</div>
+{% endblock %}

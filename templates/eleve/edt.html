@@ -1,0 +1,147 @@
+{% extends "eleve/base.html" %}
+{% load static %}
+
+{% load core_extras %}
+
+{% block title %}Emploi du temps | Portail Élève{% endblock %}
+{% block page_title %}Emploi du temps{% endblock %}
+
+{# ✅ Ajoute tes fichiers #}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'eleve/css/edt.css' %}">
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'eleve/js/edt.js' %}?v=1"></script>
+{% endblock %}
+
+{% block content %}
+<div class="edt-page">
+
+  <div class="card">
+    <div class="edt-head">
+      <div>
+        <h3 style="margin:0">Emploi du temps hebdomadaire</h3>
+        <div class="muted">
+          {% if inscription %}{{ inscription.groupe.niveau.nom }} • {{ inscription.groupe.nom }}{% endif %}
+          {% if annee_active %} • {{ annee_active.nom }}{% endif %}
+        </div>
+      </div>
+
+      {# ✅ Search/Filter front (facultatif mais premium) #}
+      <div class="edt-actions">
+        <div class="edt-search">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input id="edtSearch" placeholder="Filtrer (matière, prof, salle…)" autocomplete="off">
+        </div>
+        <button type="button" class="edt-btn" id="edtClear" title="Effacer">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+    </div>
+
+    {% if creneaux %}
+      <div class="edt-wrap">
+        <table class="edt-grid">
+          <thead>
+            <tr>
+              <th class="edt-hour">Heure</th>
+              {% for j in jours %}
+                <th>{{ jours_labels|get_item:j }}</th>
+              {% endfor %}
+            </tr>
+          </thead>
+
+          <tbody>
+            {% for key in creneaux %}
+            <tr>
+              <td class="edt-hour-cell">
+                <span class="edt-time">{{ key|slice:":5" }}–{{ key|slice:"6:11" }}</span>
+              </td>
+
+              {% for j in jours %}
+                {% with row=grid|get_item:key %}
+                {% with cell=row|get_item:j %}
+                {% with s=cell.seance %}
+                  <td class="edt-cell">
+                    {% if s %}
+                      <div class="edt-event"
+                           data-haystack="{{ s.matiere|default:'—' }} {{ s.salle|default:'' }} {{ s.enseignant.prenom }} {{ s.enseignant.nom }} {{ jours_labels|get_item:j }} {{ key }}">
+                        {% if cell.part == "CONT" %}
+                          <div class="muted" style="font-weight:800;margin-bottom:6px">↳ Suite</div>
+                        {% endif %}
+
+                        <div class="edt-event-top">
+                          <div class="edt-subject">{{ s.matiere|default:"—" }}</div>
+                          {% if s.salle %}
+                            <div class="edt-room">{{ s.salle }}</div>
+                          {% endif %}
+                        </div>
+
+                        <div class="edt-teacher muted">
+                          {{ s.enseignant.prenom }} {{ s.enseignant.nom }}
+                        </div>
+                      </div>
+                    {% else %}
+                      <div class="edt-empty">—</div>
+                    {% endif %}
+                  </td>
+                {% endwith %}
+                {% endwith %}
+                {% endwith %}
+              {% endfor %}
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      {# ✅ Mobile cards #}
+      <div class="edt-mobile">
+        {% for j in jours %}
+          <div class="edt-day">
+            <div class="edt-day-title">{{ jours_labels|get_item:j }}</div>
+
+            <div class="edt-day-list">
+              {% for key in creneaux %}
+                {% with row=grid|get_item:key %}
+                {% with cell=row|get_item:j %}
+                {% with s=cell.seance %}
+                  {% if s %}
+                    <div class="edt-m-card"
+                         data-haystack="{{ s.matiere|default:'—' }} {{ s.salle|default:'' }} {{ s.enseignant.prenom }} {{ s.enseignant.nom }} {{ jours_labels|get_item:j }} {{ key }}">
+                      <div class="edt-m-time">{{ key|slice:":5" }}–{{ key|slice:"6:11" }}</div>
+
+                      <div class="edt-m-body">
+                        <div class="edt-m-subject">
+                          {{ s.matiere|default:"—" }}
+                          {% if cell.part == "CONT" %}
+                            <span class="muted" style="font-weight:800"> • Suite</span>
+                          {% endif %}
+                        </div>
+
+                        <div class="muted">
+                          {% if s.salle %}Salle: {{ s.salle }} • {% endif %}
+                          {{ s.enseignant.prenom }} {{ s.enseignant.nom }}
+                        </div>
+                      </div>
+                    </div>
+                  {% endif %}
+                {% endwith %}
+                {% endwith %}
+                {% endwith %}
+              {% endfor %}
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+
+    {% else %}
+      <div style="padding: 12px 16px 16px;">
+        <p class="muted" style="margin:0">Aucun créneau défini.</p>
+      </div>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}

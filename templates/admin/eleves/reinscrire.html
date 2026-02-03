@@ -1,0 +1,78 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}Réinscription | AZ{% endblock %}
+{% block page_title %}Réinscription{% endblock %}
+{% block current_page %}Élèves / Réinscription{% endblock %}
+
+{% block content %}
+<div class="az-card" style="grid-column:span 12;max-width:860px;">
+  <h3 style="margin:0;">Réinscrire : {{ eleve.nom }} {{ eleve.prenom }}</h3>
+  <p class="az-sub" style="margin-top:6px;">
+    Créer une nouvelle inscription pour la prochaine année scolaire.
+  </p>
+
+  <form method="post" style="margin-top:14px;display:flex;flex-direction:column;gap:12px;">
+    {% csrf_token %}
+
+    <div class="az-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div>
+        <label><b>Année</b></label>
+        <select name="annee" class="az-select"
+                onchange="location='?annee='+this.value">
+          {% for a in annees %}
+            <option value="{{ a.id }}" {% if a.id|stringformat:"s" == annee_selected %}selected{% endif %}>
+              {{ a.nom }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div>
+        <label><b>Niveau</b></label>
+        <select name="niveau" class="az-select"
+                onchange="location='?annee={{ annee_selected }}&niveau='+this.value">
+          <option value="">—</option>
+          {% for n in niveaux %}
+            <option value="{{ n.id }}" {% if n.id|stringformat:"s" == niveau_selected %}selected{% endif %}>
+              {{ n.degre.nom }} — {{ n.nom }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div style="grid-column:span 2;">
+        <label><b>Groupe</b></label>
+        <select name="groupe" class="az-select" required>
+          <option value="">— Sélectionner un groupe —</option>
+          {% for g in groupes %}
+            <option value="{{ g.id }}" {% if g.id|stringformat:"s" == groupe_selected %}selected{% endif %}>
+              {{ g.annee.nom }} — {{ g.niveau.nom }} — {{ g.nom }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div style="grid-column:span 2;">
+        <label><b>Période</b> (optionnel)</label>
+        <select name="periode" class="az-select">
+          <option value="">—</option>
+          {% for p in periodes %}
+            <option value="{{ p.id }}" {% if p.id|stringformat:"s" == periode_selected %}selected{% endif %}>
+              {{ p.nom }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:6px;">
+      <button class="az-btn az-btn-primary" type="submit">
+        <i class="fa-solid fa-check"></i> Réinscrire
+      </button>
+      <a class="az-btn az-btn-ghost" href="{% url 'core:eleve_list' %}">
+        Annuler
+      </a>
+    </div>
+  </form>
+</div>
+{% endblock %}

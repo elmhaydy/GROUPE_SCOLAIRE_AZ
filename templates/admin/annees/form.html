@@ -1,0 +1,59 @@
+{% extends "admin/base_admin.html" %}
+{% load static %}
+
+{% block title %}Année scolaire | AZ{% endblock %}
+{% block page_title %}
+  {% if mode == "create" %}Ajouter{% else %}Modifier{% endif %} une année
+{% endblock %}
+{% block current_page %}Paramètres / Années scolaires{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'admin/css/annees/form.css' %}?v=1">
+{% endblock %}
+
+{% block content %}
+
+<div class="az-annee-card">
+  <h3 class="az-annee-title">Formulaire</h3>
+
+  <form method="post" class="az-annee-form">
+    {% csrf_token %}
+
+    <div>
+      <label>Nom</label>
+      {{ form.nom }}
+    </div>
+
+    <div>
+      <label>Date début</label>
+      {{ form.date_debut }}
+    </div>
+
+    <div>
+      <label>Date fin</label>
+      {{ form.date_fin }}
+    </div>
+
+    <label class="az-switch-row">
+      <span class="az-switch-text">Mettre comme année active</span>
+      {{ form.is_active }}
+      <span class="az-switch-ui" aria-hidden="true"></span>
+    </label>
+
+
+    <div class="az-annee-actions">
+      <button class="az-btn az-btn-gradient" type="submit">
+        <i class="fas fa-save"></i>  Enregistrer
+      </button>
+      <a class="az-btn" href="{% url 'core:annee_list' %}">
+        <i class="fas fa-arrow-left"></i>Retour
+      </a>
+    </div>
+  </form>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'admin/js/annees/form.js' %}?v=1"></script>
+{% endblock %}

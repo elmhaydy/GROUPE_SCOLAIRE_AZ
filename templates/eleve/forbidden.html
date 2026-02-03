@@ -1,0 +1,19 @@
+{% load static %}
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Accès refusé | Portail Élève</title>
+  <link rel="stylesheet" href="{% static 'eleve/css/portal.css' %}">
+</head>
+<body>
+  <div class="center">
+    <div class="card" style="max-width:520px">
+      <h2 style="margin:0 0 8px">⛔ Accès refusé</h2>
+      <p class="muted">Ce compte n’est pas lié à un profil élève.</p>
+      <a class="btn primary" href="{% url 'accounts:logout' %}">Se déconnecter</a>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,64 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}Reçu | {{ p.inscription.eleve.matricule }}{% endblock %}
+{% block page_title %}Reçu de paiement{% endblock %}
+{% block breadcrumb %}Finance / Paiements / Reçu{% endblock %}
+
+{% block content %}
+<div class="az-card" style="grid-column:span 12;max-width:860px;">
+  <h3>🧾 Reçu officiel</h3>
+
+  <div style="margin-top:12px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+    <div>
+      <div style="opacity:.8;font-size:12px;">Établissement</div>
+      <div style="font-weight:900;font-size:16px;">Groupe Scolaire AZ</div>
+      <div class="az-sub">Année : <b>{{ p.inscription.annee.nom }}</b></div>
+    </div>
+
+    <div style="text-align:right;">
+      <div style="opacity:.8;font-size:12px;">Date paiement</div>
+      <div style="font-weight:900;font-size:16px;">{{ p.date_paiement }}</div>
+      <div class="az-sub">Mode : <b>{{ p.get_mode_display }}</b></div>
+    </div>
+  </div>
+
+  <hr style="border:none;border-top:1px solid rgba(255,255,255,.12);margin:14px 0;">
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+    <div>
+      <div style="opacity:.8;font-size:12px;">Élève</div>
+      <div style="font-weight:900">
+        {{ p.inscription.eleve.matricule }} — {{ p.inscription.eleve.nom }} {{ p.inscription.eleve.prenom }}
+      </div>
+      <div class="az-sub">
+        Groupe : <b>{{ p.inscription.groupe.niveau.degre.nom }} / {{ p.inscription.groupe.niveau.nom }} / {{ p.inscription.groupe.nom }}</b>
+      </div>
+    </div>
+
+    <div>
+      <div style="opacity:.8;font-size:12px;">Détails</div>
+
+      <div class="az-sub">
+        Nature : <b>{{ p.get_nature_display }}</b>
+        {% if p.echeance %} — <b>{{ p.echeance.mois_nom }}</b>{% endif %}
+      </div>
+
+      <div class="az-sub">Montant payé : <b>{{ p.montant }} MAD</b></div>
+      <div class="az-sub">Total payé : <b>{{ total_paye }} MAD</b></div>
+      <div class="az-sub">Reste : <b>{{ reste }} MAD</b></div>
+    </div>
+  </div>
+
+  {% if p.reference or p.note %}
+    <hr style="border:none;border-top:1px solid rgba(255,255,255,.12);margin:14px 0;">
+    {% if p.reference %}<div class="az-sub">Référence : <b>{{ p.reference }}</b></div>{% endif %}
+    {% if p.note %}<div class="az-sub">Note : <b>{{ p.note }}</b></div>{% endif %}
+  {% endif %}
+
+  <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap;">
+    <a class="az-btn" href="{% url 'core:paiement_list' %}">↩️ Retour paiements</a>
+    <a class="az-btn az-btn-gradient" href="#" onclick="window.print();return false;">🖨️ Imprimer</a>
+    <a class="az-btn" href="{% url 'core:paiement_recu_pdf_auto' p.id %}">⬇️ PDF</a>
+
+  </div>
+</div>
+{% endblock %}

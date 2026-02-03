@@ -1,0 +1,171 @@
+{% extends "admin/base_admin.html" %}
+{% load static %}
+
+{% block title %}Séance | AZ{% endblock %}
+{% block page_title %}{% if mode == "create" %}Ajouter{% else %}Modifier{% endif %} une séance{% endblock %}
+{% block breadcrumb %}Pédagogie / Emploi du temps{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css">
+<link rel="stylesheet" href="{% static 'admin/css/seances/form.css' %}?v=3">
+{% endblock %}
+
+{% block content %}
+
+<div class="az-seance-card">
+
+  <!-- HEADER -->
+  <div class="az-seance-head">
+    <div>
+      <h3 class="az-seance-title">
+        {% if mode == "create" %}Nouvelle séance{% else %}Modifier la séance{% endif %}
+      </h3>
+      <p class="az-seance-sub">
+        Sélectionne l’année, le groupe et l’enseignant, puis configure le jour et l’horaire.
+      </p>
+    </div>
+
+    <div>
+      <span class="az-badge">
+        <i class="fas fa-calendar-alt"></i> Emploi du temps
+      </span>
+    </div>
+  </div>
+
+  {% if form.non_field_errors %}
+    {% for err in form.non_field_errors %}
+      <div class="az-msg az-msg-danger">{{ err }}</div>
+    {% endfor %}
+  {% endif %}
+
+  <form method="post" class="az-seance-form" novalidate>
+    {% csrf_token %}
+
+    {# ✅ valeurs pré-sélectionnées (mode update) #}
+    <div id="selected_groupe_value" style="display:none;">
+      {{ form.groupe.value|default_if_none:"" }}
+    </div>
+    <div id="selected_enseignant_value" style="display:none;">
+      {{ form.enseignant.value|default_if_none:"" }}
+    </div>
+
+    <!-- SECTION 1: Contexte -->
+    <div class="az-section">
+      <div class="az-section-head">
+        <div>
+          <h4 class="az-section-title"><i class="fas fa-layer-group"></i> Contexte</h4>
+          <p class="az-section-sub">Le groupe dépend de l’année. L’enseignant dépend du groupe.</p>
+        </div>
+      </div>
+
+      <div class="az-grid-2">
+        <div class="az-field">
+          <label for="{{ form.annee.id_for_label }}">Année</label>
+          {{ form.annee }}
+          <div class="az-help">Année scolaire concernée.</div>
+        </div>
+
+        <div class="az-field">
+          <label for="{{ form.groupe.id_for_label }}">Groupe</label>
+          {{ form.groupe }}
+          <div class="az-help">Liste filtrée automatiquement selon l’année.</div>
+        </div>
+      </div>
+
+      <div class="az-field" style="margin-top:12px;">
+        <label for="{{ form.enseignant.id_for_label }}">Enseignant</label>
+        {{ form.enseignant }}
+        <div class="az-help">Recherche rapide (nom / prénom / matricule) via Tom Select.</div>
+      </div>
+    </div>
+
+    <!-- SECTION 2: Horaire -->
+    <div class="az-section">
+      <div class="az-section-head">
+        <div>
+          <h4 class="az-section-title"><i class="fas fa-clock"></i> Horaire</h4>
+          <p class="az-section-sub">Choisis le jour et l’heure de début/fin.</p>
+        </div>
+      </div>
+
+      <div class="az-grid-3">
+        <div class="az-field">
+          <label for="{{ form.jour.id_for_label }}">Jour</label>
+          {{ form.jour }}
+        </div>
+
+        <div class="az-field">
+          <label for="{{ form.heure_debut.id_for_label }}">Heure début</label>
+          {{ form.heure_debut }}
+        </div>
+
+        <div class="az-field">
+          <label for="{{ form.heure_fin.id_for_label }}">Heure fin</label>
+          {{ form.heure_fin }}
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION 3: Détails -->
+    <div class="az-section">
+      <div class="az-section-head">
+        <div>
+          <h4 class="az-section-title"><i class="fas fa-book"></i> Détails</h4>
+          <p class="az-section-sub">Matière + salle (si besoin).</p>
+        </div>
+      </div>
+
+      <div class="az-grid-2">
+        <div class="az-field">
+          <label for="{{ form.matiere.id_for_label }}">Matière</label>
+          {{ form.matiere }}
+          <div class="az-help">Ex: Math, Français, Anglais...</div>
+        </div>
+
+        <div class="az-field">
+          <label for="{{ form.salle.id_for_label }}">Salle</label>
+          {{ form.salle }}
+          <div class="az-help">Ex: A1, B3, Labo, etc.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ACTIONS sticky glass -->
+    <div class="az-seance-actions az-seance-actions--sticky">
+      <a class="az-btn az-btn-outline"
+         href="{% url 'core:edt_week' %}?annee={{ request.GET.annee }}&groupe={{ request.GET.groupe }}">
+        <i class="fas fa-times"></i> Annuler
+      </a>
+
+      <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;">
+        <button class="az-btn az-btn-soft" type="submit" name="action" value="save_add">
+          <i class="fas fa-plus"></i> Enregistrer + Ajouter une autre
+        </button>
+
+        <button class="az-btn az-btn-gradient" type="submit" name="action" value="save" id="saveBtn">
+          <i class="fas fa-save"></i> Enregistrer
+        </button>
+
+        <a class="az-btn az-btn-outline" href="{% url 'core:seance_list' %}">
+          <i class="fas fa-arrow-left"></i> Retour
+        </a>
+      </div>
+    </div>
+
+  </form>
+</div>
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
+
+<script>
+  window.AZ_SEANCE = {
+    apiGroupes: "{% url 'core:api_groupes_par_annee' %}",
+    apiEnseignants: "{% url 'core:api_enseignants' %}",
+  };
+</script>
+
+<script src="{% static 'admin/js/seances/form.js' %}?v=2"></script>
+{% endblock %}
+
+{% endblock %}

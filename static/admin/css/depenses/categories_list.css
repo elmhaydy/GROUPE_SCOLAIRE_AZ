@@ -1,0 +1,246 @@
+/* =========================================================
+   AZ NEBULA — Catégories Dépenses (categories_list.css)
+   - Calqué sur Dépenses (list.css)
+   - Table grid premium (4 colonnes) + labels mobiles
+   - Dark/Light via thème global (vars base_admin)
+   ========================================================= */
+
+/* ===== Page Head ===== */
+.az-page-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap: var(--az-spacing-lg);
+  flex-wrap:wrap;
+  margin-bottom: var(--az-spacing-lg);
+}
+.az-page-head-left,
+.az-page-head-right{
+  display:flex;
+  align-items:center;
+  gap: var(--az-spacing-md);
+  flex-wrap:wrap;
+}
+
+/* ===== Card ===== */
+.az-cat-card{
+  border-radius: 16px;
+  background: var(--az-bg-primary);
+  border: 1px solid var(--az-border);
+  box-shadow: var(--az-shadow-sm);
+  overflow:hidden;
+  animation: az-fadeUp .55s ease both;
+}
+
+/* ===== Grid Table (4 colonnes) ===== */
+/* IMPORTANT: on neutralise le rendu natif table pour utiliser le style grid AZ */
+.az-cat-table{
+  width:100%;
+  border-collapse: separate;
+}
+
+.az-cat-table thead,
+.az-cat-table tbody,
+.az-cat-table tr,
+.az-cat-table th,
+.az-cat-table td{
+  border:0;
+}
+
+/* on remplace le header table par un header grid */
+.az-cat-table thead{
+  display:block;
+  padding: 14px 14px 0;
+}
+.az-cat-table thead tr{
+  display:grid;
+  grid-template-columns: 2.4fr 1fr 1.2fr 1.2fr;
+  gap: 10px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+  border-radius: 12px;
+  background: var(--az-bg-secondary);
+  border: 1px solid var(--az-border);
+  color: var(--az-text-tertiary);
+  font-size: .78rem;
+  font-weight: 900;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.az-cat-table thead th{ padding:0; }
+.az-cat-table thead th:last-child{ text-align:right; padding-right:4px; }
+
+/* body = liste de rows en colonne */
+.az-cat-table tbody{
+  display:flex;
+  flex-direction:column;
+  gap: 10px;
+  padding: 0 14px 14px;
+}
+
+/* row premium */
+.az-cat-table tbody tr{
+  display:grid;
+  grid-template-columns: 2.4fr 1fr 1.2fr 1.2fr;
+  gap: 10px;
+  align-items:center;
+  padding: 14px 12px;
+  border-radius: 14px;
+  background: var(--az-bg-primary);
+  border: 1px solid var(--az-border);
+  box-shadow: var(--az-shadow-sm);
+  transition: var(--az-transition-fast);
+  position:relative;
+  overflow:hidden;
+}
+.az-cat-table tbody tr:hover{
+  background: var(--az-bg-secondary);
+  border-color: rgba(99,102,241,.40);
+  box-shadow: var(--az-shadow-md);
+  transform: translateY(-2px);
+}
+
+/* barre violette */
+.az-cat-table tbody tr::before{
+  content:"";
+  position:absolute;
+  inset:0 auto 0 0;
+  width:3px;
+  background: linear-gradient(180deg, var(--az-primary), var(--az-primary-light));
+  opacity:0;
+  transition: var(--az-transition-fast);
+}
+.az-cat-table tbody tr:hover::before{ opacity:1; }
+
+/* cells */
+.az-cat-table td{
+  padding:0;
+  color: var(--az-text-secondary);
+  font-size: .95rem;
+  min-width:0;
+}
+.az-cat-name{
+  color: var(--az-text-primary);
+  font-weight: 900;
+}
+.az-muted{ color: var(--az-text-tertiary); }
+
+/* badges */
+.az-badge{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: .8rem;
+  font-weight: 900;
+  border: 1px solid transparent;
+}
+.az-badge-muted{
+  background: rgba(148,163,184,.10);
+  border-color: rgba(148,163,184,.20);
+  color: var(--az-text-secondary);
+}
+html[data-theme="dark"] .az-badge-muted{
+  background: rgba(255,255,255,.05);
+  border-color: rgba(255,255,255,.08);
+  color: rgba(241,245,249,.78);
+}
+
+/* Active badge (vert premium) */
+.az-badge-active{
+  background: rgba(34,197,94,.14);
+  border-color: rgba(34,197,94,.40);
+  color: var(--az-text-primary);
+}
+.az-badge-active i{ color:#22c55e; }
+
+/* actions */
+.az-actions{
+  display:flex;
+  gap: 8px;
+  justify-content:flex-end;
+  flex-wrap:wrap;
+}
+.az-actions .az-btn{
+  min-width: 42px;
+  min-height: 42px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.az-actions .az-btn-danger{
+  background: linear-gradient(180deg, #ef4444, #dc2626) !important;
+  border: none !important;
+  color: #fff !important;
+}
+
+/* empty */
+.az-empty{
+  padding: 26px 14px;
+  border-radius: 14px;
+  border: 1px dashed rgba(148,163,184,.30);
+  color: var(--az-text-secondary);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+  background: rgba(148,163,184,.06);
+}
+html[data-theme="dark"] .az-empty{
+  background: rgba(255,255,255,.04);
+  border-color: rgba(255,255,255,.10);
+  color: rgba(226,232,240,.75);
+}
+.az-empty i{ opacity:.9; color: var(--az-primary); }
+
+/* anim */
+@keyframes az-fadeUp{
+  from{ opacity:0; transform: translateY(10px); }
+  to{ opacity:1; transform: translateY(0); }
+}
+
+/* Responsive (labels mobile) */
+@media (max-width: 1100px){
+  .az-cat-table thead{ display:none; }
+
+  .az-cat-table tbody tr{
+    grid-template-columns: 1fr;
+    gap: 10px;
+    padding: 14px;
+  }
+
+  .az-actions{ justify-content:flex-start; }
+
+  /* labels mobile (4 colonnes) */
+  .az-cat-table tbody td:nth-child(1)::before{ content:"Nom"; }
+  .az-cat-table tbody td:nth-child(2)::before{ content:"Ordre"; }
+  .az-cat-table tbody td:nth-child(3)::before{ content:"Statut"; }
+  .az-cat-table tbody td:nth-child(4)::before{ content:"Actions"; margin-bottom:8px; }
+
+  .az-cat-table tbody td::before{
+    display:block;
+    color: var(--az-text-tertiary);
+    font-size: .78rem;
+    font-weight: 900;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+}
+
+/* =========================================================
+   FIX SELECT DROPDOWN (Dark mode) — Windows/Chrome
+   ========================================================= */
+html[data-theme="dark"] select{ color-scheme: dark; }
+html[data-theme="dark"] .az-select{
+  background-color: #0b1220 !important;
+  color: #f1f5f9 !important;
+  border-color: rgba(148,163,184,.22) !important;
+}
+html[data-theme="dark"] .az-select option,
+html[data-theme="dark"] .az-select optgroup{
+  background-color: #0b1220 !important;
+  color: #e5e7eb !important;
+}

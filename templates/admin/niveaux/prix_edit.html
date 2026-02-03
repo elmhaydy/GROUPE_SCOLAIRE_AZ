@@ -1,0 +1,75 @@
+{% extends "admin/base_admin.html" %}
+{% load static %}
+
+{% block title %}Prix Niveau | AZ{% endblock %}
+{% block page_title %}Définir les prix{% endblock %}
+{% block breadcrumb %}Structure / Niveaux / Prix{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'admin/css/niveaux/prix.css' %}?v=3">
+{% endblock %}
+
+{% block content %}
+
+<div class="az-prix-card">
+  <div class="az-prix-head">
+    <h3 class="az-prix-title">
+      Prix — {{ niveau.degre.nom }} / {{ niveau.nom }}
+    </h3>
+    <p class="az-prix-sub">
+      Année active : <b>{{ annee_active.nom }}</b>
+    </p>
+  </div>
+
+  <form method="post" class="az-prix-form" novalidate>
+    {% csrf_token %}
+
+    <!-- ✅ Prix Inscription (par degré) -->
+<!-- ✅ Prix Inscription (par niveau) -->
+<div class="az-field">
+  <label for="id_inscription">Frais d'inscription (MAD)</label>
+  <input
+    id="id_inscription"
+    name="frais_inscription"
+    value="{{ frais_niveau.frais_inscription }}"
+    inputmode="decimal"
+    placeholder="Ex : 1500 ou 1500.00"
+  />
+  <div class="az-help">
+    S’applique au niveau : <b>{{ niveau.nom }}</b>
+  </div>
+</div>
+
+<!-- ✅ Prix Scolarité (mensuel par niveau) -->
+<div class="az-field">
+  <label for="id_mensuel">Frais scolarité mensuel (MAD)</label>
+  <input
+    id="id_mensuel"
+    name="frais_scolarite_mensuel"
+    value="{{ frais_niveau.frais_scolarite_mensuel }}"
+    inputmode="decimal"
+    placeholder="Ex : 3000 ou 3000.00"
+  />
+  <div class="az-help">
+    S’applique au niveau : <b>{{ niveau.nom }}</b>
+  </div>
+</div>
+
+
+    <div class="az-prix-actions">
+      <button class="az-btn az-btn-gradient" type="submit" id="saveBtn">
+        <i class="fas fa-save"></i> Enregistrer
+      </button>
+
+      <a class="az-btn" href="{% url 'core:niveau_list' %}">
+        <i class="fas fa-arrow-left"></i> Retour
+      </a>
+    </div>
+  </form>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'admin/js/niveaux/prix.js' %}?v=3"></script>
+{% endblock %}

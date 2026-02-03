@@ -1,0 +1,114 @@
+{% extends "admin/base_admin.html" %}
+{% load static %}
+
+{% block title %}Absences pratique | AZ{% endblock %}
+{% block page_title %}Absences — Mode pratique{% endblock %}
+{% block breadcrumb %}Pédagogie / Absences{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'admin/css/absences/pratique.css' %}?v=1">
+{% endblock %}
+
+{% block content %}
+
+<div class="az-pratique">
+
+  <!-- Head -->
+  <div class="az-page-head">
+    <div class="az-page-head-left">
+      <div class="az-pill">
+        <i class="fa-solid fa-clipboard-check"></i>
+        <span>Prise d’absences (rapide)</span>
+      </div>
+    </div>
+
+    <div class="az-page-head-right">
+      <a class="az-btn az-btn-soft"
+         href="{% url 'core:absence_list' %}?annee={{ annee_selected }}&niveau={{ niveau_selected }}&groupe={{ groupe_selected }}&date={{ date_selected }}">
+        <i class="fa-solid fa-list"></i> Liste des absences
+      </a>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="az-filter-bar">
+    <div class="az-filter-form az-filter-form--pratique">
+
+      <div class="az-filter-label">
+        <i class="fa-solid fa-filter"></i>
+        <span>Filtres</span>
+      </div>
+
+      <div class="az-field">
+        <div class="az-field-label">Niveau</div>
+        <select id="id_niveau" class="az-select az-select-wide">
+          <option value="">— Tous —</option>
+          {% for n in niveaux %}
+            <option value="{{ n.id }}" {% if niveau_selected|safe == n.id|stringformat:"s" %}selected{% endif %}>
+              {{ n.degre.nom }} / {{ n.nom }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="az-field">
+        <div class="az-field-label">Groupe</div>
+        <select id="id_groupe" class="az-select az-select-wide">
+          <option value="">— Choisir —</option>
+          {% for g in groupes %}
+            <option value="{{ g.id }}" {% if groupe_selected|safe == g.id|stringformat:"s" %}selected{% endif %}>
+              {{ g.niveau.degre.nom }} / {{ g.niveau.nom }} / {{ g.nom }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="az-field">
+        <div class="az-field-label">Date</div>
+        <input id="id_date" type="date" class="az-input az-input-date" value="{{ date_selected }}">
+      </div>
+
+      <div class="az-actions">
+        <button class="az-btn az-btn-gradient" type="button" id="btn_load">
+          <i class="fa-solid fa-calendar-day"></i> Afficher
+        </button>
+
+        <a class="az-btn az-btn-ghost"
+           href="{% url 'core:absences_jour' %}?annee={{ annee_selected }}&groupe={{ groupe_selected }}&date={{ date_selected }}">
+          <i class="fa-solid fa-calendar-week"></i> Absences du jour
+        </a>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Content -->
+  <div class="az-card az-pratique-card">
+    <div class="az-card-head">
+      <h3 class="az-card-title">
+        <i class="fa-solid fa-clock"></i> Séances du jour
+      </h3>
+      <div class="az-sub" id="hint">
+        Choisis un groupe + une date puis clique “Afficher”.
+      </div>
+    </div>
+
+    <div id="seances_box" class="az-seances-grid"></div>
+  </div>
+
+</div>
+
+<script>
+  window.AZ_ABS_PRATIQUE = {
+    anneeId: "{{ annee_selected }}",
+    urlGroupes: "{% url 'core:ajax_groupes' %}",
+    urlSeances: "{% url 'core:api_seances_par_groupe_date' %}",
+    urlFeuilleBase: "{% url 'core:absences_feuille' %}"
+  };
+</script>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'admin/js/absences/pratique.js' %}?v=1"></script>
+{% endblock %}

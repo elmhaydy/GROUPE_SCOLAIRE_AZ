@@ -1,0 +1,49 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}Périodes | AZ{% endblock %}
+{% block page_title %}Périodes scolaires{% endblock %}
+{% block breadcrumb %}Notes / Périodes{% endblock %}
+
+{% block content %}
+
+<div class="az-card">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+    <h3>Liste des périodes</h3>
+    <a class="az-btn az-btn-gradient" href="{% url 'core:periode_create' %}">➕ Nouvelle période</a>
+  </div>
+
+  <table style="width:100%;border-collapse:separate;border-spacing:0 8px;">
+    <thead>
+      <tr style="opacity:.7;text-align:left;">
+        <th>Nom</th>
+        <th>Année</th>
+        <th>Début</th>
+        <th>Fin</th>
+        <th></th>
+      </tr>
+    </thead>
+
+    <tbody>
+      {% for p in periodes %}
+      <tr style="background:rgba(255,255,255,.04);">
+        <td><b>{{ p.nom }}</b></td>
+        <td>{{ p.annee.nom }}</td>
+        <td>{{ p.date_debut }}</td>
+        <td>{{ p.date_fin }}</td>
+        <td>
+          <div style="display:flex;gap:8px;">
+            <a class="az-btn" href="{% url 'core:periode_update' p.id %}">✏️</a>
+            <a class="az-btn" href="{% url 'core:periode_delete' p.id %}">🗑️</a>
+          </div>
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="5" class="az-sub">Aucune période.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}

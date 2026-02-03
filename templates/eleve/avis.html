@@ -1,0 +1,133 @@
+{% extends "eleve/base.html" %}
+{% load static %}
+{% block title %}Avis | Portail Élève{% endblock %}
+{% block page_title %}Avis{% endblock %}
+
+{% block extra_css %}
+{# ✅ même thème NEBULA que cahier #}
+<link rel="stylesheet" href="{% static 'eleve/css/cahier.css' %}?v=99">
+{% endblock %}
+
+{% block content %}
+
+<section class="az-card az-page">
+  <div class="az-page-head">
+    <div>
+      <h3 style="margin:0">Avis</h3>
+      <div class="muted">Affichage “emploi du temps” par semaine (administration & pédagogie)</div>
+    </div>
+
+    <a class="az-link" href="{% url 'eleve:dashboard' %}">
+      <i class="fa-solid fa-arrow-left"></i> Retour
+    </a>
+  </div>
+
+  <form class="az-filters" method="get">
+    <div class="az-filter">
+      <label class="muted">Recherche</label>
+      <div class="az-input">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input name="q" value="{{ q }}" placeholder="Titre ou contenu..." />
+      </div>
+    </div>
+
+    <div class="az-filter">
+      <label class="muted">Semaine</label>
+      <input type="date" name="week" class="az-date" value="{{ week_selected }}">
+    </div>
+
+    <div class="az-filter az-filter-actions" style="grid-column: span 2;">
+      <button class="az-btn primary" type="submit">
+        <i class="fa-solid fa-filter"></i> Filtrer
+      </button>
+      <a class="az-btn" href="{% url 'eleve:avis' %}">Réinitialiser</a>
+    </div>
+  </form>
+
+  <div class="az-weekbar">
+    <div class="az-weekbar-left">
+      <div class="az-week-title">
+        Semaine du <strong>{{ week_start|date:"d/m/Y" }}</strong> au <strong>{{ week_end|date:"d/m/Y" }}</strong>
+      </div>
+      <div class="muted">Chaque avis est classé dans le jour de publication.</div>
+    </div>
+
+    <div class="az-weekbar-actions">
+      <a class="az-btn" href="?week={{ prev_week }}{% if q %}&q={{ q|urlencode }}{% endif %}">
+        <i class="fa-solid fa-chevron-left"></i> Semaine -1
+      </a>
+      <a class="az-btn" href="?week={{ next_week }}{% if q %}&q={{ q|urlencode }}{% endif %}">
+        Semaine +1 <i class="fa-solid fa-chevron-right"></i>
+      </a>
+    </div>
+  </div>
+
+  <div class="az-week-wrap">
+    <table class="az-week">
+      <thead>
+        <tr>
+          {% for d in days %}
+            <th>
+              <div class="az-week-head">
+                <div class="az-week-day">{{ d|date:"D" }}</div>
+                <div class="az-week-date muted">{{ d|date:"d/m" }}</div>
+              </div>
+            </th>
+          {% endfor %}
+        </tr>
+      </thead>
+
+      <tbody>
+        <tr>
+          {% for d in days %}
+            <td>
+              <div class="az-week-cell">
+                {% for key, val in grouped.items %}
+                  {% if key == d %}
+                    {% if val %}
+                      <div class="az-week-items">
+                        {% for a in val %}
+                          <details class="az-week-item">
+                            <summary>
+                              <span class="az-tag">
+                                <i class="fa-solid fa-bullhorn"></i> Avis
+                              </span>
+                              <span class="az-week-item-title">{{ a.titre }}</span>
+                              <span class="muted" style="font-weight:900;">
+                                {{ a.date_publication|date:"H:i" }}
+                              </span>
+                            </summary>
+
+                            <div class="az-week-item-body">
+                              <div class="az-week-block">
+                                <div class="az-week-block-head">
+                                  <span class="az-badge now">Message</span>
+                                </div>
+                                <div class="az-text">{{ a.contenu|linebreaksbr }}</div>
+                              </div>
+
+                              <div class="az-week-actions">
+                                <a class="az-btn primary" href="{% url 'eleve:avis_detail' a.id %}">
+                                  <i class="fa-solid fa-up-right-from-square"></i> Voir détails
+                                </a>
+                              </div>
+                            </div>
+                          </details>
+                        {% endfor %}
+                      </div>
+                    {% else %}
+                      <div class="az-week-empty muted">—</div>
+                    {% endif %}
+                  {% endif %}
+                {% endfor %}
+              </div>
+            </td>
+          {% endfor %}
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+</section>
+
+{% endblock %}

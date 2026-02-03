@@ -1,0 +1,66 @@
+{% extends "admin/base_admin.html" %}
+{% load static %}
+
+{% block title %}Groupe | AZ{% endblock %}
+{% block page_title %}{% if mode == "create" %}Ajouter{% else %}Modifier{% endif %} un groupe{% endblock %}
+{% block breadcrumb %}Structure / Groupes{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'admin/css/groupes/form.css' %}?v=2">
+{% endblock %}
+
+{% block content %}
+
+<div class="az-groupe-card">
+  <div class="az-groupe-head">
+    <h3 class="az-groupe-title">Formulaire</h3>
+    <p class="az-groupe-sub">
+      Sélectionne l’année et le niveau, puis définis le groupe.
+    </p>
+  </div>
+
+  <form method="post" class="az-groupe-form" novalidate>
+    {% csrf_token %}
+
+    <div class="az-field">
+      <label for="{{ form.annee.id_for_label }}">Année</label>
+      {{ form.annee }}
+      <div class="az-error" data-error-for="annee"></div>
+    </div>
+
+    <div class="az-field">
+      <label for="{{ form.niveau.id_for_label }}">Niveau</label>
+      {{ form.niveau }}
+      <div class="az-error" data-error-for="niveau"></div>
+    </div>
+
+    <div class="az-field">
+      <label for="{{ form.nom.id_for_label }}">Nom du groupe</label>
+      {{ form.nom }}
+      <div class="az-help">Ex : A, B, Groupe 1, Groupe Sciences…</div>
+      <div class="az-error" data-error-for="nom"></div>
+    </div>
+
+    <div class="az-field">
+      <label for="{{ form.capacite.id_for_label }}">Capacité (optionnelle)</label>
+      {{ form.capacite }}
+      <div class="az-help">Laisse vide si illimitée.</div>
+      <div class="az-error" data-error-for="capacite"></div>
+    </div>
+
+    <div class="az-groupe-actions">
+      <button class="az-btn az-btn-gradient" type="submit" id="saveBtn">
+        <i class="fas fa-save"></i> Enregistrer
+      </button>
+      <a class="az-btn" href="{% url 'core:groupe_list' %}">
+        <i class="fas fa-arrow-left"></i> Retour
+      </a>
+    </div>
+  </form>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'admin/js/groupes/form.js' %}?v=2"></script>
+{% endblock %}

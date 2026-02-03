@@ -1,0 +1,77 @@
+{% extends "admin/base_admin.html" %}
+{% load static %}
+
+{% block title %}Ajouter absence prof | AZ{% endblock %}
+{% block page_title %}Ajouter absence prof{% endblock %}
+{% block breadcrumb %}Pédagogie / Absences profs / Ajouter{% endblock %}
+
+{% block content %}
+<div class="az-card" style="grid-column:span 12; max-width:900px;">
+  <form method="post" style="display:flex;flex-direction:column;gap:12px;">
+    {% csrf_token %}
+
+    {% if next_url %}
+      <input type="hidden" name="next" value="{{ next_url }}">
+    {% endif %}
+
+    <!-- PROF -->
+    <div>
+      <label><b>Prof</b></label>
+      <select class="az-btn" id="id_enseignant" name="enseignant" required style="width:100%;">
+        <option value="">— Choisir —</option>
+        {% for e in enseignants %}
+          <option value="{{ e.id }}" {% if pre_enseignant == e.id|stringformat:"s" %}selected{% endif %}>
+            {{ e.matricule }} — {{ e.nom }} {{ e.prenom }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <!-- SEANCE -->
+    <div>
+      <label><b>Séance</b></label>
+      <select class="az-btn" id="id_seance" name="seance" required style="width:100%;">
+        <option value="">— Choisir un prof d’abord —</option>
+
+        {% for s in seances %}
+          <option
+            value="{{ s.id }}"
+            data-enseignant="{{ s.enseignant_id }}"
+            data-jour="{{ s.jour }}"
+            data-debut="{{ s.heure_debut|time:'H:i' }}"
+            data-fin="{{ s.heure_fin|time:'H:i' }}"
+          >
+            {{ s.groupe.nom }} — {{ s.get_jour_display }} — {{ s.heure_debut }}-{{ s.heure_fin }}
+          </option>
+        {% endfor %}
+      </select>
+
+      <div id="seance_info" class="az-sub" style="margin-top:6px;">Durée : —</div>
+      <div id="seance_warn" class="az-sub" style="margin-top:6px; display:none;"></div>
+
+      <div class="az-sub" style="margin-top:6px;">
+        Les séances affichées dépendent du prof choisi.
+      </div>
+    </div>
+
+    <!-- DATE -->
+    <div>
+      <label><b>Date</b></label>
+      <input class="az-btn" type="date" id="id_date" name="date" required value="{{ default_date }}">
+      <div class="az-sub" style="margin-top:6px;">
+        La date doit correspondre au jour de la séance (ex: MAR → mardi).
+      </div>
+    </div>
+
+    <!-- ACTIONS -->
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <button class="az-btn az-btn-gradient" type="submit">Enregistrer</button>
+      <a class="az-btn" href="{% url 'core:absence_prof_list' %}">Annuler</a>
+    </div>
+  </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'admin/js/absence_prof/form.js' %}"></script>
+{% endblock %}

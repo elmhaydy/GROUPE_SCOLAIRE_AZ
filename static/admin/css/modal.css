@@ -1,0 +1,191 @@
+/* =========================================================
+   AZ NEBULA — MODAL (Final)
+   Compatible:
+   - .az-modal wrapper
+   - [data-close="1"] close
+   - .az-danger-box warning
+   Dark/Light via html[data-theme]
+   ========================================================= */
+
+:root{
+  --az-primary:#6366f1;
+  --az-primary-2:#a78bfa;
+  --az-grad: linear-gradient(135deg, #6366f1, #ec4899);
+
+  --az-radius-lg: 22px;
+  --az-radius-md: 16px;
+  --az-transition: all .22s cubic-bezier(.2,.7,.2,1);
+
+  /* Light */
+  --az-surface:#ffffff;
+  --az-surface-2:#f2f4ff;
+  --az-text:#0f172a;
+  --az-muted:#64748b;
+  --az-border: rgba(15,23,42,.10);
+  --az-shadow: 0 22px 80px rgba(2,6,23,.16);
+
+  --az-danger:#ef4444;
+  --az-danger-bg: rgba(239,68,68,.12);
+
+  --az-glow: 0 0 0 4px rgba(167,139,250,.22);
+}
+
+html[data-theme="dark"]{
+  color-scheme: dark;
+
+  --az-surface:#0b1220;
+  --az-surface-2:#0f1a30;
+  --az-text:#eaf0ff;
+  --az-muted: rgba(234,240,255,.70);
+  --az-border: rgba(255,255,255,.10);
+  --az-shadow: 0 26px 100px rgba(0,0,0,.65);
+
+  --az-danger-bg: rgba(239,68,68,.14);
+  --az-glow: 0 0 0 4px rgba(167,139,250,.25);
+}
+
+/* ===== Overlay ===== */
+.az-modal{
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: grid;
+  place-items: center;
+  padding: 14px;
+}
+
+.az-modal-backdrop{
+  position:absolute;
+  inset:0;
+  background: rgba(0,0,0,.58);
+  backdrop-filter: blur(7px);
+}
+
+/* ===== Panel ===== */
+.az-modal-panel{
+  position: relative;
+  width: min(720px, calc(100% - 22px));
+  border-radius: var(--az-radius-lg);
+  background:
+    radial-gradient(900px 250px at 10% 0%, rgba(99,102,241,.16), transparent 55%),
+    radial-gradient(800px 240px at 90% 10%, rgba(236,72,153,.12), transparent 55%),
+    var(--az-surface);
+  border: 1px solid var(--az-border);
+  box-shadow: var(--az-shadow);
+  overflow:hidden;
+
+  transform: translateY(8px) scale(.98);
+  opacity: 0;
+  animation: azModalIn .18s ease forwards;
+}
+
+@keyframes azModalIn{
+  to { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+/* ===== Head ===== */
+.az-modal-head{
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--az-border);
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+}
+
+.az-modal-title{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  font-size: 15px;
+  font-weight: 950;
+  color: var(--az-text);
+}
+.az-modal-title i{
+  color: var(--az-danger);
+  filter: drop-shadow(0 10px 20px rgba(239,68,68,.25));
+}
+
+/* ===== Body ===== */
+.az-modal-body{
+  padding: 14px 16px 6px;
+  color: var(--az-text);
+}
+
+.az-sub{
+  margin: 0;
+  color: var(--az-muted);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+/* Danger info box */
+.az-danger-box{
+  display:flex;
+  align-items:flex-start;
+  gap:10px;
+  padding: 12px 12px;
+  border-radius: var(--az-radius-md);
+  border: 1px solid rgba(239,68,68,.28);
+  background: var(--az-danger-bg);
+  color: var(--az-text);
+  font-weight: 800;
+  font-size: 13px;
+}
+.az-danger-box i{
+  margin-top: 2px;
+  color: var(--az-danger);
+}
+
+/* ===== Footer ===== */
+.az-modal-foot{
+  padding: 12px 16px 16px;
+  border-top: 1px solid var(--az-border);
+  display:flex;
+  justify-content:flex-end;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+}
+
+/* ===== Buttons (si pas déjà global) ===== */
+.az-btn{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding: 10px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--az-border);
+  background: var(--az-surface);
+  color: var(--az-text);
+  font-weight: 900;
+  font-size: 12px;
+  cursor:pointer;
+  transition: var(--az-transition);
+}
+
+.az-btn:hover{ transform: translateY(-1px); }
+.az-btn:focus{ outline:none; box-shadow: var(--az-glow); }
+
+.az-btn-danger{
+  background: rgba(239,68,68,.12);
+  border-color: rgba(239,68,68,.28);
+}
+.az-btn-danger:hover{
+  background: rgba(239,68,68,.16);
+}
+
+/* ===== Mobile ===== */
+@media (max-width: 520px){
+  .az-modal-foot{
+    justify-content:stretch;
+  }
+  .az-modal-foot .az-btn,
+  .az-modal-foot form{
+    width:100%;
+  }
+  .az-modal-foot form button{
+    width:100%;
+    justify-content:center;
+  }
+}

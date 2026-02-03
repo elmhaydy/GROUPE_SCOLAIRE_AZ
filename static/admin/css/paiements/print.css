@@ -1,0 +1,11 @@
+/* static/admin/css/paiements/print.css */
+@media print {
+  .sidebar, .topbar, .az-pay-actions, .az-btn, .no-print { display:none !important; }
+  body { background:#fff !important; color:#000 !important; }
+  .az-card, .az-pay-card, .az-side-card{
+    box-shadow:none !important;
+    border: 1px solid #ddd !important;
+    background:#fff !important;
+  }
+  a[href]:after{ content:""; }
+}

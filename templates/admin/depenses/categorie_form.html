@@ -1,0 +1,82 @@
+{% extends "admin/base_admin.html" %}
+{% load static %}
+
+{% block title %}Catégorie Dépense | AZ{% endblock %}
+{% block page_title %}Catégorie Dépense{% endblock %}
+{% block current_page %}Finance / Dépenses / Catégories{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'admin/css/depenses/categorie_form.css' %}?v=1">
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'admin/js/depenses/categorie_form.js' %}?v=1" defer></script>
+{% endblock %}
+
+{% block content %}
+
+<div class="az-catf">
+
+  <div class="az-page-head">
+    <div class="az-page-head-left">
+      <div class="az-pill">
+        <i class="fa-solid fa-tags"></i>
+        <span>Gestion des catégories</span>
+      </div>
+    </div>
+
+    <div class="az-page-head-right">
+      <a class="az-btn az-btn-ghost" href="{% url 'core:depense_categorie_list' %}">
+        <i class="fa-solid fa-arrow-left"></i><span>Retour</span>
+      </a>
+    </div>
+  </div>
+
+  <div class="az-card az-catf-card">
+    <form method="post" class="az-catf-form" novalidate>
+      {% csrf_token %}
+
+      <div class="az-catf-grid">
+        <div class="az-field az-span-2">
+          <label class="az-field-label">Nom</label>
+          {{ form.nom }}
+          {% for e in form.nom.errors %}<div class="az-error">{{ e }}</div>{% endfor %}
+        </div>
+
+        <div class="az-field">
+          <label class="az-field-label">Ordre</label>
+          {{ form.ordre }}
+          {% for e in form.ordre.errors %}<div class="az-error">{{ e }}</div>{% endfor %}
+        </div>
+
+        <div class="az-field">
+          <label class="az-field-label">Statut</label>
+
+          <label class="az-switch">
+            {{ form.is_active }}
+            <span class="az-switch-ui">
+              <span class="dot"></span>
+            </span>
+            <span class="az-switch-text">Active</span>
+          </label>
+
+          {% for e in form.is_active.errors %}<div class="az-error">{{ e }}</div>{% endfor %}
+        </div>
+      </div>
+
+      <div class="az-catf-actions">
+        <button class="az-btn az-btn-primary" type="submit">
+          <i class="fa-solid fa-check"></i><span>Enregistrer</span>
+        </button>
+
+        <a class="az-btn az-btn-ghost" href="{% url 'core:depense_categorie_list' %}">
+          <i class="fa-solid fa-arrow-left"></i><span>Retour</span>
+        </a>
+      </div>
+    </form>
+  </div>
+
+</div>
+
+{% endblock %}
+

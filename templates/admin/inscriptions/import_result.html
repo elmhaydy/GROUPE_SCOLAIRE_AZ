@@ -1,0 +1,28 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}Résultat import inscriptions | AZ{% endblock %}
+{% block page_title %}Résultat import — Inscriptions{% endblock %}
+{% block breadcrumb %}Scolaire / Inscriptions / Import résultat{% endblock %}
+
+{% block content %}
+<div class="az-card" style="grid-column:span 12;">
+  <h3>Résumé</h3>
+  <p class="az-sub">
+    ✅ Créées : <b>{{ created }}</b> — ✏️ Mises à jour : <b>{{ updated }}</b>
+  </p>
+
+  <h3 style="margin-top:14px;">Erreurs</h3>
+  <div style="display:flex;flex-direction:column;gap:8px;margin-top:10px;">
+    {% for e in errors %}
+      <div style="padding:10px;border-radius:14px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.04);">
+        {{ e }}
+      </div>
+    {% empty %}
+      <div class="az-sub" style="opacity:.8;">Aucune erreur.</div>
+    {% endfor %}
+  </div>
+
+  <div style="margin-top:12px;">
+    <a class="az-btn az-btn-gradient" href="{% url 'core:inscription_list' %}">↩️ Retour inscriptions</a>
+  </div>
+</div>
+{% endblock %}

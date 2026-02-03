@@ -1,0 +1,163 @@
+{% extends "admin/base_admin.html" %}
+{% load static %}
+
+{% block title %}{% if mode == "edit" %}Modifier{% else %}Nouvelle{% endif %} dépense | AZ{% endblock %}
+{% block page_title %}{% if mode == "edit" %}Modifier{% else %}Nouvelle{% endif %} dépense{% endblock %}
+{% block current_page %}Finance / Dépenses{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'admin/css/depenses/form.css' %}?v=2">
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'admin/js/depenses/form.js' %}?v=1" defer></script>
+{% endblock %}
+
+{% block content %}
+
+<div class="az-dep-form">
+
+  <!-- Head -->
+  <div class="az-page-head">
+    <div class="az-page-head-left">
+      <div class="az-pill">
+        <i class="fa-solid fa-receipt"></i>
+        <span>
+          {% if mode == "edit" %}Modification{% else %}Nouvelle{% endif %} dépense
+        </span>
+      </div>
+      <div class="az-muted">
+        Remplis les champs puis valide.
+      </div>
+    </div>
+
+    <div class="az-page-head-right">
+      <a class="az-btn az-btn-ghost" href="{% url 'core:depense_list' %}">
+        <i class="fa-solid fa-arrow-left"></i><span>Retour</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- Card -->
+  <div class="az-card az-dep-card">
+    <form method="post" enctype="multipart/form-data" class="az-form" id="depenseForm" novalidate>
+      {% csrf_token %}
+
+      <!-- Grid -->
+      <div class="az-form-grid">
+
+        <div class="az-field">
+          <label class="az-field-label">Année</label>
+          <div class="az-field-control">
+            {{ form.annee }}
+          </div>
+          {% for e in form.annee.errors %}<div class="az-error">{{ e }}</div>{% endfor %}
+        </div>
+
+        <div class="az-field">
+          <label class="az-field-label">Date</label>
+          <div class="az-field-control">
+            {{ form.date_depense }}
+          </div>
+          {% for e in form.date_depense.errors %}<div class="az-error">{{ e }}</div>{% endfor %}
+        </div>
+
+        <div class="az-field">
+          <label class="az-field-label">Catégorie</label>
+          <div class="az-field-control">
+            {{ form.categorie }}
+          </div>
+          {% for e in form.categorie.errors %}<div class="az-error">{{ e }}</div>{% endfor %}
+        </div>
+
+        <div class="az-field">
+          <label class="az-field-label">Montant</label>
+          <div class="az-money">
+            {{ form.montant }}
+            <span class="az-money-suffix">MAD</span>
+          </div>
+          {% for e in form.montant.errors %}<div class="az-error">{{ e }}</div>{% endfor %}
+          <div class="az-hint az-muted">Ex: 250.00</div>
+        </div>
+
+        <div class="az-field az-span-2">
+          <label class="az-field-label">Libellé</label>
+          <div class="az-field-control">
+            {{ form.libelle }}
+          </div>
+          {% for e in form.libelle.errors %}<div class="az-error">{{ e }}</div>{% endfor %}
+        </div>
+
+        <div class="az-field az-span-2">
+          <label class="az-field-label">Description (optionnel)</label>
+          <div class="az-field-control">
+            {{ form.description }}
+          </div>
+          {% if form.description.errors %}
+            {% for e in form.description.errors %}<div class="az-error">{{ e }}</div>{% endfor %}
+          {% endif %}
+        </div>
+
+        <div class="az-field az-span-2">
+          <label class="az-field-label">Justificatif (PDF / image)</label>
+
+          <!-- Dropzone -->
+          <div class="az-dropzone" id="depDropzone">
+            <div class="az-dropzone-icon">
+              <i class="fa-solid fa-cloud-arrow-up"></i>
+            </div>
+            <div class="az-dropzone-text">
+              <div class="az-strong">Glisse-dépose un fichier</div>
+              <div class="az-muted">ou clique pour choisir (PDF/JPG/PNG)</div>
+            </div>
+
+            <!-- input réel (render Django) -->
+            <div class="az-dropzone-input">
+              {{ form.justificatif }}
+            </div>
+          </div>
+
+          <div class="az-file-meta" id="fileMeta" hidden>
+            <span class="az-badge az-badge-muted">
+              <i class="fa-solid fa-paperclip"></i>
+              <span id="fileName">—</span>
+            </span>
+            <button type="button" class="az-btn az-btn-ghost az-btn-sm" id="btnClearFile">
+              <i class="fa-solid fa-xmark"></i><span>Retirer</span>
+            </button>
+          </div>
+
+          <div class="az-preview" id="filePreview" hidden>
+            <!-- rempli par JS -->
+          </div>
+
+          {% if form.justificatif.errors %}
+            {% for e in form.justificatif.errors %}<div class="az-error">{{ e }}</div>{% endfor %}
+          {% endif %}
+        </div>
+
+      </div>
+
+      <!-- Footer actions -->
+      <div class="az-form-actions">
+        <button class="az-btn az-btn-primary" type="submit">
+          <i class="fa-solid fa-check"></i><span>Enregistrer</span>
+        </button>
+
+        <a class="az-btn az-btn-ghost" href="{% url 'core:depense_list' %}">
+          <i class="fa-solid fa-arrow-left"></i><span>Retour</span>
+        </a>
+
+        {% if mode == "edit" %}
+        <div class="az-actions-right az-muted">
+          <i class="fa-solid fa-circle-info"></i>
+          <span>Modifie puis enregistre.</span>
+        </div>
+        {% endif %}
+      </div>
+
+    </form>
+  </div>
+</div>
+
+{% endblock %}

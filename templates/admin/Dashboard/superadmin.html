@@ -1,0 +1,466 @@
+{% extends "admin/base_admin.html" %}
+{% load static %}
+
+{% block current_page %}Super Admin • Tableau de bord{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'admin/css/dashboard/superadmin.css' %}?v=1">
+{% endblock %}
+
+{% block content %}
+<div class="azsa">
+
+  <!-- HERO / HEADER -->
+  <div class="azsa-hero">
+    <div class="azsa-hero-left">
+      <div class="azsa-pill">
+        <i class="fa-solid fa-shield-halved"></i>
+        <span>Super Admin</span>
+        <span class="azsa-pill-sep">•</span>
+        <span>Système & pilotage global</span>
+      </div>
+
+      <h1 class="azsa-title">
+        <i class="fa-solid fa-chart-line"></i>
+        Centre de contrôle
+      </h1>
+
+      <p class="azsa-subtitle">
+        Vue globale de l’activité (finances, impayés, inscriptions) + état du système (utilisateurs, rôles, configuration).
+      </p>
+    </div>
+
+    <div class="azsa-hero-right">
+      <div class="azsa-date">
+        <i class="fa-regular fa-calendar"></i>
+        <span id="currentDate">{{ current_date|date:"d F Y" }}</span>
+      </div>
+
+      <div class="azsa-actions">
+        <a class="azsa-btn azsa-btn-soft" href="{% url 'core:users_list' %}">
+          <i class="fa-solid fa-user-shield"></i> Utilisateurs
+        </a>
+        <a class="azsa-btn azsa-btn-soft" href="{% url 'core:recouvrement_list' %}">
+          <i class="fa-solid fa-triangle-exclamation"></i> Recouvrement
+        </a>
+        <button class="azsa-btn azsa-btn-primary" id="refreshDashboard">
+          <i class="fa-solid fa-rotate"></i> Actualiser
+        </button>
+      </div>
+    </div>
+
+    <div class="azsa-hero-glow"></div>
+  </div>
+
+  <!-- KPI GRID (SYSTÈME + BUSINESS) -->
+  <div class="azsa-kpi-grid">
+
+    <!-- BUSINESS -->
+    <div class="azsa-kpi">
+      <div class="azsa-kpi-ic azsa-ic-grad a">
+        <i class="fa-solid fa-user-graduate"></i>
+      </div>
+      <div class="azsa-kpi-meta">
+        <div class="azsa-kpi-val">{{ nb_eleves|default:0 }}</div>
+        <div class="azsa-kpi-label">Élèves actifs</div>
+        <div class="azsa-kpi-trend">
+          {% if eleves_trend > 0 %}
+            <span class="azsa-tr up"><i class="fa-solid fa-arrow-up"></i> +{{ eleves_trend }}%</span>
+          {% elif eleves_trend < 0 %}
+            <span class="azsa-tr down"><i class="fa-solid fa-arrow-down"></i> {{ eleves_trend }}%</span>
+          {% else %}
+            <span class="azsa-tr flat"><i class="fa-solid fa-minus"></i> Stable</span>
+          {% endif %}
+          <span class="azsa-tr-sub">vs mois dernier</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="azsa-kpi">
+      <div class="azsa-kpi-ic azsa-ic-grad b">
+        <i class="fa-solid fa-layer-group"></i>
+      </div>
+      <div class="azsa-kpi-meta">
+        <div class="azsa-kpi-val">{{ nb_groupes|default:0 }}</div>
+        <div class="azsa-kpi-label">Groupes actifs</div>
+        <div class="azsa-kpi-trend">
+          {% if groupes_trend > 0 %}
+            <span class="azsa-tr up"><i class="fa-solid fa-arrow-up"></i> +{{ groupes_trend }}%</span>
+          {% elif groupes_trend < 0 %}
+            <span class="azsa-tr down"><i class="fa-solid fa-arrow-down"></i> {{ groupes_trend }}%</span>
+          {% else %}
+            <span class="azsa-tr flat"><i class="fa-solid fa-minus"></i> Stable</span>
+          {% endif %}
+          <span class="azsa-tr-sub">vs mois dernier</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="azsa-kpi">
+      <div class="azsa-kpi-ic azsa-ic-grad c">
+        <i class="fa-solid fa-coins"></i>
+      </div>
+      <div class="azsa-kpi-meta">
+        <div class="azsa-kpi-val">{{ total_paye|default:0 }} <span class="azsa-kpi-unit">MAD</span></div>
+        <div class="azsa-kpi-label">Total encaissé</div>
+        <div class="azsa-kpi-trend">
+          {% if revenue_trend > 0 %}
+            <span class="azsa-tr up"><i class="fa-solid fa-arrow-up"></i> +{{ revenue_trend }}%</span>
+          {% elif revenue_trend < 0 %}
+            <span class="azsa-tr down"><i class="fa-solid fa-arrow-down"></i> {{ revenue_trend }}%</span>
+          {% else %}
+            <span class="azsa-tr flat"><i class="fa-solid fa-minus"></i> Stable</span>
+          {% endif %}
+          <span class="azsa-tr-sub">vs mois dernier</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="azsa-kpi azsa-kpi-warn">
+      <div class="azsa-kpi-ic azsa-ic-grad d">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+      </div>
+      <div class="azsa-kpi-meta">
+        <div class="azsa-kpi-val">{{ total_impayes|default:"0" }} <span class="azsa-kpi-unit">MAD</span></div>
+        <div class="azsa-kpi-label">Impayés (reste)</div>
+        <div class="azsa-kpi-trend">
+          <span class="azsa-tr warn"><i class="fa-solid fa-clock"></i> {{ nb_impayes|default:0 }} dossiers</span>
+          <span class="azsa-tr-sub">à traiter</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="azsa-kpi">
+      <div class="azsa-kpi-ic azsa-ic-grad e">
+        <i class="fa-solid fa-percent"></i>
+      </div>
+      <div class="azsa-kpi-meta">
+        <div class="azsa-kpi-val">{{ taux_paiement|default:0 }}<span class="azsa-kpi-unit">%</span></div>
+        <div class="azsa-kpi-label">Taux de paiement</div>
+        <div class="azsa-kpi-trend">
+          {% if payment_trend > 0 %}
+            <span class="azsa-tr up"><i class="fa-solid fa-arrow-up"></i> +{{ payment_trend }}%</span>
+          {% elif payment_trend < 0 %}
+            <span class="azsa-tr down"><i class="fa-solid fa-arrow-down"></i> {{ payment_trend }}%</span>
+          {% else %}
+            <span class="azsa-tr flat"><i class="fa-solid fa-minus"></i> Stable</span>
+          {% endif %}
+          <span class="azsa-tr-sub">vs mois dernier</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="azsa-kpi azsa-kpi-soft">
+      <div class="azsa-kpi-ic azsa-ic-grad f">
+        <i class="fa-solid fa-receipt"></i>
+      </div>
+      <div class="azsa-kpi-meta">
+        <div class="azsa-kpi-val">{{ nb_paiements|default:0 }}</div>
+        <div class="azsa-kpi-label">Paiements enregistrés</div>
+        <div class="azsa-kpi-trend">
+          <span class="azsa-tr flat"><i class="fa-solid fa-wave-square"></i> Activité</span>
+          <span class="azsa-tr-sub">tous modes</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- HEALTH / CONFIG + ACTIONS -->
+  <div class="azsa-panels">
+
+    <div class="azsa-card">
+      <div class="azsa-card-head">
+        <h3><i class="fa-solid fa-heart-pulse"></i> Santé & alertes</h3>
+        <span class="azsa-badge">{% if nb_impayes|default:0 > 0 %}Action requise{% else %}OK{% endif %}</span>
+      </div>
+
+      <div class="azsa-health-grid">
+        <div class="azsa-health">
+          <div class="azsa-health-top">
+            <span class="azsa-health-label">Année active</span>
+            <span class="azsa-health-val">{{ annee_active|default:"—" }}</span>
+          </div>
+          <div class="azsa-health-sub">
+            <i class="fa-regular fa-calendar-check"></i>
+            <span>Configuration scolaire</span>
+          </div>
+        </div>
+
+        <div class="azsa-health">
+          <div class="azsa-health-top">
+            <span class="azsa-health-label">Objectif mensuel</span>
+            <span class="azsa-health-val">{{ objectif_mensuel|default:"0" }} MAD</span>
+          </div>
+          <div class="azsa-health-sub">
+            <i class="fa-solid fa-target"></i>
+            <span>{{ objectif_atteint|default:0 }}% atteint</span>
+          </div>
+        </div>
+
+        <div class="azsa-health azsa-health-warn">
+          <div class="azsa-health-top">
+            <span class="azsa-health-label">Impayés</span>
+            <span class="azsa-health-val">{{ nb_impayes|default:0 }}</span>
+          </div>
+          <div class="azsa-health-sub">
+            <i class="fa-solid fa-bell"></i>
+            <span>Relances & recouvrement</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="azsa-quick">
+        <a class="azsa-q" href="{% url 'core:paiement_list' %}">
+          <i class="fa-solid fa-money-check-dollar"></i>
+          <div>
+            <div class="azsa-q-title">Paiements</div>
+            <div class="azsa-q-sub">Liste & filtres</div>
+          </div>
+          <i class="fa-solid fa-arrow-right azsa-q-go"></i>
+        </a>
+
+        <a class="azsa-q" href="{% url 'core:impayes_mensuels_list' %}">
+          <i class="fa-solid fa-file-circle-exclamation"></i>
+          <div>
+            <div class="azsa-q-title">Impayés mensuels</div>
+            <div class="azsa-q-sub">Échéances & retards</div>
+          </div>
+          <i class="fa-solid fa-arrow-right azsa-q-go"></i>
+        </a>
+
+        <a class="azsa-q" href="{% url 'core:recouvrement_list' %}">
+          <i class="fa-solid fa-hand-holding-dollar"></i>
+          <div>
+            <div class="azsa-q-title">Recouvrement</div>
+            <div class="azsa-q-sub">Dossiers & relances</div>
+          </div>
+          <i class="fa-solid fa-arrow-right azsa-q-go"></i>
+        </a>
+      </div>
+    </div>
+
+    <div class="azsa-card">
+      <div class="azsa-card-head">
+        <h3><i class="fa-solid fa-chart-column"></i> Pilotage (12 mois)</h3>
+        <div class="azsa-card-actions">
+          <select class="azsa-select" id="chartPeriod">
+            <option value="12m" selected>12 mois</option>
+            <option value="6m">6 mois</option>
+          </select>
+          <button class="azsa-btn azsa-btn-ghost" id="exportChart" title="Exporter le graphique">
+            <i class="fa-solid fa-download"></i>
+          </button>
+        </div>
+      </div>
+      <div class="azsa-chart">
+        <canvas id="monthlyChart"></canvas>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ACTIVITÉ RÉCENTE -->
+  <div class="azsa-activity">
+
+    <div class="azsa-card">
+      <div class="azsa-card-head">
+        <h3><i class="fa-solid fa-clock-rotate-left"></i> Activité récente</h3>
+        <div class="azsa-tabs">
+          <button class="azsa-tab active" data-tab="paiements">Paiements</button>
+          <button class="azsa-tab" data-tab="inscriptions">Inscriptions</button>
+          <button class="azsa-tab" data-tab="impayes">Impayés</button>
+        </div>
+      </div>
+
+      <!-- PAIEMENTS -->
+      <div class="azsa-tabpanel active" id="paiementsTab">
+        <div class="azsa-table-head">
+          <span>Derniers paiements</span>
+          <a class="azsa-link" href="{% url 'core:paiement_list' %}">Voir tout <i class="fa-solid fa-arrow-right"></i></a>
+        </div>
+
+        <div class="azsa-list">
+          {% for paiement in derniers_paiements %}
+            <div class="azsa-row">
+              <div class="azsa-row-left">
+                <div class="azsa-avatar">{{ paiement.inscription.eleve.nom|first|upper }}</div>
+                <div class="azsa-row-info">
+                  <div class="azsa-row-title">{{ paiement.inscription.eleve.nom_complet }}</div>
+                  <div class="azsa-row-sub">{{ paiement.inscription.groupe.nom }}</div>
+                </div>
+              </div>
+
+              <div class="azsa-row-right">
+                <div class="azsa-amt">
+                  <div class="azsa-amt-val">{{ paiement.montant }} MAD</div>
+                  <div class="azsa-amt-sub">{{ paiement.date_paiement|date:"d/m/Y" }}</div>
+                </div>
+
+                <div class="azsa-badges">
+                  <span class="azsa-badge-mode {{ paiement.mode|lower }}">
+                    <i class="fa-solid fa-{% if paiement.mode == 'ESPECES' %}money-bill{% elif paiement.mode == 'CHEQUE' %}file-invoice{% elif paiement.mode == 'VIREMENT' %}right-left{% else %}credit-card{% endif %}"></i>
+                    {{ paiement.get_mode_display }}
+                  </span>
+                </div>
+              </div>
+            </div>
+          {% empty %}
+            <div class="azsa-empty">
+              <i class="fa-solid fa-receipt"></i>
+              <span>Aucun paiement récent</span>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- INSCRIPTIONS -->
+      <div class="azsa-tabpanel" id="inscriptionsTab">
+        <div class="azsa-table-head">
+          <span>Nouvelles inscriptions</span>
+          <a class="azsa-link" href="{% url 'core:inscription_list' %}">Voir tout <i class="fa-solid fa-arrow-right"></i></a>
+        </div>
+
+        <div class="azsa-list">
+          {% for inscription in nouvelles_inscriptions %}
+            <div class="azsa-row">
+              <div class="azsa-row-left">
+                <div class="azsa-avatar">{{ inscription.eleve.nom|first|upper }}</div>
+                <div class="azsa-row-info">
+                  <div class="azsa-row-title">{{ inscription.eleve.nom_complet }}</div>
+                  <div class="azsa-row-sub">{{ inscription.groupe.niveau.nom }} • {{ inscription.groupe.nom }}</div>
+                </div>
+              </div>
+
+              <div class="azsa-row-right">
+                <div class="azsa-amt">
+                  <div class="azsa-amt-val">{{ inscription.montant_total|default:"0" }} MAD</div>
+                  <div class="azsa-amt-sub">{{ inscription.date_inscription|date:"d/m/Y" }}</div>
+                </div>
+
+                <div class="azsa-badges">
+                  {% if inscription.statut == 'VALIDEE' %}
+                    <span class="azsa-badge-ok">Validée</span>
+                  {% elif inscription.statut == 'EN_COURS' %}
+                    <span class="azsa-badge-warn">En cours</span>
+                  {% else %}
+                    <span class="azsa-badge-soft">{{ inscription.get_statut_display }}</span>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+          {% empty %}
+            <div class="azsa-empty">
+              <i class="fa-solid fa-user-plus"></i>
+              <span>Aucune inscription récente</span>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- IMPAYÉS -->
+      <div class="azsa-tabpanel" id="impayesTab">
+        <div class="azsa-table-head">
+          <span>Impayés (Top)</span>
+          <a class="azsa-link" href="{% url 'core:impayes_mensuels_list' %}">Gérer <i class="fa-solid fa-arrow-right"></i></a>
+        </div>
+
+        <div class="azsa-list">
+          {% for impaye in impayes_recents %}
+            <div class="azsa-row">
+              <div class="azsa-row-left">
+                <div class="azsa-avatar azsa-avatar-warn"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                <div class="azsa-row-info">
+                  <div class="azsa-row-title">{{ impaye.eleve.nom_complet }}</div>
+                  <div class="azsa-row-sub">{{ impaye.groupe.nom }}</div>
+                </div>
+              </div>
+
+              <div class="azsa-row-right">
+                <div class="azsa-amt">
+                  <div class="azsa-amt-val azsa-amt-warn">{{ impaye.reste }} MAD</div>
+                  <div class="azsa-amt-sub">En attente</div>
+                </div>
+
+                <div class="azsa-actions-mini">
+                  <a class="azsa-icbtn" href="{% url 'core:recouvrement_list' %}" title="Ouvrir recouvrement">
+                    <i class="fa-solid fa-hand-holding-dollar"></i>
+                  </a>
+                  <a class="azsa-icbtn" href="{% url 'core:impayes_mensuels_list' %}" title="Détails impayés">
+                    <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                  </a>
+                </div>
+              </div>
+            </div>
+          {% empty %}
+            <div class="azsa-empty">
+              <i class="fa-solid fa-circle-check"></i>
+              <span>Aucun impayé en attente</span>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+
+    </div>
+
+    <!-- MINI CARD: PRÉSENCES (optionnel) -->
+    <div class="azsa-card">
+      <div class="azsa-card-head">
+        <h3><i class="fa-solid fa-clipboard-check"></i> Présences (aujourd’hui)</h3>
+        <span class="azsa-badge">{{ today|date:"d/m/Y" }}</span>
+      </div>
+
+      <div class="azsa-pres-grid">
+        <div class="azsa-pres">
+          <div class="azsa-pres-top ok"><i class="fa-solid fa-user-check"></i> Présents</div>
+          <div class="azsa-pres-val">{{ presences.presents|default:0 }}</div>
+          <div class="azsa-pres-sub">{{ presences.taux_presence|default:0 }}%</div>
+        </div>
+        <div class="azsa-pres">
+          <div class="azsa-pres-top bad"><i class="fa-solid fa-user-xmark"></i> Absents</div>
+          <div class="azsa-pres-val">{{ presences.absents|default:0 }}</div>
+          <div class="azsa-pres-sub">{{ presences.taux_absence|default:0 }}%</div>
+        </div>
+        <div class="azsa-pres">
+          <div class="azsa-pres-top warn"><i class="fa-solid fa-clock"></i> Retards</div>
+          <div class="azsa-pres-val">{{ presences.retards|default:0 }}</div>
+          <div class="azsa-pres-sub">{{ presences.taux_retard|default:0 }}%</div>
+        </div>
+        <div class="azsa-pres">
+          <div class="azsa-pres-top soft"><i class="fa-solid fa-users"></i> Total</div>
+          <div class="azsa-pres-val">{{ presences.total|default:0 }}</div>
+          <div class="azsa-pres-sub">100%</div>
+        </div>
+      </div>
+
+      <div class="azsa-pres-actions">
+        <a class="azsa-btn azsa-btn-primary" href="{% url 'core:absence_list' %}">
+          <i class="fa-solid fa-clipboard-check"></i> Gérer
+        </a>
+        <button class="azsa-btn azsa-btn-soft" id="sendReminders">
+          <i class="fa-solid fa-bell"></i> Rappels
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+{# ✅ données chart backend #}
+{{ monthly_chart_json|json_script:"monthly-chart-data" }}
+
+<script>
+  // optionnel si tu veux le doughnut plus tard
+  window.AZ_DASH = {
+    repartitionLen: {{ repartition_eleves|length|default:0 }},
+    repartitionLabels: [{% for n in repartition_eleves %}'{{ n.nom|escapejs }}',{% endfor %}],
+    repartitionData: [{% for n in repartition_eleves %}{{ n.total }},{% endfor %}]
+  };
+</script>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{% static 'admin/js/dashboard/superadmin.js' %}?v=2"></script>
+{% endblock %}

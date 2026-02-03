@@ -1,0 +1,322 @@
+/* =========================================
+   Paiements Wizard — AZ NEBULA (premium)
+   File: static/admin/css/paiements/form.css
+   ========================================= */
+
+/* Layout page */
+.az-page{
+  min-height:100vh;
+  padding:24px 0;
+}
+
+.az-container{
+  width:min(1100px, calc(100% - 32px));
+  margin:0 auto;
+}
+
+.az-head{
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:16px;
+  margin-bottom:16px;
+}
+
+.az-title{
+  margin:0;
+  font-size:28px;
+  letter-spacing:-0.02em;
+}
+
+.az-sub{
+  margin:0;
+  opacity:.85;
+  font-size:14px;
+}
+
+/* Card */
+.az-card{
+  border-radius:18px;
+  padding:18px;
+  box-shadow: var(--az-shadow-strong, 0 14px 40px rgba(0,0,0,.14));
+  border:1px solid var(--az-border, rgba(148,163,184,.25));
+  background: var(--az-surface, rgba(255,255,255,.75));
+  backdrop-filter: blur(10px);
+}
+
+html[data-theme="dark"] .az-card{
+  background: rgba(15,23,42,.55);
+  border-color: rgba(148,163,184,.18);
+}
+
+/* Grid rows */
+.az-row{
+  display:grid;
+  gap:12px;
+  margin-bottom:14px;
+}
+
+.az-row-2{ grid-template-columns: 1fr 1fr; }
+.az-row-3{ grid-template-columns: 1fr 1fr 1fr; }
+
+@media (max-width: 860px){
+  .az-head{ flex-direction:column; align-items:flex-start; }
+  .az-row-2, .az-row-3{ grid-template-columns: 1fr; }
+}
+
+/* Labels */
+.az-label{
+  display:block;
+  font-size:12px;
+  font-weight:600;
+  margin:0 0 6px;
+  opacity:.9;
+}
+
+/* Inputs/selects (Nebula look) */
+.az-input,
+.az-select{
+  width:100%;
+  height:44px;
+  padding:10px 12px;
+  border-radius:12px;
+  border:1px solid var(--az-border, rgba(148,163,184,.35));
+  background: rgba(255,255,255,.82);
+  color: inherit;
+  outline: none;
+  transition: box-shadow .15s ease, border-color .15s ease, background .15s ease;
+}
+
+html[data-theme="dark"] .az-input,
+html[data-theme="dark"] .az-select{
+  background: rgba(11,18,32,.7);
+  border-color: rgba(148,163,184,.20);
+  color-scheme: dark;
+}
+
+.az-input:focus,
+.az-select:focus{
+  border-color: rgba(124,58,237,.55);
+  box-shadow: 0 0 0 4px rgba(124,58,237,.18);
+}
+
+.az-select:disabled,
+.az-input:disabled{
+  opacity:.6;
+  cursor:not-allowed;
+}
+
+/* Switch chips */
+.az-switch{
+  display:flex;
+  gap:10px;
+  margin:10px 0 16px;
+  flex-wrap:wrap;
+}
+
+.az-chip{
+  border:1px solid var(--az-border, rgba(148,163,184,.30));
+  background: rgba(255,255,255,.65);
+  padding:8px 12px;
+  border-radius:999px;
+  font-weight:700;
+  font-size:13px;
+  cursor:pointer;
+  transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease, background .12s ease;
+}
+
+html[data-theme="dark"] .az-chip{
+  background: rgba(11,18,32,.55);
+  border-color: rgba(148,163,184,.20);
+}
+
+.az-chip:hover{
+  transform: translateY(-1px);
+  box-shadow: 0 10px 22px rgba(0,0,0,.10);
+}
+
+.az-chip.is-active{
+  border-color: rgba(124,58,237,.65);
+  background: linear-gradient(135deg, rgba(124,58,237,.18), rgba(99,102,241,.14));
+  box-shadow: 0 0 0 4px rgba(124,58,237,.12);
+}
+
+/* Table */
+.az-table-wrap{
+  overflow:auto;
+  border-radius:14px;
+  border:1px solid var(--az-border, rgba(148,163,184,.25));
+}
+
+.az-table{
+  width:100%;
+  border-collapse:separate;
+  border-spacing:0;
+  min-width:560px;
+  background: rgba(255,255,255,.6);
+}
+
+html[data-theme="dark"] .az-table{
+  background: rgba(15,23,42,.35);
+}
+
+.az-table thead th{
+  position:sticky;
+  top:0;
+  z-index:1;
+  text-align:left;
+  font-size:12px;
+  letter-spacing:.02em;
+  padding:12px 12px;
+  background: linear-gradient(180deg, rgba(148,163,184,.18), rgba(148,163,184,.08));
+  border-bottom:1px solid rgba(148,163,184,.18);
+}
+
+html[data-theme="dark"] .az-table thead th{
+  background: linear-gradient(180deg, rgba(148,163,184,.12), rgba(148,163,184,.05));
+  border-bottom-color: rgba(148,163,184,.14);
+}
+
+.az-table tbody td{
+  padding:12px 12px;
+  border-bottom:1px solid rgba(148,163,184,.16);
+  vertical-align:middle;
+  font-size:14px;
+}
+
+.az-table tbody tr:hover td{
+  background: rgba(124,58,237,.06);
+}
+
+.az-table tbody tr:last-child td{
+  border-bottom:none;
+}
+
+/* Checkbox style */
+.az-table input[type="checkbox"]{
+  width:16px;
+  height:16px;
+  accent-color: #7c3aed;
+}
+
+/* Price input inside table */
+.az-table input[type="number"]{
+  width:160px;
+  height:38px;
+  padding:8px 10px;
+  border-radius:10px;
+  border:1px solid rgba(148,163,184,.35);
+  background: rgba(255,255,255,.85);
+  outline:none;
+  transition: box-shadow .15s ease, border-color .15s ease;
+}
+
+html[data-theme="dark"] .az-table input[type="number"]{
+  background: rgba(11,18,32,.75);
+  border-color: rgba(148,163,184,.22);
+}
+
+.az-table input[type="number"]:focus{
+  border-color: rgba(124,58,237,.55);
+  box-shadow: 0 0 0 4px rgba(124,58,237,.16);
+}
+
+/* Paid row */
+.az-table tr.is-paid td{
+  opacity:.72;
+}
+
+.az-table tr.is-paid td strong{
+  color: rgba(16,185,129,.95);
+}
+
+/* Total line */
+.az-total{
+  display:flex;
+  justify-content:flex-end;
+  margin-top:12px;
+}
+
+.az-kpi{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:10px 12px;
+  border-radius:12px;
+  border:1px solid rgba(148,163,184,.25);
+  background: linear-gradient(135deg, rgba(124,58,237,.10), rgba(99,102,241,.08));
+}
+
+.az-kpi span{ font-size:12px; opacity:.85; }
+.az-kpi strong{ font-size:18px; letter-spacing:-.01em; }
+
+/* Divider + actions */
+.az-hr{
+  border:none;
+  height:1px;
+  background: rgba(148,163,184,.22);
+  margin:16px 0;
+}
+
+.az-actions{
+  display:flex;
+  justify-content:flex-end;
+  margin-top:14px;
+}
+
+/* Buttons */
+.az-btn{
+  height:44px;
+  padding:10px 14px;
+  border-radius:12px;
+  border:1px solid rgba(148,163,184,.25);
+  background: rgba(255,255,255,.65);
+  cursor:pointer;
+  font-weight:800;
+  transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease;
+}
+
+html[data-theme="dark"] .az-btn{
+  background: rgba(11,18,32,.55);
+  border-color: rgba(148,163,184,.18);
+}
+
+.az-btn:hover{
+  transform: translateY(-1px);
+  box-shadow: 0 10px 24px rgba(0,0,0,.12);
+}
+
+.az-btn-primary{
+  border-color: rgba(124,58,237,.55);
+  background: linear-gradient(135deg, rgba(124,58,237,.22), rgba(99,102,241,.18));
+  box-shadow: 0 0 0 4px rgba(124,58,237,.10);
+}
+
+/* Fratrie block */
+.az-fratrie{
+  margin-top:10px;
+  padding:12px;
+  border-radius:14px;
+  border:1px dashed rgba(124,58,237,.35);
+  background: rgba(124,58,237,.06);
+}
+
+.az-fratrie .az-fratrie-list{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  margin-top:10px;
+}
+
+/* Muted */
+.az-muted{
+  font-size:12px;
+  opacity:.78;
+  line-height:1.45;
+}
+
+/* Mobile table: allow horizontal scroll clean */
+@media (max-width: 640px){
+  .az-card{ padding:14px; }
+  .az-table{ min-width:520px; }
+}

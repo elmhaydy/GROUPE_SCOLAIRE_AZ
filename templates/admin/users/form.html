@@ -1,0 +1,117 @@
+{% extends "admin/base_admin.html" %}
+{% load static %}
+
+{% block title %}{% if mode == "create" %}Ajouter un utilisateur{% else %}Modifier utilisateur{% endif %} | AZ{% endblock %}
+{% block page_title %}{% if mode == "create" %}Ajouter un utilisateur{% else %}Modifier utilisateur{% endif %}{% endblock %}
+{% block breadcrumb %}Admin / Users{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'admin/css/users/form.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <div class="modern-form-card">
+        <div class="form-header">
+            <h3>
+                {% if mode == "create" %}
+                    <i class="fa-solid fa-user-plus"></i> Nouveau user
+                {% else %}
+                    <i class="fa-solid fa-user-pen"></i> Modifier: {{ u.username }}
+                {% endif %}
+            </h3>
+            <p style="color: var(--text-muted); margin-top: 0.5rem; font-weight: 500;">
+                Veuillez renseigner les informations ci-dessous pour gérer le compte utilisateur.
+            </p>
+        </div>
+
+        <form method="post" novalidate>
+            {% csrf_token %}
+            
+            {% if form.non_field_errors %}
+                <div class="non-field-errors">
+                    {{ form.non_field_errors }}
+                </div>
+            {% endif %}
+
+            <div class="form-grid">
+                <!-- Username -->
+                <div style="grid-column: span 6;" class="field-group">
+                    <label for="{{ form.username.id_for_label }}">Username (Matricule)</label>
+                    {{ form.username }}
+                    {{ form.username.errors }}
+                </div>
+
+                <!-- Email -->
+                <div style="grid-column: span 6;" class="field-group">
+                    <label for="{{ form.email.id_for_label }}">Email</label>
+                    {{ form.email }}
+                    {{ form.email.errors }}
+                </div>
+
+                <!-- Nom -->
+                <div style="grid-column: span 6;" class="field-group">
+                    <label for="{{ form.last_name.id_for_label }}">Nom</label>
+                    {{ form.last_name }}
+                    {{ form.last_name.errors }}
+                </div>
+
+                <!-- Prénom -->
+                <div style="grid-column: span 6;" class="field-group">
+                    <label for="{{ form.first_name.id_for_label }}">Prénom</label>
+                    {{ form.first_name }}
+                    {{ form.first_name.errors }}
+                </div>
+
+                <!-- Statut Actif -->
+                <div style="grid-column: span 12;" class="field-group">
+                    <label>Statut du compte</label>
+                    <div class="checkbox-wrapper">
+                        {{ form.is_active }}
+                        <span style="font-weight: 600; color: var(--text-main);">Compte actif</span>
+                    </div>
+                    {{ form.is_active.errors }}
+                </div>
+
+                <!-- Groupes / Rôles -->
+                <div style="grid-column: span 12;" class="field-group">
+                    <label for="{{ form.groups.id_for_label }}">Rôles (Groupes)</label>
+                    {{ form.groups }}
+                    {{ form.groups.errors }}
+                </div>
+
+                {% if mode == "create" %}
+                    <!-- Auto Password -->
+                    <div style="grid-column: span 12;" class="field-group">
+                        <div class="checkbox-wrapper" style="background: rgba(168, 85, 247, 0.1);">
+                            {{ form.auto_password }}
+                            <span style="font-weight: 600; color: var(--text-main);">{{ form.auto_password.label }}</span>
+                        </div>
+                    </div>
+
+                    <!-- Manual Password -->
+                    <div style="grid-column: span 12;" class="field-group">
+                        <label for="{{ form.password.id_for_label }}">Mot de passe manuel</label>
+                        {{ form.password }}
+                        <small style="color: var(--text-muted); font-size: 0.75rem;">Laissez vide si le mot de passe automatique est activé.</small>
+                        {{ form.password.errors }}
+                    </div>
+                {% endif %}
+            </div>
+
+            <div class="form-actions">
+                <button class="btn-modern btn-save" type="submit">
+                    <i class="fa-solid fa-check-circle"></i> Enregistrer les modifications
+                </button>
+                <a class="btn-modern btn-cancel" href="{% url 'core:users_list' %}">
+                    Annuler
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'admin/js/users/form.js' %}"></script>
+{% endblock %}

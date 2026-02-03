@@ -1,0 +1,187 @@
+{% extends "admin/base_admin.html" %}
+{% load static %}
+
+
+{% block title %}Dossier | AZ{% endblock %}
+{% block page_title %}Dossier de recouvrement{% endblock %}
+{% block breadcrumb %}Finance / Recouvrements / Détail{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'admin/css/recouvrement/detail.css' %}?v=1">
+{% endblock %}
+
+{% block content %}
+<!-- Header Card -->
+<div class="az-card">
+  <div class="header-flex" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1.5rem;">
+    <div class="student-info">
+      <h3 style="margin:0;">
+        <span class="icon">📌</span> 
+        {{ dossier.inscription.eleve.matricule }} — {{ dossier.inscription.eleve.nom }} {{ dossier.inscription.eleve.prenom }}
+      </h3>
+      <div class="text-muted" style="margin-top: 0.5rem;">
+        Année: <b style="color: var(--text-main);">{{ dossier.inscription.annee.nom }}</b> — 
+        Groupe: <b style="color: var(--text-main);">{{ dossier.inscription.groupe.nom }}</b> —
+        Statut: <span class="status-badge">{{ dossier.get_statut_display }}</span>
+      </div>
+    </div>
+
+    <div class="action-buttons" style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+      <a class="az-btn" href="{% url 'core:impayes_list' %}">
+        <span>←</span> Impayés
+      </a>
+      <a class="az-btn" href="{% url 'core:recouvrement_list' %}">
+        <span>📄</span> Tous dossiers
+      </a>
+
+      {% if dossier.statut != "CLOTURE" and dossier.statut != "REGLE" %}
+      <form method="post" action="{% url 'core:recouvrement_cloturer' dossier.id %}" class="inline-form">
+        {% csrf_token %}
+        <button class="az-btn az-btn-danger" type="submit" onclick="return confirm('Êtes-vous sûr de vouloir clôturer ce dossier ?')">
+          <span>🔒</span> Clôturer
+        </button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Financial Situation -->
+<div class="az-card">
+  <h3><span class="icon">📊</span> Situation financière</h3>
+  <div class="finance-grid">
+    <div class="finance-badge">
+      <span class="label">Total dû</span>
+      <span class="value">{{ dossier.inscription.montant_total }} MAD</span>
+    </div>
+    <div class="finance-badge" style="border-left: 4px solid #10b981;">
+      <span class="label">Payé</span>
+      <span class="value" style="color: #10b981;">{{ total_paye }} MAD</span>
+    </div>
+    <div class="finance-badge" style="border-left: 4px solid #f59e0b;">
+      <span class="label">Solde</span>
+      <span class="value" style="color: #f59e0b;">{{ solde }} MAD</span>
+    </div>
+  </div>
+</div>
+
+<!-- Parents Contacts -->
+<div class="az-card">
+  <h3><span class="icon">👥</span> Contacts parents</h3>
+  <div class="parent-list" style="display: flex; flex-direction: column; gap: 0.75rem; margin-top: 1rem;">
+    {% for l in liens_parents %}
+      <div class="parent-item">
+        <div class="parent-info">
+          <b style="font-size: 1rem;">{{ l.parent.nom }} {{ l.parent.prenom }}</b> 
+          <span class="text-muted">({{ l.get_lien_display }})</span>
+        </div>
+        <div class="parent-contact" style="display: flex; gap: 1rem; flex-wrap: wrap;">
+          <a href="tel:{{ l.parent.telephone }}" class="az-btn az-btn-sm">
+            📞 {{ l.parent.telephone|default:"—" }}
+          </a>
+          <a href="mailto:{{ l.parent.email }}" class="az-btn az-btn-sm">
+            ✉️ {{ l.parent.email|default:"—" }}
+          </a>
+        </div>
+      </div>
+    {% empty %}
+      <div class="text-muted" style="text-align: center; padding: 1rem;">Aucun parent lié.</div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- Add Relance -->
+<div class="az-card">
+  <h3><span class="icon">📢</span> Ajouter une relance</h3>
+  <form method="post" action="{% url 'core:relance_create' dossier.id %}" class="modern-form" style="display: grid; grid-template-columns: auto 1fr auto; gap: 1rem; align-items: end; margin-top: 1rem;">
+    {% csrf_token %}
+    <div class="form-group">
+      <label class="form-label">Type</label>
+      <select name="type" class="az-select">
+        {% for code,label in TYPE_CHOICES %}
+          <option value="{{ code }}">{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Message</label>
+      <input name="message" class="az-input" placeholder="Ex: Merci de régulariser avant vendredi...">
+    </div>
+
+    <button class="az-btn az-btn-gradient" type="submit">
+      <span>➕</span> Ajouter
+    </button>
+  </form>
+</div>
+
+<!-- Relance History -->
+<div class="az-card">
+  <h3><span class="icon">📜</span> Historique des relances</h3>
+  <div class="relance-list" style="display: flex; flex-direction: column; gap: 1rem; margin-top: 1rem;">
+    {% for r in relances %}
+      <div class="relance-item">
+        <div class="relance-header">
+          <div class="relance-type">
+            <b style="color: var(--primary-color);">{{ r.get_type_display }}</b> 
+            <span class="text-muted" style="margin-left: 0.5rem;">{{ r.created_at|date:"d M Y H:i" }}</span>
+          </div>
+          <div class="relance-author text-muted">
+            Par: <b style="color: var(--text-main);">{{ r.created_by|default:"—" }}</b>
+          </div>
+        </div>
+        {% if r.message %}
+          <div class="relance-body" style="margin-top: 0.5rem; color: rgba(255,255,255,0.9);">
+            {{ r.message }}
+          </div>
+        {% endif %}
+      </div>
+    {% empty %}
+      <div class="text-muted" style="text-align: center; padding: 1rem;">Aucune relance enregistrée.</div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- Payment History -->
+<div class="az-card">
+  <h3><span class="icon">💳</span> Historique des paiements</h3>
+  <div class="table-container">
+    <table class="az-table">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Montant</th>
+          <th>Mode</th>
+          <th style="text-align: right;">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in paiements %}
+          <tr>
+            <td>{{ p.date_paiement|date:"d/m/Y" }}</td>
+            <td><b style="color: #10b981;">{{ p.montant }}</b> MAD</td>
+            <td><span class="text-muted">{{ p.get_mode_display }}</span></td>
+            <td style="text-align: right;">
+              <a class="az-btn az-btn-sm" href="{% url 'core:paiement_recu' p.id %}" title="Voir le reçu">
+                🧾 Reçu
+              </a>
+            </td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="4" style="text-align: center; padding: 2rem;" class="text-muted">
+              Aucun paiement enregistré pour le moment.
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+
+{% block extra_js %}
+<script src="{% static 'admin/js/recouvrement/detail.js' %}?v=1"></script>
+{% endblock %}
+
+{% endblock %}

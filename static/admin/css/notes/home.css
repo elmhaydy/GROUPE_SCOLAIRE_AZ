@@ -1,0 +1,415 @@
+/* =========================================================
+   AZ — Notes (home.css) — FINAL 2026 (AZ NEBULA)
+   - Match ton HTML: az-grid-table / az-gt-*
+   - Chip "Filtres", focus violet glow ✅
+   - Grid premium (cards rows) ✅
+   - Mobile labels via data-label ✅
+   - Dark select dropdown fix ✅
+   ========================================================= */
+
+/* ===== Page Head ===== */
+.az-page-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap: var(--az-spacing-lg);
+  flex-wrap:wrap;
+  margin-bottom: var(--az-spacing-lg);
+}
+
+.az-page-head-left,
+.az-page-head-right{
+  display:flex;
+  align-items:center;
+  gap: var(--az-spacing-md);
+  flex-wrap:wrap;
+}
+
+/* Pill */
+.az-pill{
+  display:inline-flex;
+  align-items:center;
+  gap:10px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--az-border);
+  background: linear-gradient(180deg, var(--az-bg-primary), var(--az-bg-secondary));
+  box-shadow: var(--az-shadow-sm);
+  color: var(--az-text-secondary);
+  font-weight: 900;
+  animation: az-fadeUp .35s ease both;
+}
+.az-pill i{ color: var(--az-success); }
+
+html[data-theme="dark"] .az-pill{
+  background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.02));
+}
+
+/* Variante soft (Type) */
+.az-pill.az-pill-soft{
+  padding: 7px 12px;
+  font-size: .82rem;
+  border-color: rgba(99,102,241,.22);
+  background: rgba(99,102,241,.12);
+  color: var(--az-text-primary);
+}
+html[data-theme="dark"] .az-pill.az-pill-soft{
+  background: rgba(99,102,241,.14);
+  border-color: rgba(129,140,248,.22);
+  color: rgba(241,245,249,.92);
+}
+
+/* ===== Filter Bar ===== */
+.az-filter-bar{
+  margin-bottom: var(--az-spacing-xl);
+}
+
+.az-filter-form{
+  display:flex;
+  align-items:end;
+  flex-wrap:wrap;
+  gap: var(--az-spacing-md);
+  padding: var(--az-spacing-lg);
+  border-radius: 18px;
+  border: 1px solid var(--az-border);
+  background: linear-gradient(180deg, var(--az-bg-secondary), var(--az-bg-primary));
+  box-shadow: var(--az-shadow-sm);
+  animation: az-fadeUp .45s ease both;
+}
+
+/* Chip "Filtres" */
+.az-filter-label{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1.6px dashed rgba(100, 116, 139, .35);
+  background: rgba(255,255,255,.35);
+  color: var(--az-text-secondary);
+  font-weight: 900;
+  box-shadow: var(--az-shadow-sm);
+  user-select:none;
+}
+
+.az-filter-label i{
+  color: #6366f1;
+  filter: drop-shadow(0 6px 16px rgba(99,102,241,.25));
+}
+
+html[data-theme="dark"] .az-filter-label{
+  background: rgba(15,23,42,.35);
+  border-color: rgba(148, 163, 184, .18);
+  color: rgba(226,232,240,.85);
+}
+
+/* Champs */
+.az-field{
+  display:flex;
+  flex-direction:column;
+  gap: 8px;
+  min-width: 220px;
+}
+.az-field.az-field-wide{ min-width: 340px; }
+
+.az-field-label{
+  font-size: .9rem;
+  font-weight: 900;
+  color: var(--az-text-secondary);
+}
+.az-select-wide{ min-width: 320px; }
+
+/* Inputs / selects premium */
+.az-filter-form .az-input,
+.az-filter-form .az-select{
+  width:100%;
+  min-height: 46px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(148, 163, 184, .35);
+  background: var(--az-bg-primary);
+  color: var(--az-text-primary);
+  font-family: inherit;
+  font-size: .95rem;
+  transition: var(--az-transition-fast);
+}
+
+html[data-theme="dark"] .az-filter-form .az-input,
+html[data-theme="dark"] .az-filter-form .az-select{
+  border-color: rgba(148, 163, 184, .22);
+  background: rgba(2,6,23,.18);
+}
+
+/* Focus violet glow */
+.az-filter-form .az-input:focus,
+.az-filter-form .az-select:focus{
+  outline:none;
+  border-color: rgba(99,102,241,.65);
+  box-shadow:
+    0 0 0 4px rgba(99,102,241,.18),
+    0 10px 22px rgba(99,102,241,.10);
+  transform: translateY(-1px);
+}
+
+html[data-theme="dark"] .az-filter-form .az-input:focus,
+html[data-theme="dark"] .az-filter-form .az-select:focus{
+  border-color: rgba(129,140,248,.75);
+  box-shadow:
+    0 0 0 4px rgba(129,140,248,.22),
+    0 14px 28px rgba(99,102,241,.12);
+}
+
+/* Actions à droite */
+.az-filter-actions{
+  margin-left:auto;
+  display:flex;
+  align-items:center;
+  gap: 10px;
+  flex-wrap:wrap;
+}
+
+/* ===== Card header ===== */
+.az-notes-card{
+  border-radius: 16px;
+  background: var(--az-bg-primary);
+  border: 1px solid var(--az-border);
+  box-shadow: var(--az-shadow-sm);
+  overflow:hidden;
+  animation: az-fadeUp .55s ease both;
+}
+
+.az-card-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap: var(--az-spacing-md);
+  padding: 16px 16px 10px;
+}
+
+.az-card-title{
+  margin:0;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  color: var(--az-text-primary);
+  font-size: 1.05rem;
+  font-weight: 900;
+}
+.az-card-title i{ color: var(--az-primary); }
+
+.az-card-meta{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+
+.az-badge{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--az-border);
+  background: linear-gradient(180deg, var(--az-bg-secondary), var(--az-bg-primary));
+  color: var(--az-text-secondary);
+  font-weight: 900;
+  font-size: .88rem;
+  box-shadow: var(--az-shadow-sm);
+}
+.az-badge i{ color: var(--az-primary); }
+
+/* ===== Grid Table (az-grid-table) ===== */
+.az-grid-table{
+  padding: 0 14px 14px;
+}
+
+/* Head */
+.az-gt-head{
+  display:grid;
+  grid-template-columns: 1.7fr 1.2fr 1.2fr 1fr 1fr 1fr 1.7fr .9fr 1.1fr;
+  gap: 10px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+  border-radius: 12px;
+  background: var(--az-bg-secondary);
+  border: 1px solid var(--az-border);
+  color: var(--az-text-tertiary);
+  font-size: .78rem;
+  font-weight: 900;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.az-gt-actions{ text-align:right; padding-right:4px; }
+
+/* Body */
+.az-gt-body{
+  display:flex;
+  flex-direction:column;
+  gap: 10px;
+}
+
+/* Row */
+.az-gt-row{
+  display:grid;
+  grid-template-columns: 1.7fr 1.2fr 1.2fr 1fr 1fr 1fr 1.7fr .9fr 1.1fr;
+  gap: 10px;
+  align-items:center;
+  padding: 14px 12px;
+  border-radius: 14px;
+  background: var(--az-bg-primary);
+  border: 1px solid var(--az-border);
+  box-shadow: var(--az-shadow-sm);
+  transition: var(--az-transition-fast);
+  position:relative;
+  overflow:hidden;
+}
+
+.az-gt-row:hover{
+  background: var(--az-bg-secondary);
+  border-color: rgba(99,102,241,.40);
+  box-shadow: var(--az-shadow-md);
+  transform: translateY(-2px);
+}
+
+.az-gt-row::before{
+  content:"";
+  position:absolute;
+  left:0; top:0; bottom:0;
+  width: 3px;
+  background: linear-gradient(180deg, var(--az-primary), var(--az-primary-light));
+  opacity:0;
+  transition: var(--az-transition-fast);
+}
+.az-gt-row:hover::before{ opacity:1; }
+
+/* Cells */
+.az-gt-cell{
+  color: var(--az-text-secondary);
+  font-size: .95rem;
+  min-width:0;
+}
+.az-strong{ color: var(--az-text-primary); font-weight: 900; }
+.az-sub{ color: var(--az-text-tertiary); }
+
+.az-gt-cell b{ color: var(--az-text-primary); }
+
+/* Action cell */
+.az-gt-cell.az-gt-actions{
+  display:flex;
+  justify-content:flex-end;
+  align-items:center;
+  gap: 8px;
+  flex-wrap:wrap;
+}
+
+/* Empty */
+.az-empty{
+  padding: 26px 14px;
+  border-radius: 14px;
+  border: 1px dashed rgba(148,163,184,.30);
+  color: var(--az-text-secondary);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+  background: rgba(148,163,184,.06);
+}
+
+html[data-theme="dark"] .az-empty{
+  background: rgba(255,255,255,.04);
+  border-color: rgba(255,255,255,.10);
+  color: rgba(226,232,240,.75);
+}
+.az-empty i{ opacity:.9; color: var(--az-primary); }
+
+/* Anim */
+@keyframes az-fadeUp{
+  from{ opacity:0; transform: translateY(10px); }
+  to{ opacity:1; transform: translateY(0); }
+}
+
+/* =========================================================
+   RESPONSIVE (Mobile)
+   - utilise data-label de ton HTML ✅
+   ========================================================= */
+@media (max-width: 1100px){
+  .az-gt-head{ display:none; }
+
+  .az-gt-row{
+    grid-template-columns: 1fr;
+    gap: 10px;
+    padding: 14px;
+  }
+
+  .az-gt-cell{
+    padding: 0;
+  }
+
+  /* Labels auto via data-label */
+  .az-gt-cell::before{
+    content: attr(data-label);
+    display:block;
+    color: var(--az-text-tertiary);
+    font-size: .78rem;
+    font-weight: 900;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+
+  .az-gt-cell.az-gt-actions{
+    justify-content:flex-start;
+  }
+
+  .az-filter-form{
+    padding: var(--az-spacing-md);
+    border-radius: 16px;
+  }
+
+  .az-field{ min-width: 100%; }
+  .az-field.az-field-wide{ min-width: 100%; }
+  .az-select-wide{ min-width: 100%; }
+
+  .az-filter-actions{
+    margin-left:0;
+    width:100%;
+  }
+}
+
+/* =========================================================
+   AZ — FIX SELECT DROPDOWN (Dark mode) — FINAL
+   Corrige menu gris clair (Windows/Chrome)
+   ========================================================= */
+html[data-theme="dark"] select{
+  color-scheme: dark;
+}
+
+html[data-theme="dark"] .az-select{
+  background-color: #0b1220 !important;
+  color: #f1f5f9 !important;
+  border-color: rgba(148,163,184,.22) !important;
+}
+
+html[data-theme="dark"] .az-select option,
+html[data-theme="dark"] .az-select optgroup{
+  background-color: #0b1220 !important;
+  color: #e5e7eb !important;
+}
+
+html[data-theme="dark"] .az-select option:checked{
+  background-color: #2563eb !important;
+  color: #ffffff !important;
+}
+
+html[data-theme="dark"] .az-select option:hover{
+  background-color: #1e293b !important;
+}
+
+html[data-theme="dark"] .az-select optgroup{
+  font-weight: 800;
+  color: #cbd5f5 !important;
+}
+
+html[data-theme="dark"] select:-internal-list-box{
+  background-color: #0b1220 !important;
+}

@@ -1,0 +1,258 @@
+/* =========================================================
+   AZ — Bulletin Admin (scopé)
+   ========================================================= */
+.azbul { position: relative; overflow: hidden; }
+.azbul * { box-sizing: border-box; }
+
+.azbul-head{
+  display:flex; justify-content:space-between; gap:16px; flex-wrap:wrap;
+  align-items:flex-start;
+}
+.azbul-left{ min-width:280px; }
+.azbul-right{ flex:1; min-width:320px; display:flex; flex-direction:column; gap:12px; }
+
+.azbul-pill{
+  display:inline-flex; align-items:center; gap:8px;
+  padding:8px 12px; border-radius:999px;
+  border:1px solid rgba(255,255,255,.10);
+  background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+}
+.azbul-pill .sep{ opacity:.6; }
+
+.azbul-title h3{ margin:10px 0 6px; font-size:18px; }
+.muted{ opacity:.75; }
+
+.azbul-filters{
+  display:flex; flex-wrap:wrap; gap:10px; align-items:end;
+  justify-content:flex-end;
+}
+.azbul-filters .field{ display:flex; flex-direction:column; gap:6px; min-width:180px; }
+.azbul-filters label{ font-size:12px; opacity:.8; }
+.azbul-filters select{
+  padding:10px 12px; border-radius:12px;
+  border:1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.04);
+  color: inherit;
+  outline: none;
+}
+.azbul-filters .actions{ display:flex; gap:10px; flex-wrap:wrap; }
+
+.azbul-kpis{
+  display:grid;
+  grid-template-columns: repeat(4, minmax(170px, 1fr));
+  gap:10px;
+}
+@media (max-width: 1100px){
+  .azbul-kpis{ grid-template-columns: repeat(2, minmax(170px, 1fr)); }
+}
+.kpi{
+  border:1px solid rgba(255,255,255,.10);
+  border-radius:16px;
+  background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+  padding:12px;
+}
+.kpi-label{ font-size:12px; opacity:.8; }
+.kpi-value{ font-size:18px; font-weight:800; margin-top:6px; }
+
+.azbul-toolbar{
+  margin-top:14px;
+  display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;
+}
+.azbul-search{
+  display:flex; align-items:center; gap:10px;
+  padding:10px 12px; border-radius:14px;
+  border:1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.04);
+  min-width:280px;
+}
+.azbul-search input{
+  width:280px; max-width:55vw;
+  background: transparent; border:0; outline:0; color:inherit;
+}
+.azbul-search .clear{
+  border:0; background: transparent; color:inherit; opacity:.75; cursor:pointer;
+}
+.hint{ display:flex; align-items:center; gap:8px; }
+
+.azbul-tablewrap{
+  margin-top:14px;
+  border:1px solid rgba(255,255,255,.10);
+  border-radius:18px;
+  overflow:auto;
+}
+
+.azbul-table{
+  width:100%;
+  border-collapse:separate;
+  border-spacing:0;
+  min-width: 900px;
+}
+.azbul-table thead th{
+  position:sticky; top:0;
+  background: rgba(0,0,0,.25);
+  backdrop-filter: blur(8px);
+  border-bottom:1px solid rgba(255,255,255,.10);
+  text-align:left;
+  padding:12px 14px;
+  font-size:12px;
+  letter-spacing:.3px;
+  opacity:.9;
+}
+.azbul-table tbody td{
+  padding:12px 14px;
+  border-bottom:1px solid rgba(255,255,255,.06);
+  vertical-align:top;
+}
+.tc{ text-align:center; }
+.tr{ text-align:right; }
+
+.matbox{ display:flex; align-items:center; gap:10px; }
+.dot{
+  width:10px; height:10px; border-radius:50%;
+  background: linear-gradient(135deg, #7c3aed, #22c55e);
+  box-shadow: 0 0 0 4px rgba(124,58,237,.15);
+}
+.matname{ font-weight:800; }
+.matsub{ font-size:12px; }
+
+.badge{
+  display:inline-flex; align-items:center; justify-content:center;
+  padding:6px 10px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.04);
+  font-weight:700;
+  font-size:12px;
+}
+
+.toggle{
+  width:40px; height:36px;
+  border-radius:12px;
+  border:1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.04);
+  color:inherit;
+  cursor:pointer;
+}
+.toggle i{ transition: transform .18s ease; }
+.toggle.open i{ transform: rotate(180deg); }
+
+.bar{
+  margin-top:8px;
+  width:100%; height:8px;
+  border-radius:999px;
+  background: rgba(255,255,255,.06);
+  overflow:hidden;
+}
+.fill{
+  display:block;
+  height:100%;
+  width: 0%;
+  background: linear-gradient(90deg, #7c3aed, #3b82f6);
+  border-radius:999px;
+}
+
+.detail{ display:none; }
+.detailbox{
+  border:1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.03);
+  border-radius:16px;
+  padding:12px;
+}
+.detailhead{
+  display:flex; justify-content:space-between; align-items:center;
+  margin-bottom:10px;
+}
+.detailtitle{ font-weight:800; display:flex; align-items:center; gap:8px; }
+
+.dlist{ display:flex; flex-direction:column; gap:10px; }
+.ditem{
+  display:flex; justify-content:space-between; gap:14px; flex-wrap:wrap;
+  padding:10px;
+  border-radius:14px;
+  border:1px solid rgba(255,255,255,.08);
+  background: rgba(0,0,0,.18);
+}
+.dt{ font-weight:800; }
+.ds{ font-size:12px; }
+
+.badge-grade{
+  display:inline-flex;
+  padding:6px 10px;
+  border-radius:999px;
+  border:1px solid rgba(124,58,237,.35);
+  background: rgba(124,58,237,.10);
+  font-weight:800;
+  font-size:12px;
+  margin-top:6px;
+}
+
+.azbul-empty{
+  margin-top:16px;
+  padding:14px;
+  border-radius:16px;
+  border:1px dashed rgba(255,255,255,.15);
+  text-align:center;
+}
+
+/* Light theme (si ton admin supporte html[data-theme]) */
+html[data-theme="light"] .azbul-table thead th{
+  background: rgba(255,255,255,.75);
+}
+html[data-theme="light"] .detailbox{
+  background: rgba(255,255,255,.60);
+}
+/* ================================
+   FIX SELECT / OPTION DISABLED
+   Dark & Light mode
+   ================================ */
+
+select option:disabled {
+  color: #9ca3af !important;       /* gris lisible */
+  background-color: #0b1220;       /* fond dark */
+}
+
+html[data-theme="light"] select option:disabled {
+  color: #9ca3af !important;
+  background-color: #f1f5f9;
+}
+/* ================================
+   AZ BULLETIN — FIX SELECT / OPTION (scopé)
+   - meilleure lisibilité en dark
+   - options disabled visibles
+   ================================ */
+
+/* le champ select lui-même */
+.azbul .azbul-filters select{
+  background: rgba(255,255,255,.04);
+  color: inherit;
+}
+
+/* toutes les options */
+.azbul .azbul-filters select option{
+  background-color: #0b1220;   /* dark dropdown */
+  color: #e5e7eb;              /* texte lisible */
+}
+
+/* option "placeholder" (value="") si tu en as */
+.azbul .azbul-filters select option[value=""]{
+  color: #94a3b8;
+}
+
+/* options désactivées */
+.azbul .azbul-filters select option:disabled{
+  color: #64748b !important;   /* gris plus clair mais lisible */
+  opacity: 1;                  /* évite un gris trop fade sur certains OS */
+}
+
+/* ✅ Light theme */
+html[data-theme="light"] .azbul .azbul-filters select option{
+  background-color: #ffffff;
+  color: #0f172a;
+}
+html[data-theme="light"] .azbul .azbul-filters select option[value=""]{
+  color: #64748b;
+}
+html[data-theme="light"] .azbul .azbul-filters select option:disabled{
+  color: #94a3b8 !important;
+  opacity: 1;
+}

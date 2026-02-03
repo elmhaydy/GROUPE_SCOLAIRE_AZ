@@ -1,0 +1,227 @@
+/* static/admin/css/sms.css */
+
+:root{
+  --az-radius: 18px;
+  --az-radius-sm: 14px;
+  --az-shadow: 0 18px 40px rgba(15,23,42,.18);
+  --az-shadow-strong: 0 22px 60px rgba(15,23,42,.28);
+  --az-grad: linear-gradient(135deg,#6366f1,#ec4899);
+  --az-green: #22c55e;
+  --az-red: #ef4444;
+}
+
+/* Light / Dark tokens */
+html[data-theme="dark"]{
+  --az-surface: rgba(255,255,255,.04);
+  --az-surface-2: rgba(255,255,255,.06);
+  --az-text: #e5e7eb;
+  --az-muted: rgba(229,231,235,.65);
+  --az-row-hover: rgba(99,102,241,.08);
+  --az-card-border: rgba(255,255,255,.10);
+}
+
+html[data-theme="light"]{
+  --az-surface: #ffffff;
+  --az-surface-2: #f8fafc;
+  --az-text: #0f172a;
+  --az-muted: rgba(15,23,42,.62);
+  --az-row-hover: rgba(99,102,241,.06);
+  --az-card-border: rgba(15,23,42,.10);
+}
+
+/* Page head */
+.az-page-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  flex-wrap:wrap;
+  margin-bottom:14px;
+}
+
+.az-page-title-xl{
+  margin:0;
+  font-size:22px;
+  font-weight:900;
+  color: var(--az-text);
+}
+
+.az-page-sub{
+  margin:6px 0 0;
+  color: var(--az-muted);
+  font-size:13px;
+}
+
+/* Buttons */
+.az-btn{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding:10px 14px;
+  border-radius:999px;
+  font-weight:800;
+  font-size:13px;
+  text-decoration:none;
+  border:1px solid transparent;
+  cursor:pointer;
+  transition:transform .18s ease, box-shadow .18s ease, background .18s ease, border-color .18s ease, opacity .18s ease;
+  user-select:none;
+  white-space:nowrap;
+}
+
+.az-btn-primary{
+  background: var(--az-grad);
+  color:#fff;
+  box-shadow: 0 14px 30px rgba(99,102,241,.28);
+}
+.az-btn-primary:hover{ transform: translateY(-1px); box-shadow: var(--az-shadow-strong); }
+
+/* Card */
+.az-sms-card{
+  border-radius: var(--az-radius);
+  background: var(--az-surface);
+  border: 1px solid var(--az-card-border);
+  box-shadow: var(--az-shadow);
+  overflow:hidden;
+}
+
+.az-card-head{ padding:16px 16px 10px; }
+
+.az-card-title{
+  margin:0;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  color: var(--az-text);
+  font-size:16px;
+  font-weight:900;
+}
+.az-card-title i{
+  background: var(--az-grad);
+  background-clip:text;
+  -webkit-background-clip:text;
+  color:transparent;
+}
+
+/* “Table” grid */
+.az-table{ padding: 0 14px 14px; }
+
+.az-thead{
+  display:grid;
+  grid-template-columns: 1.1fr 1.4fr 1.1fr 1fr 2fr;
+  gap:10px;
+  padding: 10px 12px;
+  margin-bottom:10px;
+  color: var(--az-muted);
+  font-size:12px;
+  font-weight:900;
+  letter-spacing:.02em;
+}
+
+.az-tbody{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+
+.az-row{
+  display:grid;
+  grid-template-columns: 1.1fr 1.4fr 1.1fr 1fr 2fr;
+  gap:10px;
+  align-items:center;
+  padding: 14px 12px;
+  border-radius: var(--az-radius-sm);
+  background: var(--az-surface-2);
+  border: 1px solid var(--az-card-border);
+  transition: transform .18s ease, background .18s ease, border-color .18s ease;
+}
+
+.az-row:hover{
+  background: var(--az-row-hover);
+  border-color: rgba(99,102,241,.35);
+  transform: translateY(-1px);
+}
+
+.az-cell{ color: var(--az-text); font-size:13px; }
+.az-strong{ font-weight:900; }
+
+.az-muted{ color: var(--az-muted); }
+
+/* code phone */
+.az-code{
+  display:inline-flex;
+  padding:6px 10px;
+  border-radius:999px;
+  border:1px solid rgba(148,163,184,.25);
+  background: rgba(148,163,184,.08);
+  color: var(--az-text);
+  font-size:12px;
+  font-weight:800;
+}
+
+/* badges */
+.az-badge{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding:6px 10px;
+  border-radius:999px;
+  font-size:12px;
+  font-weight:900;
+  border:1px solid transparent;
+}
+
+.az-badge-success{
+  background: rgba(34,197,94,.12);
+  border-color: rgba(34,197,94,.35);
+  color: var(--az-text);
+}
+.az-badge-success i{ color: var(--az-green); }
+
+.az-badge-danger{
+  background: rgba(239,68,68,.10);
+  border-color: rgba(239,68,68,.35);
+  color: var(--az-text);
+}
+.az-badge-danger i{ color: var(--az-red); }
+
+.az-badge-muted{
+  background: rgba(148,163,184,.10);
+  border-color: rgba(148,163,184,.20);
+  color: var(--az-muted);
+}
+
+/* ellipsis error */
+.az-ellipsis{
+  display:block;
+  max-width:100%;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  color: var(--az-text);
+}
+
+/* empty */
+.az-empty{
+  padding: 26px 14px;
+  border-radius: var(--az-radius-sm);
+  border: 1px dashed rgba(148,163,184,.30);
+  color: var(--az-muted);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+  background: rgba(148,163,184,.06);
+}
+.az-empty-sub{ margin-top:4px; }
+
+/* responsive */
+@media (max-width: 1100px){
+  .az-thead{ display:none; }
+  .az-row{ grid-template-columns: 1fr; gap:10px; }
+  .az-row .az-cell:nth-child(1)::before{ content:"Date"; display:block; color:var(--az-muted); font-size:12px; margin-bottom:4px; }
+  .az-row .az-cell:nth-child(2)::before{ content:"Parent"; display:block; color:var(--az-muted); font-size:12px; margin-bottom:4px; }
+  .az-row .az-cell:nth-child(3)::before{ content:"Téléphone"; display:block; color:var(--az-muted); font-size:12px; margin-bottom:4px; }
+  .az-row .az-cell:nth-child(4)::before{ content:"Statut"; display:block; color:var(--az-muted); font-size:12px; margin-bottom:4px; }
+  .az-row .az-cell:nth-child(5)::before{ content:"Erreur"; display:block; color:var(--az-muted); font-size:12px; margin-bottom:4px; }
+}

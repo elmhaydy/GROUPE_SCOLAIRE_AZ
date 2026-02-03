@@ -1,0 +1,207 @@
+{% extends "admin/base_admin.html" %}
+{% load static %}
+
+{% block title %}Saisie des notes | AZ{% endblock %}
+{% block page_title %}Saisie des notes{% endblock %}
+{% block current_page %}Pédagogie / Notes / Saisie{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'admin/css/notes/home.css' %}?v=3">
+{% endblock %}
+
+{% block content %}
+
+<div class="az-page-head">
+  <div class="az-page-head-left">
+    <div class="az-pill">
+      <i class="fa-solid fa-circle-check"></i>
+      <span>Année active : <b>{{ annee_active.nom }}</b></span>
+    </div>
+  </div>
+
+  <div class="az-page-head-right">
+    <a class="az-btn az-btn-ghost" href="{% url 'core:evaluation_list' %}">
+      <i class="fa-solid fa-list-check"></i> Évaluations
+    </a>
+  </div>
+</div>
+
+<div class="az-filter-bar">
+  <form method="get" class="az-filter-form" id="notesHomeFilter">
+
+    <div class="az-filter-label">
+      <i class="fa-solid fa-filter"></i>
+      <span>Filtres</span>
+    </div>
+
+    <div class="az-field az-field-wide">
+      <div class="az-field-label">Recherche</div>
+      <input
+        class="az-input"
+        type="text"
+        name="q"
+        value="{{ q|default:'' }}"
+        placeholder="Titre, matière, prof..."
+        autocomplete="off"
+      >
+    </div>
+
+    <div class="az-field">
+      <div class="az-field-label">Niveau</div>
+      <select class="az-select az-select-wide" id="f_niveau" name="niveau" data-selected="{{ niveau_selected|default:'' }}">
+        <option value="">— Tous —</option>
+        {% for n in niveaux %}
+          <option value="{{ n.id }}" {% if n.id|stringformat:"s" == niveau_selected %}selected{% endif %}>
+            {{ n.degre.nom }} — {{ n.nom }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="az-field">
+      <div class="az-field-label">Groupe</div>
+      <select class="az-select az-select-wide" id="f_groupe" name="groupe" data-selected="{{ groupe_selected|default:'' }}">
+        <option value="">— Tous —</option>
+        {% for g in groupes %}
+          <option value="{{ g.id }}" {% if g.id|stringformat:"s" == groupe_selected %}selected{% endif %}>
+            {{ g.niveau.degre.nom }} / {{ g.niveau.nom }} / {{ g.nom }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="az-field">
+      <div class="az-field-label">Enseignant</div>
+      <select class="az-select az-select-wide" id="f_enseignant" name="enseignant" data-selected="{{ enseignant_selected|default:'' }}">
+        <option value="">— Tous —</option>
+        {# ✅ optionnel: tu peux pré-remplir côté view, sinon le JS hydrate #}
+      </select>
+    </div>
+
+    <div class="az-field">
+      <div class="az-field-label">Matière</div>
+      <select class="az-select az-select-wide" id="f_matiere" name="matiere" data-selected="{{ matiere_selected|default:'' }}">
+        <option value="">— Toutes —</option>
+        {% for m in matieres %}
+          <option value="{{ m.id }}" {% if m.id|stringformat:"s" == matiere_selected %}selected{% endif %}>
+            {{ m.nom }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="az-field">
+      <div class="az-field-label">Période</div>
+      <select class="az-select" id="f_periode" name="periode" data-selected="{{ periode_selected|default:'' }}">
+        <option value="">— Toutes —</option>
+        {% for p in periodes %}
+          <option value="{{ p.id }}" {% if p.id|stringformat:"s" == periode_selected %}selected{% endif %}>
+            {{ p.nom }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="az-filter-actions">
+      <button class="az-btn az-btn-primary" type="submit">
+        <i class="fa-solid fa-magnifying-glass"></i> Filtrer
+      </button>
+
+      <a class="az-btn az-btn-ghost" href="{% url 'core:notes_saisie_home' %}">
+        <i class="fa-solid fa-rotate-right"></i> Reset
+      </a>
+    </div>
+
+  </form>
+</div>
+
+<div class="az-card az-notes-card">
+  <div class="az-card-head">
+    <h3 class="az-card-title">
+      <i class="fa-solid fa-clipboard-list"></i>
+      Choisir une évaluation
+    </h3>
+
+    <div class="az-card-meta">
+      <span class="az-badge">
+        <i class="fa-solid fa-layer-group"></i>
+        {{ evaluations|length }} résultat{{ evaluations|length|pluralize }}
+      </span>
+    </div>
+  </div>
+
+  <div class="az-grid-table" role="table" aria-label="Évaluations">
+    <div class="az-gt-head" role="row">
+      <div role="columnheader">Titre</div>
+      <div role="columnheader">Matière</div>
+      <div role="columnheader">Enseignant</div>
+      <div role="columnheader">Type</div>
+      <div role="columnheader">Date</div>
+      <div role="columnheader">Période</div>
+      <div role="columnheader">Groupe</div>
+      <div role="columnheader">Note max</div>
+      <div role="columnheader" class="az-gt-actions">Action</div>
+    </div>
+
+    <div class="az-gt-body">
+      {% for ev in evaluations %}
+        <div class="az-gt-row" role="row">
+          <div class="az-gt-cell az-strong" role="cell" data-label="Titre">
+            {{ ev.titre }}
+          </div>
+
+          <div class="az-gt-cell" role="cell" data-label="Matière">
+            {{ ev.matiere.nom }}
+          </div>
+
+          <div class="az-gt-cell" role="cell" data-label="Enseignant">
+            {{ ev.enseignant_label|default:"—" }}
+          </div>
+
+          <div class="az-gt-cell" role="cell" data-label="Type">
+            <span class="az-pill az-pill-soft">{{ ev.get_type_display }}</span>
+          </div>
+
+          <div class="az-gt-cell" role="cell" data-label="Date">
+            <b>{{ ev.date }}</b>
+          </div>
+
+          <div class="az-gt-cell" role="cell" data-label="Période">
+            {{ ev.periode.nom }}
+          </div>
+
+          <div class="az-gt-cell az-sub" role="cell" data-label="Groupe">
+            {{ ev.groupe.niveau.degre.nom }}/{{ ev.groupe.niveau.nom }}/<b>{{ ev.groupe.nom }}</b>
+          </div>
+
+          <div class="az-gt-cell" role="cell" data-label="Note max">
+            <b>{{ ev.note_max }}</b>
+          </div>
+
+          <div class="az-gt-cell az-gt-actions" role="cell" data-label="Action">
+            <a class="az-btn az-btn-outline" href="{% url 'core:notes_saisie' ev.id %}">
+              <i class="fa-solid fa-pen-to-square"></i> Saisir
+            </a>
+          </div>
+        </div>
+      {% empty %}
+        <div class="az-empty">
+          <i class="fa-solid fa-inbox"></i>
+          <div>Aucune évaluation.</div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<script>
+  window.AZ_NOTES_HOME = {
+    ANNEE_ID: "{{ annee_active.id }}",
+    URL_GROUPES: "{% url 'core:ajax_groupes' %}",
+    URL_ENS:     "{% url 'core:ajax_enseignants' %}",
+    URL_MAT:     "{% url 'core:ajax_matieres' %}"
+  };
+</script>
+<script src="{% static 'admin/js/notes/home.js' %}?v=FINAL"></script>
+
+{% endblock %}

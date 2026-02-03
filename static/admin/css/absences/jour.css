@@ -1,0 +1,52 @@
+/* =========================================================
+   AZ NEBULA — Absences du jour (Jour)
+   ========================================================= */
+
+.az-jour-card{
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.az-jour-table .az-thead{
+  grid-template-columns: 1.4fr 1fr 0.8fr 1.1fr 0.7fr 0.7fr;
+}
+
+.az-jour-table .az-row{
+  grid-template-columns: 1.4fr 1fr 0.8fr 1.1fr 0.7fr 0.7fr;
+}
+
+/* Boutons actions compacts */
+.az-jour-table .az-actions{
+  display:flex;
+  gap:10px;
+  justify-content:flex-end;
+  flex-wrap:wrap;
+}
+
+/* Responsive: table -> cartes */
+@media (max-width: 920px){
+  .az-jour-table .az-thead{ display:none; }
+
+  .az-jour-table .az-row{
+    grid-template-columns: 1fr;
+    gap: 10px;
+    padding: 14px;
+    border-radius: 16px;
+  }
+
+  .az-jour-table .az-cell{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:12px;
+  }
+
+  .az-jour-table .az-cell::before{
+    content: attr(data-label);
+    font-weight: 700;
+    opacity: .75;
+    font-size: 12px;
+  }
+
+  /* On ajoute les labels via JS (ou en HTML si tu veux) */
+}

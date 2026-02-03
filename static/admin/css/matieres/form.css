@@ -1,0 +1,455 @@
+/* admin/css/matieres/form.css — AZ NEBULA (FINAL PROPRE)
+   - Dark/Light via html[data-theme]
+   - Card + sections + sticky actions
+   - Switch clean (plus de checkbox “carré”)
+   - TomSelect clean + dropdown au-dessus
+*/
+
+/* ===== Card ===== */
+.az-matiere-card{
+  grid-column: span 12;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 18px;
+  border-radius: 18px;
+  border: 1px solid var(--az-border);
+  background: linear-gradient(180deg, var(--az-bg-secondary), var(--az-bg-primary));
+  box-shadow: var(--az-shadow-md);
+  animation: az-fadeUp .35s ease both;
+  overflow: visible;
+}
+
+/* ===== Head ===== */
+.az-matiere-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap: 14px;
+  flex-wrap:wrap;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--az-border);
+  margin-bottom: 16px;
+}
+
+.az-matiere-title{
+  margin:0;
+  font-size: 1.15rem;
+  font-weight: 950;
+  color: var(--az-text-primary);
+}
+
+.az-matiere-sub{
+  margin: 6px 0 0;
+  color: var(--az-text-tertiary);
+  font-weight: 700;
+  font-size: .92rem;
+  max-width: 72ch;
+}
+
+.az-matiere-head .az-badge{
+  display:inline-flex;
+  align-items:center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--az-border);
+  background: var(--az-bg-primary);
+  color: var(--az-text-secondary);
+  box-shadow: var(--az-shadow-sm);
+  font-weight: 900;
+}
+
+/* ===== Messages ===== */
+.az-msg{
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--az-border);
+  background: var(--az-bg-primary);
+  color: var(--az-text-secondary);
+  box-shadow: var(--az-shadow-sm);
+  margin: 12px 0 0;
+}
+.az-msg--error{
+  border-color: rgba(239,68,68,.35);
+  background: rgba(239,68,68,.08);
+  color: rgba(239,68,68,.95);
+}
+
+/* ===== Sections ===== */
+.az-section{
+  margin-top: 16px;
+  padding: 16px;
+  border-radius: 16px;
+  border: 1px solid var(--az-border);
+  background: var(--az-bg-primary);
+  box-shadow: var(--az-shadow-sm);
+  overflow: visible;
+}
+
+.az-section-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.az-section-title{
+  margin:0;
+  display:flex;
+  align-items:center;
+  gap: 10px;
+  font-size: 1rem;
+  font-weight: 950;
+  color: var(--az-text-primary);
+}
+
+.az-section-title i{
+  color: var(--az-primary);
+  filter: drop-shadow(0 10px 24px rgba(99,102,241,.18));
+}
+
+.az-section-sub{
+  margin: 6px 0 0;
+  color: var(--az-text-tertiary);
+  font-weight: 700;
+  font-size: .88rem;
+}
+
+/* ===== Grid ===== */
+.az-grid-2{
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+@media (max-width: 820px){
+  .az-grid-2{ grid-template-columns: 1fr; }
+}
+
+/* ===== Field ===== */
+.az-field{
+  display:flex;
+  flex-direction:column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.az-field label{
+  font-size: .9rem;
+  font-weight: 900;
+  color: var(--az-text-secondary);
+}
+
+.az-field input,
+.az-field select,
+.az-field textarea{
+  width:100%;
+  min-height: 46px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(148,163,184,.35);
+  background: var(--az-bg-secondary);
+  color: var(--az-text-primary);
+  font-family: inherit;
+  font-size: .95rem;
+  transition: var(--az-transition-fast);
+}
+
+html[data-theme="dark"] .az-field input,
+html[data-theme="dark"] .az-field select,
+html[data-theme="dark"] .az-field textarea{
+  border-color: rgba(148,163,184,.22);
+  background: rgba(2,6,23,.18);
+}
+
+/* Focus glow violet */
+.az-field input:focus,
+.az-field select:focus,
+.az-field textarea:focus{
+  outline:none;
+  border-color: rgba(99,102,241,.65);
+  box-shadow:
+    0 0 0 4px rgba(99,102,241,.18),
+    0 10px 22px rgba(99,102,241,.10);
+  transform: translateY(-1px);
+}
+html[data-theme="dark"] .az-field input:focus,
+html[data-theme="dark"] .az-field select:focus,
+html[data-theme="dark"] .az-field textarea:focus{
+  border-color: rgba(129,140,248,.75);
+  box-shadow:
+    0 0 0 4px rgba(129,140,248,.22),
+    0 14px 28px rgba(99,102,241,.12);
+}
+
+/* Help + errors */
+.az-help{
+  color: var(--az-text-tertiary);
+  font-weight: 700;
+  font-size: .84rem;
+}
+.az-err{
+  color: rgba(239,68,68,.95);
+  font-weight: 800;
+  font-size: .86rem;
+}
+
+/* =========================================================
+   SWITCH — PROPRE (plus de "niveau" bizarre)
+   ========================================================= */
+.az-field-switch{ justify-content:flex-end; }
+
+.az-switch-row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap: 14px;
+  min-height: 46px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(148,163,184,.35);
+  background: var(--az-bg-secondary);
+}
+
+html[data-theme="dark"] .az-switch-row{
+  border-color: rgba(148,163,184,.22);
+  background: rgba(2,6,23,.18);
+}
+
+.az-switch-text{ min-width: 0; }
+.az-switch-title{
+  font-weight: 950;
+  color: var(--az-text-primary);
+  line-height: 1.1;
+}
+.az-switch-sub{
+  margin-top: 4px;
+  font-size: .84rem;
+  font-weight: 750;
+  color: var(--az-text-tertiary);
+}
+
+/* Hide native checkbox */
+.az-switch input[type="checkbox"]{
+  position:absolute;
+  opacity:0;
+  pointer-events:none;
+}
+
+/* Switch UI */
+.az-switch{
+  position: relative;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width: 52px;
+  height: 30px;
+  flex: 0 0 auto;
+}
+
+.az-switch-ui{
+  width: 52px;
+  height: 30px;
+  border-radius: 999px;
+  background: rgba(148,163,184,.20);
+  border: 1px solid rgba(148,163,184,.35);
+  transition: var(--az-transition-fast);
+  position: relative;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.04);
+}
+
+html[data-theme="dark"] .az-switch-ui{
+  background: rgba(255,255,255,.06);
+  border-color: rgba(148,163,184,.22);
+}
+
+/* knob */
+.az-switch-ui::after{
+  content:"";
+  position:absolute;
+  top: 50%;
+  left: 4px;
+  transform: translateY(-50%);
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.95);
+  box-shadow: 0 10px 22px rgba(0,0,0,.22);
+  transition: var(--az-transition-fast);
+}
+
+/* checked */
+.az-switch input[type="checkbox"]:checked + .az-switch-ui{
+  background: rgba(99,102,241,.90);
+  border-color: rgba(99,102,241,.55);
+  box-shadow: 0 0 0 4px rgba(99,102,241,.14);
+}
+.az-switch input[type="checkbox"]:checked + .az-switch-ui::after{
+  left: 26px;
+}
+
+/* focus accessible */
+.az-switch:focus-within .az-switch-ui{
+  box-shadow:
+    0 0 0 4px rgba(99,102,241,.18),
+    0 10px 22px rgba(99,102,241,.10);
+  border-color: rgba(99,102,241,.65);
+}
+
+/* =========================================================
+   Sticky actions
+   ========================================================= */
+.az-matiere-actions{
+  margin-top: 14px;
+}
+.az-matiere-actions--sticky{
+  position: sticky;
+  bottom: 0;
+  z-index: 20;
+  border-top: 1px solid var(--az-border);
+  background: linear-gradient(180deg, rgba(255,255,255,0), var(--az-bg-secondary));
+  backdrop-filter: blur(10px);
+  padding: 12px 12px;
+  border-radius: 16px;
+}
+html[data-theme="dark"] .az-matiere-actions--sticky{
+  background: linear-gradient(180deg, rgba(2,6,23,0), rgba(2,6,23,.55));
+}
+
+.az-matiere-actions{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap: 12px;
+  flex-wrap:wrap;
+}
+
+.az-actions-left,
+.az-actions-right{
+  display:flex;
+  align-items:center;
+  gap: 10px;
+  flex-wrap:wrap;
+}
+
+/* hint */
+.az-hint{
+  display:inline-flex;
+  align-items:center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 999px;
+  border: 1px dashed var(--az-border);
+  background: rgba(255,255,255,.35);
+  color: var(--az-text-secondary);
+  font-weight: 900;
+  font-size: .86rem;
+}
+html[data-theme="dark"] .az-hint{
+  background: rgba(15,23,42,.35);
+  color: rgba(226,232,240,.85);
+}
+
+/* buttons */
+.az-btn{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--az-border);
+  background: var(--az-bg-primary);
+  color: var(--az-text-primary);
+  font-weight: 900;
+  text-decoration:none;
+  cursor:pointer;
+  transition: var(--az-transition-fast);
+}
+.az-btn:hover{
+  transform: translateY(-1px);
+  box-shadow: var(--az-shadow-sm);
+  border-color: rgba(99,102,241,.35);
+}
+.az-btn-soft{
+  background: rgba(99,102,241,.12);
+  color: var(--az-primary);
+  border: 1px solid rgba(99,102,241,.25);
+}
+.az-btn-soft:hover{ background: rgba(99,102,241,.18); }
+.az-btn-gradient{
+  border:none;
+  color:#fff;
+  background: linear-gradient(135deg, var(--az-primary), var(--az-primary-light));
+  box-shadow: 0 16px 34px rgba(99,102,241,.20);
+}
+.az-btn-gradient:hover{
+  filter: brightness(1.06);
+  box-shadow: 0 22px 55px rgba(99,102,241,.28);
+}
+
+/* =========================================================
+   TomSelect — clean + dropdown au-dessus
+   ========================================================= */
+.ts-wrapper{ overflow: visible !important; }
+
+.ts-wrapper .ts-control{
+  border-radius: 14px !important;
+  min-height: 46px !important;
+  padding: 10px 12px !important;
+  border: 1px solid rgba(148,163,184,.35) !important;
+  background: var(--az-bg-secondary) !important;
+  color: var(--az-text-primary) !important;
+  box-shadow: none !important;
+  transition: var(--az-transition-fast) !important;
+}
+
+html[data-theme="dark"] .ts-wrapper .ts-control{
+  border-color: rgba(148,163,184,.22) !important;
+  background: rgba(2,6,23,.18) !important;
+  color: rgba(241,245,249,.95) !important;
+}
+
+.ts-wrapper.focus .ts-control{
+  border-color: rgba(99,102,241,.65) !important;
+  box-shadow:
+    0 0 0 4px rgba(99,102,241,.18),
+    0 10px 22px rgba(99,102,241,.10) !important;
+  transform: translateY(-1px);
+}
+
+.ts-dropdown{
+  z-index: 9999 !important;
+  border-radius: 14px !important;
+  border: 1px solid var(--az-border) !important;
+  background: var(--az-bg-primary) !important;
+  overflow:hidden !important;
+}
+
+html[data-theme="dark"] .ts-dropdown{
+  background: #0b1220 !important;
+  border-color: rgba(255,255,255,.08) !important;
+}
+
+.ts-dropdown .option{
+  padding: 10px 12px !important;
+  font-weight: 850 !important;
+}
+.ts-dropdown .option.active{
+  background: rgba(99,102,241,.18) !important;
+}
+
+/* native select options fix (dark) */
+html[data-theme="dark"] select{ color-scheme: dark; }
+html[data-theme="dark"] select option,
+html[data-theme="dark"] select optgroup{
+  background-color:#0b1220 !important;
+  color: rgba(241,245,249,.95) !important;
+}
+
+/* ===== Anim ===== */
+@keyframes az-fadeUp{
+  from{ opacity:0; transform: translateY(10px); }
+  to{ opacity:1; transform: translateY(0); }
+}

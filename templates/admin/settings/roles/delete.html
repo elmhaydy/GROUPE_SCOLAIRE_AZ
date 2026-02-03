@@ -1,0 +1,17 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}Supprimer rôle | AZ{% endblock %}
+{% block page_title %}Supprimer un rôle{% endblock %}
+{% block breadcrumb %}Paramètres / Rôles{% endblock %}
+
+{% block content %}
+<div class="az-card" style="grid-column:span 12; max-width: 700px;">
+  <h3 style="margin:0;">Confirmation</h3>
+  <p class="az-sub">Tu es sûr de vouloir supprimer le rôle <b>{{ role.name }}</b> ?</p>
+
+  <form method="post" style="display:flex; gap:10px; flex-wrap:wrap;">
+    {% csrf_token %}
+    <button class="az-btn" type="submit" style="border-color:rgba(255,80,80,.35);">🗑️ Oui, supprimer</button>
+    <a class="az-btn az-btn-gradient" href="{% url 'core:role_list' %}">Annuler</a>
+  </form>
+</div>
+{% endblock %}

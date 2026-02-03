@@ -1,0 +1,259 @@
+/* =========================================================
+   AZ — PORTAIL ÉLÈVE — ABSENCES (NEBULA)
+   Compatible tokens: --card --text --muted --border --grad --shadow --ring
+   ========================================================= */
+
+.az-abs{ border-radius: 16px; }
+
+.az-abs-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+
+.az-abs-title{ margin:0; font-size: 1.15rem; font-weight: 900; letter-spacing:.01em; }
+.az-abs-sub{ margin-top: 4px; }
+
+.az-abs-actions{
+  display:flex;
+  flex-direction:column;
+  gap: 10px;
+  min-width: 420px;
+}
+
+.az-abs-search{
+  display:flex;
+  align-items:center;
+  gap: 10px;
+  background: color-mix(in srgb, var(--card), #000 3%);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 10px 12px;
+  box-shadow: var(--shadow-soft);
+}
+
+.az-abs-search i{ color: var(--muted); }
+.az-abs-search input{
+  border:none;
+  outline:none;
+  background: transparent;
+  color: var(--text);
+  width: 100%;
+  font-weight: 700;
+}
+.az-abs-search input::placeholder{ color: color-mix(in srgb, var(--muted), transparent 12%); }
+
+.abs-clear{
+  border:none;
+  background: transparent;
+  color: var(--muted);
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  cursor:pointer;
+}
+.abs-clear:hover{ background: rgba(148,163,184,.14); }
+
+.az-abs-filters{
+  display:flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content:flex-end;
+}
+
+.az-abs-filters select{
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--text);
+  border-radius: 12px;
+  padding: 10px 10px;
+  font-weight: 800;
+  min-width: 150px;
+  outline:none;
+}
+.az-abs-filters select:focus{ box-shadow: var(--ring); }
+
+.abs-btn{
+  border:none;
+  cursor:pointer;
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-weight: 900;
+  color:#fff;
+  background: var(--grad);
+  box-shadow: 0 12px 26px rgba(99,102,241,.25);
+}
+.abs-btn:hover{ transform: translateY(-1px); }
+
+/* KPI */
+.az-abs-kpi{
+  display:grid;
+  grid-template-columns: repeat(4, minmax(0,1fr));
+  gap: 10px;
+  margin: 12px 0 14px;
+}
+.kpi{
+  background: color-mix(in srgb, var(--card), #000 2%);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 10px 12px;
+  box-shadow: var(--shadow-soft);
+}
+.kpi-label{ font-size: .72rem; letter-spacing:.12em; text-transform:uppercase; color: var(--muted); font-weight: 900; }
+.kpi-value{ font-size: 1.15rem; font-weight: 950; margin-top: 4px; }
+
+/* Table */
+.az-abs-table-wrap{
+  position:relative;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow:hidden;
+  box-shadow: var(--shadow);
+  background: var(--card);
+}
+
+.az-abs-table{
+  width:100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.az-abs-table thead th{
+  text-align:left;
+  font-size:.78rem;
+  text-transform:uppercase;
+  letter-spacing:.12em;
+  padding: 12px 12px;
+  color: var(--muted);
+  background: color-mix(in srgb, var(--card), #000 3%);
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  user-select:none;
+}
+.az-abs-table thead th i{ margin-left:6px; opacity:.6; }
+
+.az-abs-table tbody td{
+  padding: 12px 12px;
+  border-bottom: 1px solid color-mix(in srgb, var(--border), transparent 30%);
+  vertical-align: middle;
+}
+.az-abs-table tbody tr:hover{
+  background: rgba(148,163,184,.10);
+}
+
+.abs-date-pill{
+  display:inline-flex;
+  align-items:center;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: rgba(148,163,184,.10);
+  font-weight: 900;
+}
+
+.abs-seance-main{ font-weight: 900; }
+.abs-sep{ color: var(--muted); margin: 0 6px; }
+
+.abs-motif-text{
+  display:inline-block;
+  max-width: 420px;
+  white-space: nowrap;
+  overflow:hidden;
+  text-overflow: ellipsis;
+}
+
+/* Pills */
+.abs-pill{
+  display:inline-flex;
+  align-items:center;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: 999px;
+  font-size: .78rem;
+  font-weight: 950;
+  border: 1px solid var(--border);
+}
+.abs-pill-abs{ background: rgba(239,68,68,.12); color: #b91c1c; border-color: rgba(239,68,68,.25); }
+.abs-pill-ret{ background: rgba(245,158,11,.14); color: #92400e; border-color: rgba(245,158,11,.30); }
+.abs-pill-ok{ background: rgba(16,185,129,.14); color: #065f46; border-color: rgba(16,185,129,.30); }
+.abs-pill-warn{ background: rgba(234,179,8,.16); color: #854d0e; border-color: rgba(234,179,8,.30); }
+
+/* Empty */
+.abs-empty{
+  position:absolute;
+  inset: 0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap: 12px;
+  padding: 16px;
+  background: color-mix(in srgb, var(--card), transparent 20%);
+}
+.abs-empty i{ font-size: 1.35rem; color: var(--muted); }
+.abs-empty-title{ font-weight: 950; }
+
+/* Mobile */
+.az-abs-mobile{ display:none; margin-top: 12px; }
+
+.abs-card{
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 12px 12px;
+  box-shadow: var(--shadow-soft);
+  margin-bottom: 10px;
+}
+.abs-card-top{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap: 10px;
+}
+.abs-card-date{
+  font-weight: 950;
+  display:flex;
+  align-items:center;
+  gap: 8px;
+}
+.abs-card-tags{ display:flex; gap: 8px; flex-wrap: wrap; justify-content:flex-end; }
+
+.abs-card-mid{ margin-top: 10px; display:flex; flex-direction:column; gap: 8px; }
+.abs-card-line{ display:flex; align-items:center; justify-content:space-between; gap: 10px; }
+.abs-card-line span:last-child{ font-weight: 900; }
+
+.abs-empty-state{
+  display:flex;
+  align-items:center;
+  gap: 12px;
+  padding: 14px;
+  border: 1px dashed var(--border);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--card), #000 2%);
+}
+.abs-empty-icon{
+  width: 44px; height: 44px;
+  border-radius: 14px;
+  display:flex; align-items:center; justify-content:center;
+  background: rgba(16,185,129,.14);
+  color: #10b981;
+  border: 1px solid rgba(16,185,129,.25);
+}
+
+/* Responsive */
+@media (max-width: 1100px){
+  .az-abs-actions{ min-width: 340px; }
+  .abs-motif-text{ max-width: 280px; }
+}
+@media (max-width: 900px){
+  .az-abs-head{ flex-direction: column; }
+  .az-abs-actions{ min-width: 100%; }
+  .az-abs-filters{ justify-content:flex-start; }
+  .az-abs-kpi{ grid-template-columns: repeat(2, minmax(0,1fr)); }
+}
+@media (max-width: 720px){
+  .az-abs-table-wrap{ display:none; }
+  .az-abs-mobile{ display:block; }
+}

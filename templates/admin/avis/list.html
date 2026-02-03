@@ -1,0 +1,89 @@
+{% extends "admin/base_admin.html" %}
+{% load static %}
+
+{% block title %}Avis | AZ{% endblock %}
+{% block page_title %}Avis{% endblock %}
+{% block current_page %}Communication / Avis{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'admin/css/avis/list.css' %}?v=1">
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'admin/js/avis/list.js' %}?v=1"></script>
+{% endblock %}
+
+{% block content %}
+
+<div class="az-page-head">
+  <div class="az-page-head-left">
+    <div class="az-pill"><i class="fa-solid fa-bullhorn"></i><span>Communication</span><span class="az-pill-sep">•</span><span>Avis</span></div>
+    <h1 class="az-title">Avis</h1>
+    <p class="az-subtitle">Crée des annonces ciblées (Tous / Degré / Niveau / Groupe / Élève).</p>
+  </div>
+  <div class="az-page-head-right">
+    <a class="az-btn az-btn-primary" href="{% url 'core:avis_create' %}">
+      <i class="fa-solid fa-plus"></i> Nouvel avis
+    </a>
+  </div>
+</div>
+
+<div class="az-card az-avis-toolbar">
+  <form method="get" class="az-avis-search">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <input class="az-input" name="q" value="{{ q }}" placeholder="Rechercher par titre ou contenu...">
+    <button class="az-btn az-btn-soft" type="submit">Rechercher</button>
+    <a class="az-btn az-btn-ghost" href="{% url 'core:avis_list' %}">Reset</a>
+  </form>
+</div>
+
+<div class="az-avis-grid">
+  {% for a in items %}
+    <article class="az-avis-item" data-title="{{ a.titre|escape }}" data-content="{{ a.contenu|escape }}">
+      <div class="az-avis-top">
+        <div class="az-avis-chip">{{ a.get_cible_type_display }}</div>
+        <div class="az-avis-date">
+          <i class="fa-regular fa-clock"></i> {{ a.date_publication|date:"d/m/Y H:i" }}
+        </div>
+      </div>
+
+      <h3 class="az-avis-title">{{ a.titre }}</h3>
+      <p class="az-avis-snippet">{{ a.contenu|truncatechars:140 }}</p>
+
+      <div class="az-avis-actions">
+        <button type="button" class="az-btn az-btn-outline az-btn-sm js-avis-preview">
+          <i class="fa-regular fa-eye"></i> Aperçu
+        </button>
+        <a class="az-btn az-btn-danger-soft az-btn-sm" href="{% url 'core:avis_delete' a.pk %}">
+          <i class="fa-solid fa-trash"></i> Supprimer
+        </a>
+      </div>
+    </article>
+  {% empty %}
+    <div class="az-empty">
+      <i class="fa-solid fa-circle-info"></i>
+      <div>
+        <b>Aucun avis</b>
+        <div class="az-empty-sub">Clique sur “Nouvel avis” pour commencer.</div>
+      </div>
+    </div>
+  {% endfor %}
+</div>
+
+<!-- MODAL PREVIEW -->
+<div class="az-modal" id="avisModal" aria-hidden="true">
+  <div class="az-modal-backdrop" data-close></div>
+  <div class="az-modal-panel" role="dialog" aria-modal="true">
+    <div class="az-modal-head">
+      <div class="az-modal-title" id="avisModalTitle">Aperçu</div>
+      <button class="az-btn az-btn-ghost az-btn-sm" type="button" data-close>
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+    <div class="az-modal-body">
+      <div class="az-modal-content" id="avisModalContent"></div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

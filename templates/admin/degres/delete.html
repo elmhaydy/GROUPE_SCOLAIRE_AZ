@@ -1,0 +1,43 @@
+{% extends "admin/base_admin.html" %}
+{% load static %}
+
+{% block title %}Supprimer | AZ{% endblock %}
+{% block page_title %}Supprimer un degré{% endblock %}
+{% block current_page %}Structure / Degrés / Supprimer{% endblock %}
+
+{% block content %}
+
+<div class="az-card" style="grid-column:span 12; max-width: 760px;">
+  <div class="az-card-head">
+    <h3 class="az-card-title">
+      <i class="fa-solid fa-triangle-exclamation"></i>
+      Confirmation de suppression
+    </h3>
+  </div>
+
+  <p class="az-sub" style="margin-top:6px;">
+    Tu es sûr de vouloir supprimer le degré :
+    <b>{{ degre.nom }}</b> ?
+  </p>
+
+  <div class="az-empty" style="justify-content:flex-start; margin-top:14px;">
+    <i class="fa-solid fa-circle-xmark"></i>
+    <div>
+      <b>Attention :</b> cette action est irréversible.
+    </div>
+  </div>
+
+  <form method="post" style="margin-top:14px; display:flex; gap:10px; flex-wrap:wrap;">
+    {% csrf_token %}
+
+    <button class="az-btn az-btn-danger-soft" type="submit">
+      <i class="fa-solid fa-trash"></i> Oui, supprimer
+    </button>
+
+    <a class="az-btn az-btn-outline" href="{% url 'core:degre_list' %}">
+      <i class="fa-solid fa-arrow-left"></i> Annuler
+    </a>
+  </form>
+</div>
+
+{% endblock %}

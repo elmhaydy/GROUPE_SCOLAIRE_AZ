@@ -1,0 +1,227 @@
+{% extends "admin/base_admin.html" %}
+{% load static %}
+
+{% block title %}Élèves | AZ{% endblock %}
+{% block page_title %}Élèves{% endblock %}
+{% block current_page %}Scolaire / Élèves{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'admin/css/eleves/list.css' %}?v=1">
+{% endblock %}
+
+{% block content %}
+
+<div class="az-page-head">
+
+  <div class="az-page-head-left">
+    <div class="az-pill">
+      {% if annee_active %}
+        <i class="fa-solid fa-circle-check"></i>
+        <span>Année active : <b>{{ annee_active.nom }}</b></span>
+      {% else %}
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        <span>Aucune année active</span>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="az-page-head-right">
+    <a class="az-btn az-btn-outline" href="#" onclick="window.print();return false;">
+      <i class="fa-solid fa-print"></i> Imprimer
+    </a>
+
+    <a class="az-btn az-btn-primary" href="{% url 'core:eleve_create' %}">
+      <i class="fa-solid fa-plus"></i> Ajouter élève
+    </a>
+  </div>
+
+</div>
+
+<div class="az-filter-bar">
+  <form method="get" class="az-filter-form">
+
+    <div class="az-filter-label">
+      <i class="fa-solid fa-filter"></i>
+      <span>Filtres</span>
+    </div>
+
+    <div class="az-field">
+      <div class="az-field-label">Recherche</div>
+      <input class="az-input" name="q" value="{{ q }}" placeholder="Matricule, nom, téléphone...">
+    </div>
+
+    <div class="az-field">
+      <div class="az-field-label">Année</div>
+      <select id="id_annee" name="annee" class="az-select">
+        <option value="">(Auto: année active)</option>
+        {% for a in annees %}
+          <option value="{{ a.id }}" {% if a.id|stringformat:"s" == annee_selected %}selected{% endif %}>
+            {{ a.nom }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="az-field">
+      <div class="az-field-label">Niveau</div>
+      <select id="id_niveau" name="niveau" class="az-select az-select-wide">
+        <option value="">Tous</option>
+        {% for n in niveaux %}
+          <option value="{{ n.id }}" {% if n.id|stringformat:"s" == niveau_selected %}selected{% endif %}>
+            {{ n.degre.nom }} — {{ n.nom }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="az-field">
+      <div class="az-field-label">Groupe</div>
+      <select id="id_groupe" name="groupe" class="az-select">
+        <option value="">Tous</option>
+        {% for g in groupes %}
+          <option value="{{ g.id }}" {% if g.id|stringformat:"s" == groupe_selected %}selected{% endif %}>
+            {{ g.nom }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="az-field">
+      <div class="az-field-label">Période</div>
+      <select id="id_periode" name="periode" class="az-select">
+        <option value="">Toutes</option>
+        {% for p in periodes %}
+          <option value="{{ p.id }}" {% if p.id|stringformat:"s" == periode_selected %}selected{% endif %}>
+            {{ p.nom }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="az-field">
+      <div class="az-field-label">Statut</div>
+      <select name="statut" class="az-select">
+        <option value="" {% if not statut %}selected{% endif %}>Tous</option>
+        <option value="actifs" {% if statut == "actifs" %}selected{% endif %}>Actifs</option>
+        <option value="inactifs" {% if statut == "inactifs" %}selected{% endif %}>Inactifs</option>
+      </select>
+    </div>
+    
+    <div class="az-field">
+      <div class="az-field-label">Inscription</div>
+      <select name="insc" class="az-select">
+        <option value="" {% if not insc %}selected{% endif %}>Inscrits (tous)</option>
+        <option value="inscrits" {% if insc == "inscrits" %}selected{% endif %}>Inscrits (validés)</option>
+        <option value="non_inscrits" {% if insc == "non_inscrits" %}selected{% endif %}>Non inscrits (Aucun + En cours)</option>
+      </select>
+    </div>
+
+    <button class="az-btn az-btn-soft" type="submit">
+      <i class="fa-solid fa-magnifying-glass"></i> Filtrer
+    </button>
+
+    <a class="az-btn az-btn-ghost" href="{% url 'core:eleve_list' %}">
+      <i class="fa-solid fa-rotate-right"></i> Reset
+    </a>
+
+    <div class="az-export">
+      <a class="az-btn az-btn-outline"
+        href="{% url 'core:eleves_pdf' %}?q={{ q }}&statut={{ statut }}&insc={{ insc }}&annee={{ annee_selected }}&niveau={{ niveau_selected }}&groupe={{ groupe_selected }}&periode={{ periode_selected }}">
+        <i class="fa-solid fa-file-pdf"></i> PDF
+      </a>
+
+      <a class="az-btn az-btn-outline"
+        href="{% url 'core:eleves_excel_export' %}?q={{ q }}&statut={{ statut }}&insc={{ insc }}&annee={{ annee_selected }}&niveau={{ niveau_selected }}&groupe={{ groupe_selected }}&periode={{ periode_selected }}">
+        <i class="fa-solid fa-file-excel"></i> Excel
+      </a>
+
+      <a class="az-btn az-btn-primary" href="{% url 'core:eleves_excel_import' %}">
+        <i class="fa-solid fa-upload"></i> Import Excel
+      </a>
+    </div>
+
+  </form>
+</div>
+
+<div class="az-card az-eleve-card">
+  <div class="az-card-head">
+    <h3 class="az-card-title">
+      <i class="fa-solid fa-user-graduate"></i>
+      Liste des élèves
+    </h3>
+  </div>
+
+  <div class="az-table">
+    <div class="az-thead">
+      <div>Photo</div>
+      <div>Matricule</div>
+      <div>Nom</div>
+      <div>Prénom</div>
+      <div>Téléphone</div>
+      <div>Statut</div>
+      <div class="az-th-actions">Actions</div>
+    </div>
+
+    <div class="az-tbody">
+      {% for e in eleves %}
+        <div class="az-row">
+
+          <div class="az-cell">
+            {% if e.photo %}
+              <img class="az-avatar" src="{{ e.photo.url }}" alt="Photo">
+            {% else %}
+              <div class="az-avatar az-avatar-fallback">
+                <i class="fa-solid fa-user"></i>
+              </div>
+            {% endif %}
+          </div>
+
+          <div class="az-cell az-strong">{{ e.matricule }}</div>
+          <div class="az-cell">{{ e.nom }}</div>
+          <div class="az-cell">{{ e.prenom }}</div>
+          <div class="az-cell">{{ e.telephone|default:"—" }}</div>
+
+          <div class="az-cell">
+            {% if e.is_active %}
+              <span class="az-badge az-badge-success">
+                <i class="fa-solid fa-check"></i> Actif
+              </span>
+            {% else %}
+              <span class="az-badge az-badge-muted">Inactif</span>
+            {% endif %}
+          </div>
+
+          <div class="az-cell az-actions">
+            <a class="az-btn az-btn-outline" href="{% url 'core:eleve_detail' e.id %}">
+              <i class="fa-solid fa-eye"></i> Voir
+            </a>
+            <a class="az-btn az-btn-soft" href="{% url 'core:eleve_update' e.id %}">
+              <i class="fa-solid fa-pen"></i>
+            </a>
+            <a class="az-btn az-btn-outline" href="{% url 'core:eleve_reinscrire' e.id %}">
+              <i class="fa-solid fa-arrow-right-arrow-left"></i> Réinscrire
+            </a>
+
+          </div>
+
+        </div>
+      {% empty %}
+        <div class="az-empty">
+          <i class="fa-solid fa-inbox"></i>
+          <div>Aucun élève.</div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<script>
+  window.AZ_ELEVE = {
+    urlNiveaux: "{% url 'core:ajax_niveaux' %}",
+    urlGroupes: "{% url 'core:ajax_groupes' %}"
+  };
+</script>
+
+<script src="{% static 'admin/js/eleves/list.js' %}"></script>
+
+{% endblock %}

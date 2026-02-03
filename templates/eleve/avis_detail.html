@@ -1,0 +1,58 @@
+{% extends "eleve/base.html" %}
+{% load static %}
+{% block title %}Avis | Détails{% endblock %}
+{% block page_title %}Avis{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'eleve/css/avis.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="card az-avis-detail">
+
+  <div class="a-d-head">
+    <a class="a-back" href="{% url 'eleve:avis' %}">
+      <i class="fa-solid fa-arrow-left"></i> Retour
+    </a>
+
+    <div class="a-d-meta muted">
+      <i class="fa-regular fa-clock"></i>
+      {{ avis.date_publication|date:"d/m/Y H:i" }}
+    </div>
+  </div>
+
+  <div class="a-d-title">
+    <i class="fa-solid fa-bullhorn"></i>
+    <h3 style="margin:0">{{ avis.titre }}</h3>
+  </div>
+
+  <div class="a-d-body">
+    {{ avis.contenu|linebreaksbr }}
+  </div>
+
+  <div class="a-d-actions">
+    <button class="a-btn2" type="button" id="copyAvis">
+      <i class="fa-regular fa-copy"></i> Copier
+    </button>
+
+    <button class="a-btn2" type="button" onclick="window.print()">
+      <i class="fa-solid fa-print"></i> Imprimer
+    </button>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function(){
+  const btn = document.getElementById("copyAvis");
+  if(!btn) return;
+
+  btn.addEventListener("click", async () => {
+    const title = {{ avis.titre|safe|default:"''" }};
+  });
+})();
+</script>
+<script src="{% static 'eleve/js/avis_detail.js' %}"></script>
+{% endblock %}

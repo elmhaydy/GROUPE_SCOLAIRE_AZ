@@ -1,0 +1,24 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}Supprimer dépense | AZ{% endblock %}
+{% block page_title %}Supprimer dépense{% endblock %}
+{% block current_page %}Finance / Dépenses{% endblock %}
+
+{% block content %}
+<div class="az-card">
+  <p>Confirmer la suppression de :</p>
+  <div class="az-pill" style="margin:10px 0;">
+    <i class="fa-solid fa-triangle-exclamation"></i>
+    <span><b>{{ obj.libelle }}</b> — {{ obj.montant|floatformat:2 }} MAD — {{ obj.date_depense }}</span>
+  </div>
+
+  <form method="post">
+    {% csrf_token %}
+    <button class="az-btn az-btn-danger" type="submit">
+      <i class="fa-solid fa-trash"></i><span>Supprimer</span>
+    </button>
+    <a class="az-btn az-btn-ghost" href="{% url 'core:depense_list' %}">
+      <i class="fa-solid fa-xmark"></i><span>Annuler</span>
+    </a>
+  </form>
+</div>
+{% endblock %}

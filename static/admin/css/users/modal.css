@@ -1,0 +1,37 @@
+.az-modal-overlay{
+  position: fixed;
+  inset: 0;
+  background: rgba(2, 6, 23, .55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  z-index: 9999;
+}
+
+.az-modal{
+  width: min(980px, 100%);
+  max-height: 90vh;
+  overflow: auto;
+  border-radius: 18px;
+  background: var(--card, #fff);
+  box-shadow: 0 30px 80px rgba(0,0,0,.35);
+}
+
+.az-modal-head, .az-modal-foot{
+  padding: 16px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid rgba(0,0,0,.06);
+}
+.az-modal-foot{
+  border-top: 1px solid rgba(0,0,0,.06);
+  border-bottom: 0;
+  justify-content: flex-end;
+}
+
+.az-modal-body{ padding: 16px 18px; }
+.az-modal-title{ font-weight: 800; font-size: 18px; }
+.az-modal-sub{ opacity: .75; font-size: 12px; margin-top: 4px; }

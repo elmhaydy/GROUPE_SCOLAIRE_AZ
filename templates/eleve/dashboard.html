@@ -1,0 +1,300 @@
+{% extends "eleve/base.html" %}
+{% load static %}
+{% block title %}Dashboard | Portail Élève{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'eleve/css/dashboard.css' %}?v=1">
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'eleve/js/dashboard.js' %}?v=1" defer></script>
+{% endblock %}
+
+{% block content %}
+
+<!-- KPIs -->
+<div class="az-kpi-grid">
+
+
+  <div class="az-kpi-card">
+    <div class="az-kpi-top">
+      <span class="az-kpi-label">Total payé</span>
+      <span class="az-kpi-icon"><i class="fa-solid fa-circle-check"></i></span>
+    </div>
+    <div class="az-kpi-value">{{ total_paye }} <small>MAD</small></div>
+    <div class="az-kpi-sub muted">Historique des règlements (année active)</div>
+  </div>
+
+<div class="az-kpi-card az-kpi-danger">
+  <div class="az-kpi-top">
+    <span class="az-kpi-label">Impayés (retard)</span>
+    <span class="az-kpi-icon"><i class="fa-solid fa-triangle-exclamation"></i></span>
+  </div>
+
+  <div class="az-kpi-value">{{ total_impaye_retard }} <small>MAD</small></div>
+
+  {% if mois_retard %}
+    <div class="az-kpi-sub muted">
+      Mois en retard :
+      {% for m in mois_retard %}
+        <b>{{ m.mois_nom }}</b>{% if not forloop.last %}, {% endif %}
+      {% endfor %}
+
+    </div>
+  {% else %}
+    <div class="az-kpi-sub muted">Aucun retard ✅</div>
+  {% endif %}
+</div>
+
+
+</div>
+
+<!-- Quick actions -->
+<div class="az-quick">
+  <a class="az-q" href="{% url 'eleve:edt' %}">
+    <i class="fa-solid fa-calendar-days"></i>
+    <div>
+      <b>Emploi du temps</b>
+      <div class="muted">Voir la semaine</div>
+    </div>
+    <i class="fa-solid fa-arrow-right"></i>
+  </a>
+
+  <a class="az-q" href="{% url 'eleve:notes' %}">
+    <i class="fa-solid fa-clipboard-check"></i>
+    <div>
+      <b>Notes</b>
+      <div class="muted">Mes évaluations</div>
+    </div>
+    <i class="fa-solid fa-arrow-right"></i>
+  </a>
+
+  <a class="az-q" href="{% url 'eleve:paiements' %}">
+    <i class="fa-solid fa-credit-card"></i>
+    <div>
+      <b>Paiements</b>
+      <div class="muted">Historique & reste</div>
+    </div>
+    <i class="fa-solid fa-arrow-right"></i>
+  </a>
+
+  <a class="az-q" href="{% url 'eleve:bulletin' %}">
+    <i class="fa-solid fa-file-lines"></i>
+    <div>
+      <b>Bulletin</b>
+      <div class="muted">Semestre / année</div>
+    </div>
+    <i class="fa-solid fa-arrow-right"></i>
+  </a>
+</div>
+
+<!-- GRID -->
+<div class="az-dash-grid">
+
+  <!-- Cahier de texte -->
+  <section class="az-card">
+    <div class="az-card-head">
+      <div>
+        <h3 style="margin:0">Cahier de texte</h3>
+        <div class="muted">Résumé + exercices (devoir)</div>
+      </div>
+      <a class="az-link" href="{% url 'eleve:cahier' %}">Tout voir</a>
+    </div>
+
+    {% if cahier_items %}
+      <div class="az-mini-list">
+        {% for c in cahier_items %}
+          <div class="az-mini-row">
+            <div class="az-mini-main">
+              <b>{{ c.matiere.nom }}</b>
+              <div class="muted">
+                {{ c.date|date:"d/m/Y" }}
+                {% if c.titre %} • {{ c.titre }}{% endif %}
+              </div>
+
+              {% if c.devoir %}
+                <div class="muted" style="margin-top:.35rem">
+                  <span class="az-badge warn">Exercices</span>
+                  {{ c.devoir|truncatechars:120 }}
+                </div>
+              {% else %}
+                <div class="muted" style="margin-top:.35rem">
+                  <span class="az-badge ok">Pas d'exercices</span>
+                </div>
+              {% endif %}
+
+              {% if c.piece_jointe %}
+                <div style="margin-top:.45rem">
+                  <a class="az-link" href="{{ c.piece_jointe.url }}" target="_blank" rel="noopener">
+                    <i class="fa-solid fa-paperclip"></i> Pièce jointe
+                  </a>
+                </div>
+              {% endif %}
+            </div>
+
+            <div class="az-mini-score">
+              <span class="az-badge">Voir</span>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="az-empty muted">Aucun cahier publié pour ton groupe.</div>
+    {% endif %}
+  </section>
+
+  <!-- Résumés PDF -->
+  <section class="az-card">
+    <div class="az-card-head">
+      <div>
+        <h3 style="margin:0">Résumés PDF</h3>
+        <div class="muted">Fichiers envoyés par le prof</div>
+      </div>
+      <a class="az-link" href="{% url 'eleve:resumes' %}">Tout voir</a>
+    </div>
+
+    {% if resumes_items %}
+      <div class="az-mini-list">
+        {% for r in resumes_items %}
+          <div class="az-mini-row">
+            <div class="az-mini-main">
+              <b>{{ r.matiere.nom }}</b>
+              <div class="muted">{{ r.date|date:"d/m/Y" }} • {{ r.titre }}</div>
+              <div style="margin-top:.45rem">
+                <a class="az-link" href="{{ r.fichier.url }}" target="_blank" rel="noopener">
+                  <i class="fa-solid fa-file-pdf"></i> Ouvrir le PDF
+                </a>
+              </div>
+            </div>
+            <div class="az-mini-score">
+              <span class="az-badge">PDF</span>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="az-empty muted">Aucun résumé PDF publié.</div>
+    {% endif %}
+  </section>
+
+  <!-- Notes -->
+  <section class="az-card">
+    <div class="az-card-head">
+      <div>
+        <h3 style="margin:0">Notes récentes</h3>
+        <div class="muted">6 dernières notes</div>
+      </div>
+      <a class="az-link" href="{% url 'eleve:notes' %}">Tout voir</a>
+    </div>
+
+    {% if notes_recent %}
+      <div class="az-mini-list">
+        {% for n in notes_recent %}
+          <div class="az-mini-row">
+            <div class="az-mini-main">
+              <b>{{ n.evaluation.matiere.nom|default:n.evaluation.matiere }}</b>
+              <div class="muted">{{ n.evaluation.titre }} • {{ n.evaluation.periode.nom }} • {{ n.evaluation.date|date:"d/m/Y" }}</div>
+            </div>
+            <div class="az-mini-score">
+              <span class="az-score">{{ n.valeur }}</span>
+              <span class="muted">/ {{ n.evaluation.note_max }}</span>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="az-empty muted">Aucune note enregistrée.</div>
+    {% endif %}
+  </section>
+
+  <!-- Absences -->
+  <section class="az-card">
+    <div class="az-card-head">
+      <div>
+        <h3 style="margin:0">Absences</h3>
+        <div class="muted">Derniers enregistrements</div>
+      </div>
+      <a class="az-link" href="{% url 'eleve:absences' %}">Tout voir</a>
+    </div>
+
+    {% if absences %}
+      <div class="az-mini-table">
+        {% for a in absences %}
+          <div class="az-mini-tr">
+            <div class="az-mini-td"><b>{{ a.date|date:"d/m/Y" }}</b></div>
+            <div class="az-mini-td muted">{{ a.get_type_display }}</div>
+            <div class="az-mini-td">
+              {% if a.justifie %}
+                <span class="az-badge ok">Justifié</span>
+              {% else %}
+                <span class="az-badge warn">Non justifié</span>
+              {% endif %}
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="az-empty muted">Aucune absence.</div>
+    {% endif %}
+  </section>
+
+  <!-- Avis -->
+  <section class="az-card az-card-span">
+    <div class="az-card-head">
+      <div>
+        <h3 style="margin:0">Avis récents</h3>
+        <div class="muted">Clique pour voir le détail</div>
+      </div>
+      <a class="az-link" href="{% url 'eleve:avis' %}">Tout voir</a>
+    </div>
+
+    {% if avis %}
+      <div class="az-avis-grid">
+        {% for a in avis %}
+          <button
+            class="az-avis"
+            type="button"
+            data-avis-title="{{ a.titre|escape }}"
+            data-avis-date="{{ a.date_publication|date:'d/m/Y H:i' }}"
+            data-avis-body="{{ a.contenu|striptags|escapejs }}"
+          >
+            <div class="az-avis-top">
+              <b class="az-avis-title">{{ a.titre }}</b>
+              <span class="muted">{{ a.date_publication|date:"d/m/Y H:i" }}</span>
+            </div>
+            <div class="az-avis-body muted">
+              {{ a.contenu|striptags|truncatechars:140 }}
+            </div>
+            <div class="az-avis-foot">
+              <span class="az-badge">Voir détails</span>
+              <i class="fa-solid fa-arrow-right"></i>
+            </div>
+          </button>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="az-empty muted">Aucun avis.</div>
+    {% endif %}
+  </section>
+
+</div>
+
+<!-- MODAL Avis -->
+<div class="az-modal" id="azAvisModal" aria-hidden="true">
+  <div class="az-modal-overlay" data-close="1"></div>
+  <div class="az-modal-card" role="dialog" aria-modal="true" aria-labelledby="azAvisTitle">
+    <div class="az-modal-head">
+      <div>
+        <div class="muted" id="azAvisDate">—</div>
+        <h3 id="azAvisTitle" style="margin:.1rem 0 0">—</h3>
+      </div>
+      <button class="az-modal-close" type="button" data-close="1" aria-label="Fermer">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+    <div class="az-modal-body" id="azAvisBody">—</div>
+  </div>
+</div>
+
+{% endblock %}

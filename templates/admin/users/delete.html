@@ -1,0 +1,56 @@
+{% extends "admin/base_admin.html" %}
+{% load static %}
+
+{% block title %}Supprimer utilisateur | AZ{% endblock %}
+{% block page_title %}Supprimer utilisateur{% endblock %}
+{% block current_page %}Admin / Utilisateurs / Supprimer{% endblock %}
+
+{% block content %}
+<div class="az-card" style="max-width:720px;margin:0 auto;">
+  <div class="az-card-head">
+    <h3 class="az-card-title">
+      <i class="fa-solid fa-triangle-exclamation"></i>
+      Confirmation de suppression
+    </h3>
+  </div>
+
+  <div class="az-card-body" style="padding:16px;">
+    <p style="margin:0 0 12px; opacity:.85;">
+      Êtes-vous sûr de vouloir supprimer cet utilisateur ? Cette action est irréversible.
+    </p>
+
+    <div class="az-alert az-alert-error" style="margin:12px 0;">
+      <i class="fa-solid fa-user-slash"></i>
+      <span><b>{{ u.username }}</b> — {{ u.last_name }} {{ u.first_name }}</span>
+    </div>
+
+    {% if ens %}
+      <div class="az-alert az-alert-info" style="margin:12px 0;">
+        <i class="fa-solid fa-circle-info"></i>
+        <span>Utilisateur lié à un <b>Enseignant</b> : il sera <b>désactivé</b> (pas supprimé).</span>
+      </div>
+    {% endif %}
+
+    {% if parent %}
+      <div class="az-alert az-alert-info" style="margin:12px 0;">
+        <i class="fa-solid fa-circle-info"></i>
+        <span>Utilisateur lié à un <b>Parent</b> : selon les liens élèves, il sera <b>désactivé</b> ou supprimé.</span>
+      </div>
+    {% endif %}
+
+    <div style="display:flex; gap:10px; justify-content:flex-end; flex-wrap:wrap; margin-top:16px;">
+      <a class="az-btn az-btn-ghost" href="{% url 'core:users_detail' u.id %}">
+        Annuler
+      </a>
+
+      <form method="post" action="{% url 'core:users_delete' u.id %}">
+        {% csrf_token %}
+        <button type="submit" class="az-btn az-btn-danger-soft">
+          <i class="fa-solid fa-trash-can"></i>
+          Confirmer
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

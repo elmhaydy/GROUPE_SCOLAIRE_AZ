@@ -1,0 +1,386 @@
+:root {
+    /* Mode Clair */
+    --az-bg-page: #f8fafc;
+    --az-bg-card: #ffffff;
+    --az-bg-section: #f1f5f9;
+    --az-text-main: #1e293b;
+    --az-text-sub: #64748b;
+    --az-border: #e2e8f0;
+    --az-input-bg: #ffffff;
+    --az-primary: #4f46e5;
+    --az-primary-dark: #4338ca;
+    --az-primary-soft: #eef2ff;
+    --az-success: #10b981;
+    --az-danger: #ef4444;
+    --az-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    --az-radius: 16px;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --az-bg-page: #0f172a;
+        --az-bg-card: #1e293b;
+        --az-bg-section: #334155;
+        --az-text-main: #f1f5f9;
+        --az-text-sub: #94a3b8;
+        --az-border: #334155;
+        --az-input-bg: #0f172a;
+        --az-primary-soft: rgba(79, 70, 229, 0.15);
+        --az-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+    }
+}
+
+.az-form-container {
+    max-width: 1100px;
+    margin: 2rem auto;
+    padding: 0 1rem;
+    animation: slideUp 0.6s ease-out;
+}
+
+@keyframes slideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.az-form-card {
+    background: var(--az-bg-card);
+    border-radius: var(--az-radius);
+    border: 1px solid var(--az-border);
+    box-shadow: var(--az-shadow);
+    overflow: hidden;
+}
+
+/* Header */
+.az-form-header {
+    padding: 2rem;
+    background: linear-gradient(to right, var(--az-primary-soft), transparent);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--az-border);
+}
+
+.az-form-title {
+    margin: 0;
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: var(--az-text-main);
+}
+
+.az-form-subtitle {
+    margin: 0.5rem 0 0 0;
+    color: var(--az-text-sub);
+}
+
+.az-badge-bolt {
+    background: var(--az-primary);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 50px;
+    font-weight: 700;
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    box-shadow: 0 4px 10px rgba(79, 70, 229, 0.3);
+}
+
+/* Sections */
+.az-main-form {
+    padding: 2rem;
+}
+
+.az-form-section {
+    margin-bottom: 3rem;
+    padding-bottom: 2rem;
+    border-bottom: 1px solid var(--az-border);
+}
+
+.az-form-section:last-of-type {
+    border-bottom: none;
+    margin-bottom: 1rem;
+}
+
+.az-section-header {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    margin-bottom: 2rem;
+}
+
+.az-section-icon {
+    width: 48px;
+    height: 48px;
+    background: var(--az-primary-soft);
+    color: var(--az-primary);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    flex-shrink: 0;
+}
+
+.az-section-text h4 {
+    margin: 0;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--az-text-main);
+}
+
+.az-section-text p {
+    margin: 0.25rem 0 0 0;
+    font-size: 0.9rem;
+    color: var(--az-text-sub);
+}
+
+/* Grids */
+.az-form-grid {
+    display: grid;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.az-grid-3 { grid-template-columns: repeat(3, 1fr); }
+
+@media (max-width: 768px) {
+    .az-grid-3 { grid-template-columns: 1fr; }
+}
+
+/* Fields */
+.az-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.az-field label {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--az-text-main);
+}
+
+.az-field input, 
+.az-field select, 
+.az-field textarea {
+    padding: 0.8rem 1rem;
+    border-radius: 10px;
+    border: 1px solid var(--az-border);
+    background: var(--az-input-bg);
+    color: var(--az-text-main);
+    font-size: 1rem;
+    transition: all 0.2s ease;
+}
+
+.az-field input:focus, 
+.az-field select:focus {
+    outline: none;
+    border-color: var(--az-primary);
+    box-shadow: 0 0 0 4px var(--az-primary-soft);
+}
+
+.az-field-help {
+    font-size: 0.8rem;
+    color: var(--az-text-sub);
+    font-style: italic;
+}
+
+.az-error-msg {
+    color: var(--az-danger);
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin-top: 0.25rem;
+}
+
+/* Info Box */
+.az-field-info {
+    display: flex;
+    align-items: flex-end;
+}
+
+.az-info-box {
+    background: var(--az-bg-section);
+    padding: 1rem;
+    border-radius: 10px;
+    display: flex;
+    gap: 0.75rem;
+    font-size: 0.85rem;
+    color: var(--az-text-sub);
+    border: 1px solid var(--az-border);
+}
+
+.az-info-box i {
+    color: var(--az-primary);
+    margin-top: 2px;
+}
+
+/* Actions */
+.az-form-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 2rem;
+    border-top: 2px solid var(--az-border);
+}
+
+.az-btn {
+    padding: 0.8rem 2rem;
+    border-radius: 10px;
+    font-weight: 700;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    transition: 0.3s;
+    cursor: pointer;
+    border: 1px solid transparent;
+}
+
+.az-btn-outline {
+    background: transparent;
+    border-color: var(--az-border);
+    color: var(--az-text-main);
+}
+
+.az-btn-outline:hover {
+    background: var(--az-bg-section);
+}
+
+.az-btn-gradient {
+    background: linear-gradient(135deg, var(--az-primary), var(--az-primary-dark));
+    color: white;
+    box-shadow: 0 4px 15px rgba(79, 70, 229, 0.3);
+}
+
+.az-btn-gradient:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(79, 70, 229, 0.4);
+}
+
+/* Alerts */
+.az-alert {
+    padding: 1rem 1.5rem;
+    border-radius: 10px;
+    margin-bottom: 2rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    font-weight: 600;
+}
+
+.az-alert-danger {
+    background: #fef2f2;
+    color: #991b1b;
+    border: 1px solid #fee2e2;
+}
+/* =========================================================
+   AZ NEBULA THEME — Light/Dark (propre)
+   - Light: :root
+   - Dark: html[data-theme="dark"]
+   - Auto fallback: prefers-color-scheme si pas de data-theme
+   ========================================================= */
+
+/* ===== LIGHT (default) ===== */
+:root{
+  color-scheme: light;
+
+  --az-bg-page: #f8fafc;
+  --az-bg-card: #ffffff;
+  --az-bg-section: #f1f5f9;
+
+  --az-text-main: #1e293b;
+  --az-text-sub: #64748b;
+
+  --az-border: #e2e8f0;
+
+  --az-input-bg: #ffffff;
+
+  --az-primary: #4f46e5;
+  --az-primary-dark: #4338ca;
+  --az-primary-soft: #eef2ff;
+
+  --az-success: #10b981;
+  --az-danger: #ef4444;
+
+  --az-shadow: 0 10px 15px -3px rgba(0,0,0,.10);
+  --az-radius: 16px;
+}
+
+/* ===== DARK (forced) ===== */
+html[data-theme="dark"]{
+  color-scheme: dark;
+
+  --az-bg-page: #0f172a;
+  --az-bg-card: #1e293b;
+  --az-bg-section: #334155;
+
+  --az-text-main: #f1f5f9;
+  --az-text-sub: #94a3b8;
+
+  --az-border: #334155;
+
+  --az-input-bg: #0f172a;
+
+  --az-primary-soft: rgba(79,70,229,.15);
+
+  --az-shadow: 0 10px 15px -3px rgba(0,0,0,.30);
+}
+
+/* ===== AUTO fallback (si pas de data-theme) ===== */
+@media (prefers-color-scheme: dark){
+  html:not([data-theme]){
+    color-scheme: dark;
+
+    --az-bg-page: #0f172a;
+    --az-bg-card: #1e293b;
+    --az-bg-section: #334155;
+
+    --az-text-main: #f1f5f9;
+    --az-text-sub: #94a3b8;
+
+    --az-border: #334155;
+    --az-input-bg: #0f172a;
+
+    --az-primary-soft: rgba(79,70,229,.15);
+
+    --az-shadow: 0 10px 15px -3px rgba(0,0,0,.30);
+  }
+}
+
+/* (reco) applique le fond global */
+body{
+  background: var(--az-bg-page);
+  color: var(--az-text-main);
+}
+.az-input-file{
+  width:100%;
+  padding:12px;
+  border-radius:14px;
+  border:1px solid var(--az-border, rgba(148,163,184,.25));
+  background: var(--az-surface, rgba(255,255,255,.06));
+  color: var(--az-text, #e5e7eb);
+}
+.az-field-file input[type="file"]{ cursor:pointer; }
+.az-field-file input[type="file"]{
+  width:100%;
+  padding:12px 14px;
+  border:1px solid rgba(148,163,184,.25);
+  border-radius:14px;
+  background:rgba(2,6,23,.04);
+}
+
+.az-photo-preview{
+  margin-top:10px;
+  display:flex;
+  gap:10px;
+  align-items:center;
+}
+
+.az-photo-preview img{
+  width:72px;
+  height:72px;
+  border-radius:16px;
+  object-fit:cover;
+  border:1px solid rgba(148,163,184,.25);
+  background:rgba(15,23,42,.06);
+}

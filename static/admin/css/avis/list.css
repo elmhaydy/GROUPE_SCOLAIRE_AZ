@@ -1,0 +1,115 @@
+.az-avis-toolbar { margin-bottom: 14px; }
+.az-avis-search{
+  display:flex; align-items:center; gap:10px;
+}
+.az-avis-search i{ color: var(--az-text-tertiary); }
+.az-avis-search .az-input{ flex:1; }
+
+.az-avis-grid{
+  display:grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.az-avis-item{
+  border:1px solid var(--az-border);
+  border-radius:12px;
+  background: var(--az-bg-primary);
+  padding:14px;
+  box-shadow: var(--az-shadow-sm);
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+
+.az-avis-item:hover{
+  border-color: rgba(59,130,246,.35);
+  box-shadow: var(--az-shadow-md);
+}
+
+.az-avis-top{
+  display:flex; align-items:center; justify-content:space-between;
+  gap:10px;
+}
+
+.az-avis-chip{
+  display:inline-flex; align-items:center;
+  padding:6px 10px;
+  border-radius:999px;
+  font-size:12px;
+  border:1px solid var(--az-border);
+  background: var(--az-bg-secondary);
+  color: var(--az-text-secondary);
+  font-weight:600;
+}
+
+.az-avis-date{
+  font-size:12px;
+  color: var(--az-text-tertiary);
+  display:flex; align-items:center; gap:6px;
+}
+
+.az-avis-title{
+  margin:0;
+  font-size:16px;
+  font-weight:700;
+  color: var(--az-text-primary);
+}
+
+.az-avis-snippet{
+  margin:0;
+  color: var(--az-text-secondary);
+  font-size:13px;
+  line-height:1.5;
+  min-height: 42px;
+}
+
+.az-avis-actions{
+  margin-top:auto;
+  display:flex; gap:8px;
+  justify-content:flex-end;
+}
+
+/* Modal preview */
+.az-modal{ position:fixed; inset:0; display:none; z-index:9999; }
+.az-modal.is-open{ display:block; }
+
+.az-modal-backdrop{
+  position:absolute; inset:0;
+  background: rgba(0,0,0,.45);
+}
+
+.az-modal-panel{
+  position:relative;
+  width:min(760px, calc(100vw - 24px));
+  margin:60px auto;
+  border-radius:14px;
+  border:1px solid var(--az-border);
+  background: var(--az-bg-primary);
+  box-shadow: var(--az-shadow-xl);
+  overflow:hidden;
+}
+
+.az-modal-head{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:12px 14px;
+  border-bottom:1px solid var(--az-border);
+  background: var(--az-bg-secondary);
+}
+
+.az-modal-title{ font-weight:800; color: var(--az-text-primary); }
+.az-modal-body{ padding:14px; }
+.az-modal-content{
+  white-space: pre-wrap;
+  color: var(--az-text-secondary);
+  line-height:1.6;
+}
+
+/* Responsive */
+@media (max-width: 1100px){
+  .az-avis-grid{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 700px){
+  .az-avis-grid{ grid-template-columns: 1fr; }
+  .az-avis-actions{ justify-content:flex-start; flex-wrap:wrap; }
+}

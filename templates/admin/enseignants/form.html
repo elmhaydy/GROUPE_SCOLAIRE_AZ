@@ -1,0 +1,132 @@
+{% extends "admin/base_admin.html" %}
+{% load static %}
+
+{% block title %}Enseignant | AZ{% endblock %}
+{% block page_title %}{% if mode == "create" %}Ajouter{% else %}Modifier{% endif %} un enseignant{% endblock %}
+{% block breadcrumb %}Pédagogie / Enseignants{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'admin/css/enseignants/form.css' %}?v=4">
+{% endblock %}
+
+{% block content %}
+
+<div class="az-ens-card">
+  <div class="az-ens-head">
+    <div>
+      <h3 class="az-ens-title">Formulaire</h3>
+      <p class="az-ens-sub">
+        Renseigne les informations de l’enseignant (coordonnées + spécialité).
+      </p>
+    </div>
+
+    <span class="az-badge">
+      <i class="fas fa-chalkboard-teacher"></i> Enseignant
+    </span>
+  </div>
+
+  {% if messages %}
+    <div class="az-ens-flashes">
+      {% for message in messages %}
+        <div class="az-ens-flash az-ens-flash-{{ message.tags|default:'info' }}">{{ message }}</div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <form method="post" class="az-ens-form" novalidate enctype="multipart/form-data">
+
+    {% csrf_token %}
+<div class="az-field">
+  <label>Photo</label>
+
+  <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+    <div style="width:72px;height:72px;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);display:flex;align-items:center;justify-content:center;">
+      {% if form.instance.photo %}
+        <img id="photoPreview" src="{{ form.instance.photo.url }}" alt="Photo enseignant" style="width:100%;height:100%;object-fit:cover;">
+      {% else %}
+        <img id="photoPreview" src="" alt="" style="display:none;width:100%;height:100%;object-fit:cover;">
+        <i class="fas fa-user" style="opacity:.55;"></i>
+      {% endif %}
+    </div>
+
+    <div style="min-width:220px;flex:1;">
+      {{ form.photo }}
+      <div class="az-help">PNG/JPG. Optionnel.</div>
+    </div>
+  </div>
+</div>
+
+    <div class="az-grid-2">
+      <div class="az-field">
+        <label for="{{ form.nom.id_for_label }}">Nom</label>
+        {{ form.nom }}
+        <div class="az-error" data-error-for="nom"></div>
+      </div>
+
+      <div class="az-field">
+        <label for="{{ form.prenom.id_for_label }}">Prénom</label>
+        {{ form.prenom }}
+        <div class="az-error" data-error-for="prenom"></div>
+      </div>
+    </div>
+
+    <div class="az-grid-2">
+      <div class="az-field">
+        <label for="{{ form.telephone.id_for_label }}">Téléphone</label>
+        {{ form.telephone }}
+        <div class="az-help">Format recommandé : +212…</div>
+        <div class="az-error" data-error-for="telephone"></div>
+      </div>
+
+      <div class="az-field">
+        <label for="{{ form.email.id_for_label }}">Email</label>
+        {{ form.email }}
+        <div class="az-help">Ex : prof@ecole.ma</div>
+        <div class="az-error" data-error-for="email"></div>
+      </div>
+    </div>
+
+    <div class="az-field">
+      <label for="{{ form.specialite.id_for_label }}">Spécialité</label>
+      {{ form.specialite }}
+      <div class="az-help">Ex : Mathématiques, Français, Physique…</div>
+      <div class="az-error" data-error-for="specialite"></div>
+    </div>
+
+    <div class="az-switch">
+      {{ form.is_active }}
+      <span>Enseignant actif</span>
+    </div>
+
+    <div class="az-ens-actions">
+      <a class="az-btn" href="{% url 'core:enseignant_list' %}">
+        <i class="fas fa-arrow-left"></i> Retour
+      </a>
+
+      <button class="az-btn az-btn-gradient" type="submit" id="saveBtn">
+        <i class="fas fa-save"></i> Enregistrer
+      </button>
+    </div>
+  </form>
+</div>
+<script>
+  (function(){
+    const input = document.getElementById("id_photo");
+    const img = document.getElementById("photoPreview");
+    if(!input || !img) return;
+
+    input.addEventListener("change", function(){
+      const f = this.files && this.files[0];
+      if(!f) return;
+      const url = URL.createObjectURL(f);
+      img.src = url;
+      img.style.display = "block";
+    });
+  })();
+</script>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'admin/js/enseignants/form.js' %}?v=3"></script>
+{% endblock %}

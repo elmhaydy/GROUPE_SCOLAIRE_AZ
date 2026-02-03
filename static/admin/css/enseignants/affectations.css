@@ -1,0 +1,292 @@
+/* admin/css/enseignants/affectations.css
+   AZ — Enseignants / Affectations — FINAL
+   Style: Groupes/List (chip + focus violet + table grid premium responsive)
+*/
+
+.az-aff-container{
+  grid-column: span 12;
+  display:flex;
+  flex-direction:column;
+  gap: var(--az-spacing-lg);
+}
+
+/* Head */
+.az-aff-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap: var(--az-spacing-lg);
+  flex-wrap:wrap;
+}
+
+.az-aff-title{
+  margin:0 0 6px 0;
+  display:flex;
+  align-items:center;
+  gap: 10px;
+  font-weight: 900;
+  color: var(--az-text-primary);
+}
+
+.az-aff-title i{ color: var(--az-primary); }
+
+.az-aff-sub{
+  font-size: .9rem;
+  color: var(--az-text-secondary);
+  font-weight: 700;
+}
+
+.az-aff-head-actions{
+  display:flex;
+  gap: 10px;
+  flex-wrap:wrap;
+}
+
+/* Form card */
+.az-aff-form{
+  display:grid;
+  gap: var(--az-spacing-md);
+}
+
+.az-grid-2{
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--az-spacing-md);
+}
+
+@media (max-width: 820px){
+  .az-grid-2{ grid-template-columns: 1fr; }
+}
+
+/* Field labels */
+.az-field{
+  display:flex;
+  flex-direction:column;
+  gap: 8px;
+  min-width: 220px;
+  position: relative;
+}
+
+.az-field-label{
+  font-size: .9rem;
+  font-weight: 800;
+  color: var(--az-text-secondary);
+}
+
+/* Inputs/selects inside form */
+.az-aff-form select,
+.az-aff-form input,
+.az-aff-form textarea{
+  width:100%;
+  min-height: 46px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(148, 163, 184, .35);
+  background: var(--az-bg-primary);
+  color: var(--az-text-primary);
+  font-family: inherit;
+  font-size: .95rem;
+  transition: var(--az-transition-fast);
+}
+
+html[data-theme="dark"] .az-aff-form select,
+html[data-theme="dark"] .az-aff-form input,
+html[data-theme="dark"] .az-aff-form textarea{
+  border-color: rgba(148, 163, 184, .22);
+  background: rgba(2,6,23,.18);
+}
+
+/* Focus violet */
+.az-aff-form select:focus,
+.az-aff-form input:focus,
+.az-aff-form textarea:focus{
+  outline:none;
+  border-color: rgba(99,102,241,.65);
+  box-shadow:
+    0 0 0 4px rgba(99,102,241,.18),
+    0 10px 22px rgba(99,102,241,.10);
+  transform: translateY(-1px);
+}
+
+/* Fix dropdown options dark */
+html[data-theme="dark"] .az-aff-form select{ color-scheme: dark; }
+html[data-theme="dark"] .az-aff-form select option,
+html[data-theme="dark"] .az-aff-form select optgroup{
+  background-color:#0b1220 !important;
+  color: rgba(241,245,249,.95) !important;
+}
+html[data-theme="dark"] .az-aff-form select option:checked{
+  background:#1d4ed8 !important;
+  color:#fff !important;
+}
+
+/* caret icon without changing HTML (if browser supports :has) */
+.az-field:has(select)::after{
+  content:"\f078";
+  font-family:"Font Awesome 6 Free";
+  font-weight:900;
+  position:absolute;
+  right: 14px;
+  bottom: 14px;
+  font-size: .85rem;
+  color: var(--az-text-tertiary);
+  pointer-events:none;
+  opacity:.9;
+}
+
+html[data-theme="dark"] .az-field:has(select)::after{
+  color: rgba(148,163,184,.9);
+}
+
+/* Actions */
+.az-aff-actions{
+  display:flex;
+  justify-content:flex-end;
+}
+
+/* Table (grid) */
+.az-table{ width:100%; }
+
+.az-thead{
+  display:grid;
+  grid-template-columns: 160px 170px 1fr 160px 1fr 220px;
+  gap: 10px;
+  padding: 12px 12px;
+  border-radius: 12px;
+  background: var(--az-bg-secondary);
+  border: 1px solid var(--az-border);
+  color: var(--az-text-tertiary);
+  font-weight: 900;
+  font-size: .78rem;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+.az-th-actions{ text-align:right; }
+
+.az-tbody{
+  display:flex;
+  flex-direction:column;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.az-row{
+  display:grid;
+  grid-template-columns: 160px 170px 1fr 160px 1fr 220px;
+  gap: 10px;
+  align-items:center;
+  padding: 12px 12px;
+  border-radius: 14px;
+  border: 1px solid var(--az-border);
+  background: var(--az-bg-primary);
+  box-shadow: var(--az-shadow-sm);
+  transition: var(--az-transition-fast);
+  position:relative;
+  overflow:hidden;
+}
+
+.az-row:hover{
+  border-color: rgba(99, 102, 241, .45);
+  box-shadow: var(--az-shadow-md);
+  transform: translateY(-2px);
+}
+
+.az-row::before{
+  content:"";
+  position:absolute;
+  left:0; top:0; bottom:0;
+  width: 3px;
+  background: linear-gradient(180deg, var(--az-primary), var(--az-primary-light));
+  opacity:0;
+  transition: var(--az-transition-fast);
+}
+.az-row:hover::before{ opacity:1; }
+
+.az-cell{
+  color: var(--az-text-secondary);
+  min-width: 0;
+}
+
+.az-strong{
+  color: var(--az-text-primary);
+  font-weight: 900;
+}
+
+.az-actions{
+  display:flex;
+  justify-content:flex-end;
+  gap: 10px;
+}
+
+/* Empty */
+.az-empty{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap: 10px;
+  padding: 28px 18px;
+  border-radius: 16px;
+  border: 1px dashed var(--az-border);
+  background: var(--az-bg-secondary);
+  color: var(--az-text-secondary);
+  text-align:center;
+}
+
+.az-empty i{
+  font-size: 1.6rem;
+  color: var(--az-primary);
+}
+
+/* Responsive: div-table -> stacked */
+@media (max-width: 980px){
+  .az-thead{ display:none; }
+
+  .az-row{
+    grid-template-columns: 1fr;
+    gap: 10px;
+    padding: 14px;
+  }
+
+  .az-cell{
+    display:flex;
+    justify-content:space-between;
+    gap: 12px;
+  }
+
+  .az-row .az-cell:nth-child(1)::before{ content:"Année"; }
+  .az-row .az-cell:nth-child(2)::before{ content:"Groupe"; }
+  .az-row .az-cell:nth-child(3)::before{ content:"Niveau"; }
+  .az-row .az-cell:nth-child(4)::before{ content:"Degré"; }
+  .az-row .az-cell:nth-child(5)::before{ content:"Matière"; }
+  .az-row .az-cell:nth-child(6)::before{ content:"Action"; }
+
+  .az-row .az-cell::before{
+    color: var(--az-text-tertiary);
+    font-weight: 900;
+    font-size: .78rem;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+  }
+
+  .az-actions{ justify-content:flex-start; }
+}
+/* ===== FIX SELECT CARET (GLOBAL AZ) ===== */
+
+/* Supprimer flèche native */
+.az-field select,
+.az-select,
+.az-input select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+}
+
+/* Forcer cohérence thème */
+html[data-theme="dark"] select {
+  color-scheme: dark;
+}
+html[data-theme="light"] select {
+  color-scheme: light;
+}

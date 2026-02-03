@@ -1,0 +1,90 @@
+{% extends "admin/base_admin.html" %}
+{% load static %}
+
+{% block title %}Catégories Dépenses | AZ{% endblock %}
+{% block page_title %}Catégories Dépenses{% endblock %}
+{% block current_page %}Finance / Dépenses / Catégories{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'admin/css/depenses/categories_list.css' %}?v=4">
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'admin/js/depenses/categories_list.js' %}?v=4" defer></script>
+{% endblock %}
+
+{% block content %}
+
+<div class="az-page-head">
+  <div class="az-page-head-right">
+    <a class="az-btn az-btn-primary" href="{% url 'core:depense_categorie_create' %}">
+      <i class="fa-solid fa-plus"></i><span>Nouvelle catégorie</span>
+    </a>
+
+    <a class="az-btn az-btn-ghost" href="{% url 'core:depense_list' %}">
+      <i class="fa-solid fa-arrow-left"></i><span>Retour dépenses</span>
+    </a>
+  </div>
+</div>
+
+<div class="az-card az-cat-card">
+  <div class="az-table-wrap">
+    <table class="az-table az-cat-table">
+      <thead>
+        <tr>
+          <th>Nom</th>
+          <th>Ordre</th>
+          <th>Statut</th>
+          <th class="th-actions">Actions</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {% for c in cats %}
+        <tr id="cat-{{ c.id }}" class="az-cat-row">
+          <td data-label="Nom">
+            <b class="az-cat-name">{{ c.nom }}</b>
+          </td>
+
+          <td data-label="Ordre">
+            <span class="az-cat-order">{{ c.ordre }}</span>
+          </td>
+
+          <td data-label="Statut">
+            {% if c.is_active %}
+              <span class="az-badge az-badge-active">Active</span>
+            {% else %}
+              <span class="az-badge az-badge-muted">Inactive</span>
+            {% endif %}
+          </td>
+
+          <td data-label="Actions">
+            <div class="az-actions">
+              <a class="az-btn az-btn-ghost" href="{% url 'core:depense_categorie_edit' c.id %}" title="Modifier">
+                <i class="fa-solid fa-pen"></i>
+              </a>
+
+              <a class="az-btn az-btn-danger"
+                 href="{% url 'core:depense_categorie_delete' c.id %}"
+                 data-confirm-delete="la catégorie '{{ c.nom }}'"
+                 title="Supprimer">
+                <i class="fa-solid fa-trash"></i>
+              </a>
+
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="4" class="az-empty">
+            <i class="fa-solid fa-circle-info"></i>
+            <span>Aucune catégorie.</span>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% endblock %}

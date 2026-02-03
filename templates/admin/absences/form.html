@@ -1,0 +1,139 @@
+{% extends "admin/base_admin.html" %}
+{% load static %}
+
+{% block title %}Absence | AZ{% endblock %}
+{% block page_title %}{% if mode == "create" %}Enregistrer{% else %}Modifier{% endif %} une absence{% endblock %}
+{% block breadcrumb %}Pédagogie / Absences{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css">
+<link rel="stylesheet" href="{% static 'admin/css/absences/form.css' %}?v=5">
+<link rel="stylesheet" href="{% static 'admin/css/absences/tomselect-az.css' %}">
+{% endblock %}
+
+{% block content %}
+
+<div class="az-absence-form-page">
+  <div class="az-card az-absence-form-card">
+
+    <div class="az-absence-head">
+      <div>
+        <h3 class="az-absence-title">
+          <i class="fa-solid fa-user-xmark"></i>
+          Formulaire d’absence
+        </h3>
+        <div class="az-sub">
+          Remplis les champs. L’élève et la séance se filtrent automatiquement (année + groupe + date).
+        </div>
+      </div>
+
+      <div class="az-absence-head-actions">
+        <a class="az-btn az-btn-outline" href="{% url 'core:absence_list' %}">
+          <i class="fa-solid fa-arrow-left"></i> Retour
+        </a>
+      </div>
+    </div>
+
+    {% if form.non_field_errors %}
+      <div class="az-msg-area">
+        {% for err in form.non_field_errors %}
+          <div class="az-msg bad">{{ err }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    <form method="post" class="az-absence-form" novalidate>
+      {% csrf_token %}
+
+      <div class="az-grid-2">
+        <div class="az-field">
+          <label for="id_annee">Année</label>
+          {{ form.annee }}
+          {% for err in form.annee.errors %}<div class="az-err">{{ err }}</div>{% endfor %}
+        </div>
+
+        <div class="az-field">
+          <label for="id_groupe">Groupe</label>
+          {{ form.groupe }}
+          {% for err in form.groupe.errors %}<div class="az-err">{{ err }}</div>{% endfor %}
+        </div>
+      </div>
+
+      <div class="az-field">
+        <label for="id_eleve">Élève</label>
+        {{ form.eleve }}
+        {% for err in form.eleve.errors %}<div class="az-err">{{ err }}</div>{% endfor %}
+        <div class="az-help">Astuce : cherche par matricule / nom / prénom.</div>
+      </div>
+
+      <div class="az-grid-2">
+        <div class="az-field">
+          <label for="id_date">Date</label>
+          {{ form.date }}
+          {% for err in form.date.errors %}<div class="az-err">{{ err }}</div>{% endfor %}
+        </div>
+
+        <div class="az-field">
+          <label for="id_type">Type</label>
+          {{ form.type }}
+          {% for err in form.type.errors %}<div class="az-err">{{ err }}</div>{% endfor %}
+        </div>
+      </div>
+
+      <div class="az-field">
+        <label for="id_seance">Séance (optionnel)</label>
+        {{ form.seance }}
+        {% for err in form.seance.errors %}<div class="az-err">{{ err }}</div>{% endfor %}
+        <div class="az-help">Se remplit automatiquement quand année + groupe + date sont choisis.</div>
+      </div>
+
+      <div class="az-grid-2">
+        <div class="az-field">
+          <label for="id_motif">Motif</label>
+          {{ form.motif }}
+          {% for err in form.motif.errors %}<div class="az-err">{{ err }}</div>{% endfor %}
+        </div>
+
+        <div class="az-field">
+          <label>Justifié</label>
+          <label class="az-toggle">
+            {{ form.justifie }}
+            <span class="az-toggle-ui" aria-hidden="true"></span>
+            <span class="az-toggle-text">Marquer comme justifié</span>
+          </label>
+          {% for err in form.justifie.errors %}<div class="az-err">{{ err }}</div>{% endfor %}
+        </div>
+      </div>
+
+      <div class="az-form-actions">
+        <button class="az-btn az-btn-gradient" type="submit">
+          <i class="fa-solid fa-floppy-disk"></i> Enregistrer
+        </button>
+
+        <a class="az-btn az-btn-soft" href="{% url 'core:absence_list' %}">
+          <i class="fa-solid fa-xmark"></i> Annuler
+        </a>
+      </div>
+
+    </form>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
+
+<script>
+  window.AZ_ABS_FORM = {
+    urlEleves: "{% url 'core:ajax_eleves_par_groupe' %}",
+    urlSeances: "{% url 'core:api_seances_par_groupe_date' %}",
+
+    selectedGroupe: "{{ form.groupe.value|default_if_none:'' }}",
+    selectedEleve: "{{ form.eleve.value|default_if_none:'' }}",
+    selectedSeance: "{{ form.seance.value|default_if_none:'' }}",
+  };
+</script>
+
+<script src="{% static 'admin/js/absences/form.js' %}?v=6"></script>
+{% endblock %}

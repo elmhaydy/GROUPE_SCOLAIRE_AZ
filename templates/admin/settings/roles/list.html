@@ -1,0 +1,114 @@
+{% extends "admin/base_admin.html" %}
+{% load static %}
+
+{% block title %}Rôles | AZ{% endblock %}
+{% block page_title %}Rôles & Permissions{% endblock %}
+{% block breadcrumb %}Paramètres / Rôles{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'admin/css/settings/list.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="roles-container">
+    <!-- Header Section -->
+    <header class="roles-header">
+        <div class="header-content">
+            <h3>Rôles & Permissions</h3>
+            <p>Définissez les accès et contrôlez précisément les droits des utilisateurs.</p>
+        </div>
+
+        <div class="header-actions">
+            <form method="get" class="search-wrapper">
+                <i class="fas fa-search search-icon"></i>
+                <input type="text" class="search-input" name="q" value="{{ q }}" placeholder="Rechercher un rôle…">
+            </form>
+
+            <a href="{% url 'core:role_create' %}" class="az-btn az-btn-gradient" style="padding: 0.75rem 1.5rem; border-radius: 12px; font-weight: 700; display: flex; align-items: center; gap: 0.75rem;">
+                <i class="fas fa-plus-circle"></i> Nouveau rôle
+            </a>
+        </div>
+    </header>
+
+    <!-- Desktop Table -->
+    <div class="modern-table-card">
+        <table class="modern-table">
+            <thead>
+                <tr>
+                    <th>Rôle</th>
+                    <th>Permissions</th>
+                    <th style="text-align: right;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in roles %}
+                <tr>
+                    <td>
+                        <div class="role-cell">
+                            <div class="role-icon-box">
+                                <i class="fas fa-shield-halved"></i>
+                            </div>
+                            <span class="role-name">{{ r.name }}</span>
+                        </div>
+                    </td>
+                    <td>
+                        <span class="perm-badge">
+                            <i class="fas fa-key"></i>
+                            {{ r.permissions.count }} permission{{ r.permissions.count|pluralize }}
+                        </span>
+                    </td>
+                    <td>
+                        <div class="action-btns">
+                            <a href="{% url 'core:role_update' r.id %}" class="btn-icon btn-edit" title="Modifier">
+                                <i class="fas fa-pen-to-square"></i>
+                            </a>
+                            <a href="{% url 'core:role_delete' r.id %}" class="btn-icon btn-delete" title="Supprimer">
+                                <i class="fas fa-trash-can"></i>
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="3" style="text-align: center; padding: 4rem; color: var(--text-muted);">
+                        <i class="fas fa-folder-open" style="font-size: 3rem; display: block; margin-bottom: 1rem; opacity: 0.3;"></i>
+                        <p style="font-weight: 600;">Aucun rôle trouvé</p>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Mobile Cards -->
+    <div class="mobile-cards">
+        {% for r in roles %}
+        <div class="mobile-role-card">
+            <div class="card-head">
+                <div>
+                    <div class="role-name">{{ r.name }}</div>
+                    <div class="perm-badge" style="margin-top: 0.5rem;">
+                        {{ r.permissions.count }} permission{{ r.permissions.count|pluralize }}
+                    </div>
+                </div>
+                <div class="role-icon-box">
+                    <i class="fas fa-shield-halved"></i>
+                </div>
+            </div>
+            <div class="card-actions">
+                <a href="{% url 'core:role_update' r.id %}" class="btn-mobile btn-edit">
+                    <i class="fas fa-pen"></i> Modifier
+                </a>
+                <a href="{% url 'core:role_delete' r.id %}" class="btn-mobile btn-delete">
+                    <i class="fas fa-trash"></i> Supprimer
+                </a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'admin/js/settings/list.js' %}"></script>
+{% endblock %}

@@ -1,0 +1,165 @@
+{% extends "eleve/base.html" %}
+{% load static %}
+
+{% block title %}Profil | Portail Élève{% endblock %}
+{% block page_title %}Profil{% endblock %}
+
+
+
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'eleve/css/profil.css' %}?v=3">
+{% endblock %}
+
+{% block extra_js %}
+<script defer src="{% static 'eleve/js/profil.js' %}?v=3"></script>
+{% endblock %}
+
+{% block content %}
+
+<!-- HERO -->
+<div class="card profile-hero2">
+  <div class="p2-left">
+    <div class="p2-avatar">
+      {% if eleve.photo %}
+        <img src="{{ eleve.photo.url }}" alt="Photo">
+      {% else %}
+        <div class="p2-fallback">{{ eleve.prenom|slice:":1" }}{{ eleve.nom|slice:":1" }}</div>
+      {% endif %}
+    </div>
+
+    <div class="p2-id">
+      <div class="p2-pill">
+        <span class="dot"></span>
+        <div class="kv2-row">
+  <span class="k">Matricule</span>
+  <span class="v" data-copy="{{ eleve.matricule|default:'—' }}">{{ eleve.matricule|default:"—" }}</span>
+</div>
+        {% if inscription %}
+          <span class="sep">•</span>
+          <span>{{ inscription.groupe.nom }}</span>
+        {% endif %}
+      </div>
+
+      <div class="p2-name">{{ eleve.prenom }} {{ eleve.nom }}</div>
+
+      <div class="p2-meta muted">
+        {% if inscription %}
+          {{ inscription.groupe.niveau.degre.nom }} • {{ inscription.groupe.niveau.nom }} • {{ inscription.annee.nom }}
+        {% else %}
+          Aucune inscription active
+        {% endif %}
+      </div>
+
+      <div class="p2-badges">
+        <span class="tag">Sexe: {{ eleve.get_sexe_display|default:"—" }}</span>
+<div class="kv2-row">
+  <span class="k">Téléphone</span>
+  <span class="v" data-copy="{{ eleve.telephone|default:'—' }}">{{ eleve.telephone|default:"—" }}</span>
+</div>        {% if inscription %}
+          <span class="tag ok">{{ inscription.get_statut_display }}</span>
+        {% else %}
+          <span class="tag warn">Non inscrit</span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="p2-right">
+<button class="btn primary" type="button" data-open-password-modal>
+  🔒 Changer mot de passe
+</button>
+  </div>
+</div>
+
+<div class="grid profile-grid2">
+
+  <!-- Infos Élève -->
+  <div class="card">
+    <div class="section-head">
+      <div>
+        <h3 style="margin:0">Informations élève</h3>
+        <div class="muted">Identité & contact</div>
+      </div>
+    </div>
+
+    <div class="kv2">
+      <div class="kv2-row"><span class="k">Matricule</span><span class="v">{{ eleve.matricule|default:"—" }}</span></div>
+      <div class="kv2-row"><span class="k">Nom</span><span class="v">{{ eleve.nom|default:"—" }}</span></div>
+      <div class="kv2-row"><span class="k">Prénom</span><span class="v">{{ eleve.prenom|default:"—" }}</span></div>
+      <div class="kv2-row"><span class="k">Date naissance</span><span class="v">{{ eleve.date_naissance|date:"d/m/Y"|default:"—" }}</span></div>
+      <div class="kv2-row"><span class="k">Téléphone</span><span class="v">{{ eleve.telephone|default:"—" }}</span></div>
+      <div class="kv2-row"><span class="k">Adresse</span><span class="v">{{ eleve.adresse|default:"—" }}</span></div>
+    </div>
+  </div>
+
+  <!-- Scolarité -->
+  <div class="card">
+    <div class="section-head">
+      <div>
+        <h3 style="margin:0">Scolarité</h3>
+        <div class="muted">Année, niveau & groupe</div>
+      </div>
+    </div>
+
+    {% if inscription %}
+      <div class="kv2">
+        <div class="kv2-row"><span class="k">Année</span><span class="v">{{ inscription.annee.nom }}</span></div>
+        <div class="kv2-row"><span class="k">Degré</span><span class="v">{{ inscription.groupe.niveau.degre.nom }}</span></div>
+        <div class="kv2-row"><span class="k">Niveau</span><span class="v">{{ inscription.groupe.niveau.nom }}</span></div>
+        <div class="kv2-row"><span class="k">Groupe</span><span class="v">{{ inscription.groupe.nom }}</span></div>
+        <div class="kv2-row">
+          <span class="k">Statut</span>
+          <span class="v"><span class="tag ok">{{ inscription.get_statut_display }}</span></span>
+        </div>
+      </div>
+    {% else %}
+      <div class="empty-state">
+        <div class="empty-ic">ℹ️</div>
+        <div>
+          <b>Aucune inscription</b>
+          <div class="muted">Aucune inscription trouvée pour l’année active.</div>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- ✅ Parents -->
+  <div class="card" style="grid-column: span 2;">
+    <div class="section-head">
+      <div>
+        <h3 style="margin:0">Parents / Tuteurs</h3>
+        <div class="muted">Contacts liés à l’élève</div>
+      </div>
+    </div>
+
+    {% if parents %}
+      <div class="parents-grid">
+        {% for pe in parents %}
+          <div class="parent-card">
+            <div class="parent-top">
+              <div class="parent-avatar">
+                {{ pe.parent.prenom|slice:":1" }}{{ pe.parent.nom|slice:":1" }}
+              </div>
+              <div class="parent-id">
+                <div class="parent-name">{{ pe.parent.prenom }} {{ pe.parent.nom }}</div>
+                <div class="muted">{{ pe.get_lien_display }}</div>
+              </div>
+              <div class="parent-badge">{{ pe.get_lien_display }}</div>
+            </div>
+
+            <div class="parent-kv">
+<b data-copy="{{ pe.parent.telephone|default:'—' }}">{{ pe.parent.telephone|default:"—" }}</b>
+              <div><span>Email</span><b>{{ pe.parent.email|default:"—" }}</b></div>
+              <div class="full"><span>Adresse</span><b>{{ pe.parent.adresse|default:"—" }}</b></div>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="muted">Aucun parent/tuteur lié.</p>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}

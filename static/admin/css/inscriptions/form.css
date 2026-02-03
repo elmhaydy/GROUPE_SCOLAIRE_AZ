@@ -1,0 +1,450 @@
+/* =========================================================
+   AZ NEBULA — Inscriptions (FORM) — FINAL (inspiré 100% de ton CSS)
+   - Variables Light/Dark propres (data-theme + fallback auto)
+   - Style "card + header gradient + sections" comme ton modèle
+   - Tom Select skin NEBULA + fix dropdown au-dessus
+   - Fix select/options dark (Windows/Chrome)
+   ========================================================= */
+
+/* =========================================================
+   THEME TOKENS — Light/Dark (propre)
+   ========================================================= */
+
+/* ===== LIGHT (default) ===== */
+:root{
+  color-scheme: light;
+
+  --az-bg-page: #f8fafc;
+  --az-bg-card: #ffffff;
+  --az-bg-section: #f1f5f9;
+
+  --az-text-main: #1e293b;
+  --az-text-sub: #64748b;
+
+  --az-border: #e2e8f0;
+  --az-input-bg: #ffffff;
+
+  --az-primary: #4f46e5;
+  --az-primary-dark: #4338ca;
+  --az-primary-soft: #eef2ff;
+
+  --az-success: #10b981;
+  --az-danger: #ef4444;
+
+  --az-shadow: 0 10px 15px -3px rgba(0,0,0,.10);
+  --az-shadow-lg: 0 20px 35px -18px rgba(0,0,0,.22);
+
+  --az-radius: 16px;
+  --az-radius-sm: 12px;
+
+  --az-transition: all .25s ease;
+
+  /* glow nebula */
+  --az-focus-ring: rgba(79,70,229,.20);
+  --az-focus-ring-2: rgba(79,70,229,.12);
+}
+
+/* ===== DARK (forced) ===== */
+html[data-theme="dark"]{
+  color-scheme: dark;
+
+  --az-bg-page: #0f172a;
+  --az-bg-card: #1e293b;
+  --az-bg-section: #334155;
+
+  --az-text-main: #f1f5f9;
+  --az-text-sub: #94a3b8;
+
+  --az-border: #334155;
+  --az-input-bg: #0f172a;
+
+  --az-primary-soft: rgba(79,70,229,.15);
+
+  --az-shadow: 0 10px 15px -3px rgba(0,0,0,.30);
+  --az-shadow-lg: 0 22px 60px rgba(0,0,0,.35);
+
+  --az-focus-ring: rgba(129,140,248,.22);
+  --az-focus-ring-2: rgba(99,102,241,.14);
+}
+
+/* ===== AUTO fallback (si pas de data-theme) ===== */
+@media (prefers-color-scheme: dark){
+  html:not([data-theme]){
+    color-scheme: dark;
+
+    --az-bg-page: #0f172a;
+    --az-bg-card: #1e293b;
+    --az-bg-section: #334155;
+
+    --az-text-main: #f1f5f9;
+    --az-text-sub: #94a3b8;
+
+    --az-border: #334155;
+    --az-input-bg: #0f172a;
+
+    --az-primary-soft: rgba(79,70,229,.15);
+
+    --az-shadow: 0 10px 15px -3px rgba(0,0,0,.30);
+    --az-shadow-lg: 0 22px 60px rgba(0,0,0,.35);
+
+    --az-focus-ring: rgba(129,140,248,.22);
+    --az-focus-ring-2: rgba(99,102,241,.14);
+  }
+}
+
+/* (reco) fond global */
+body{
+  background: var(--az-bg-page);
+  color: var(--az-text-main);
+}
+
+/* =========================================================
+   INSCRIPTIONS FORM — STRUCTURE (ton HTML)
+   Classes utilisées:
+   .az-insc-card .az-insc-head .az-insc-title .az-insc-sub
+   .az-insc-pill .az-insc-form .az-field .az-grid-2
+   .az-help .az-error .az-insc-actions
+   ========================================================= */
+
+/* Container (carte) */
+.az-insc-card{
+  max-width: 980px;
+  margin: 18px auto;
+  padding: 0; /* header + body gèrent */
+  border-radius: var(--az-radius);
+  border: 1px solid var(--az-border);
+  background: var(--az-bg-card);
+  box-shadow: var(--az-shadow-lg);
+  overflow: hidden;
+  animation: azSlideUp .55s ease both;
+}
+
+@keyframes azSlideUp{
+  from{ opacity:0; transform: translateY(16px); }
+  to{ opacity:1; transform: translateY(0); }
+}
+
+/* Header */
+.az-insc-head{
+  padding: 22px;
+  background: linear-gradient(to right, var(--az-primary-soft), transparent);
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap: 14px;
+  flex-wrap:wrap;
+  border-bottom: 1px solid var(--az-border);
+}
+
+html[data-theme="dark"] .az-insc-head{
+  background: linear-gradient(to right, rgba(79,70,229,.14), transparent);
+}
+
+.az-insc-title{
+  margin:0;
+  font-size: 1.45rem;
+  font-weight: 900;
+  color: var(--az-text-main);
+  letter-spacing: -.02em;
+}
+
+.az-insc-sub{
+  margin: 8px 0 0;
+  color: var(--az-text-sub);
+  font-size: .95rem;
+  line-height: 1.45;
+  max-width: 62ch;
+}
+
+/* Pill élève (matricule) */
+.az-insc-pill{
+  background: var(--az-primary);
+  color: #fff;
+  padding: 10px 14px;
+  border-radius: 999px;
+  font-weight: 800;
+  font-size: .9rem;
+  display:inline-flex;
+  align-items:center;
+  gap: 10px;
+  box-shadow: 0 8px 18px rgba(79,70,229,.25);
+  white-space: nowrap;
+}
+.az-insc-pill i{ color:#fff; opacity:.95; }
+.az-insc-pill b{ font-weight: 900; }
+
+/* Flashes non_field */
+.az-insc-flashes{
+  padding: 16px 22px 0;
+  display:flex;
+  flex-direction:column;
+  gap: 10px;
+}
+.az-insc-flash{
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(239,68,68,.25);
+  background: rgba(239,68,68,.08);
+  color: var(--az-text-main);
+  font-weight: 700;
+}
+.az-insc-flash-error{
+  border-left: 4px solid var(--az-danger);
+}
+
+/* Form body */
+.az-insc-form{
+  padding: 22px;
+  display:flex;
+  flex-direction:column;
+  gap: 16px;
+}
+
+/* Grid 2 colonnes (année / statut) */
+.az-grid-2{
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+/* Fields */
+.az-field{
+  display:flex;
+  flex-direction:column;
+  gap: 8px;
+}
+
+.az-field label{
+  font-weight: 800;
+  font-size: .95rem;
+  color: var(--az-text-main);
+}
+
+/* Help + error */
+.az-help{
+  font-size: .85rem;
+  color: var(--az-text-sub);
+  font-style: italic;
+}
+
+.az-error{
+  color: var(--az-danger);
+  font-size: .85rem;
+  font-weight: 700;
+  margin-top: 6px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(239,68,68,.22);
+  background: rgba(239,68,68,.08);
+}
+
+/* Inputs / selects (Django) */
+.az-insc-form input[type="text"],
+.az-insc-form input[type="email"],
+.az-insc-form input[type="tel"],
+.az-insc-form input[type="number"],
+.az-insc-form input[type="date"],
+.az-insc-form textarea,
+.az-insc-form select{
+  width:100%;
+  min-height: 46px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--az-border);
+  background: var(--az-input-bg);
+  color: var(--az-text-main);
+  font-size: 1rem;
+  transition: var(--az-transition);
+  outline: none;
+}
+
+/* Focus NEBULA (violet glow) */
+.az-insc-form input:focus,
+.az-insc-form textarea:focus,
+.az-insc-form select:focus{
+  border-color: rgba(79,70,229,.65);
+  box-shadow:
+    0 0 0 4px var(--az-focus-ring),
+    0 10px 22px var(--az-focus-ring-2);
+  transform: translateY(-1px);
+}
+
+/* Select natif stylé */
+.az-insc-form select{
+  appearance:none;
+  -webkit-appearance:none;
+  -moz-appearance:none;
+  padding-right: 42px;
+
+  background-image:
+    linear-gradient(45deg, transparent 50%, rgba(100,116,139,.9) 50%),
+    linear-gradient(135deg, rgba(100,116,139,.9) 50%, transparent 50%),
+    linear-gradient(to right, transparent, transparent);
+  background-position:
+    calc(100% - 18px) 50%,
+    calc(100% - 12px) 50%,
+    0 0;
+  background-size: 6px 6px, 6px 6px, 100% 100%;
+  background-repeat:no-repeat;
+}
+
+html[data-theme="dark"] .az-insc-form select{
+  background-image:
+    linear-gradient(45deg, transparent 50%, rgba(226,232,240,.85) 50%),
+    linear-gradient(135deg, rgba(226,232,240,.85) 50%, transparent 50%),
+    linear-gradient(to right, transparent, transparent);
+}
+
+/* Options (certains navigateurs) */
+.az-insc-form select option,
+.az-insc-form select optgroup{
+  background: var(--az-bg-card);
+  color: var(--az-text-main);
+}
+
+/* Actions (boutons) */
+.az-insc-actions{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap: 12px;
+  padding-top: 18px;
+  margin-top: 6px;
+  border-top: 2px solid var(--az-border);
+}
+
+/* Buttons (même esprit que ton modèle) */
+.az-insc-actions .az-btn{
+  padding: .8rem 2rem;
+  border-radius: 12px;
+  font-weight: 800;
+  text-decoration:none;
+  display:inline-flex;
+  align-items:center;
+  gap: .75rem;
+  transition: .3s;
+  cursor:pointer;
+  border: 1px solid transparent;
+  user-select:none;
+}
+
+.az-insc-actions .az-btn-gradient{
+  background: linear-gradient(135deg, var(--az-primary), var(--az-primary-dark));
+  color:#fff;
+  box-shadow: 0 4px 15px rgba(79,70,229,.30);
+}
+.az-insc-actions .az-btn-gradient:hover{
+  transform: translateY(-2px);
+  box-shadow: 0 8px 22px rgba(79,70,229,.38);
+}
+
+.az-insc-actions .az-btn:not(.az-btn-gradient){
+  background: transparent;
+  border-color: var(--az-border);
+  color: var(--az-text-main);
+}
+.az-insc-actions .az-btn:not(.az-btn-gradient):hover{
+  background: var(--az-bg-section);
+}
+
+/* =========================================================
+   Tom Select — NEBULA skin (élève + groupe)
+   ========================================================= */
+
+.ts-wrapper{ width:100%; }
+
+/* Control */
+.ts-control{
+  min-height: 46px !important;
+  padding: 10px 12px !important;
+  border-radius: 12px !important;
+  border: 1px solid var(--az-border) !important;
+  background: var(--az-input-bg) !important;
+  color: var(--az-text-main) !important;
+  box-shadow: none !important;
+  transition: var(--az-transition) !important;
+}
+.ts-control input{
+  color: var(--az-text-main) !important;
+  font-size: 1rem !important;
+}
+
+/* ⚠️ Fix ton erreur CSS: PAS de virgule après une propriété */
+.ts-wrapper.focus .ts-control{
+  border-color: rgba(79,70,229,.65) !important;
+  box-shadow: 0 0 0 4px var(--az-focus-ring),
+              0 10px 22px rgba(79,70,229,.10) !important;
+  transform: translateY(-1px);
+}
+
+
+/* Dropdown */
+.ts-dropdown{
+  margin-top: 8px !important;
+  border-radius: 14px !important;
+  border: 1px solid var(--az-border) !important;
+  background: var(--az-bg-card) !important;
+  color: var(--az-text-main) !important;
+  box-shadow: var(--az-shadow-lg) !important;
+  overflow:hidden !important;
+  z-index: 9999 !important;
+}
+
+.ts-dropdown .option{
+  padding: 12px 12px !important;
+  color: var(--az-text-main) !important;
+  border-bottom: 1px solid rgba(100,116,139,.12) !important;
+}
+html[data-theme="dark"] .ts-dropdown .option{
+  border-bottom: 1px solid rgba(255,255,255,.06) !important;
+}
+
+.ts-dropdown .option.active{
+  background: var(--az-primary-soft) !important;
+  color: var(--az-text-main) !important;
+}
+.ts-dropdown .option.selected{
+  background: rgba(79,70,229,.18) !important;
+  color: var(--az-text-main) !important;
+}
+
+/* =========================================================
+   Fix Select Dropdown Dark (Windows/Chrome)
+   ========================================================= */
+html[data-theme="dark"] select{ color-scheme: dark; }
+
+html[data-theme="dark"] .az-insc-form select{
+  background-color: #0f172a !important;
+  color: #f1f5f9 !important;
+  border-color: rgba(148,163,184,.22) !important;
+}
+html[data-theme="dark"] .az-insc-form select option,
+html[data-theme="dark"] .az-insc-form select optgroup{
+  background-color: #0f172a !important;
+  color: #e5e7eb !important;
+}
+html[data-theme="dark"] .az-insc-form select option:checked{
+  background-color: #2563eb !important;
+  color: #ffffff !important;
+}
+html[data-theme="dark"] select:-internal-list-box{
+  background-color: #0f172a !important;
+}
+
+/* =========================================================
+   Responsive
+   ========================================================= */
+@media (max-width: 900px){
+  .az-grid-2{ grid-template-columns: 1fr; }
+  .az-insc-head{ padding: 18px; }
+  .az-insc-form{ padding: 18px; }
+
+  .az-insc-actions{
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+  .az-insc-actions .az-btn{
+    width:100%;
+    justify-content:center;
+  }
+}

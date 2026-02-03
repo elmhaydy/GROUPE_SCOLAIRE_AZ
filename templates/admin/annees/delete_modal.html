@@ -1,0 +1,38 @@
+<div class="az-modal" role="dialog" aria-modal="true">
+  <div class="az-modal-backdrop" data-close="1"></div>
+
+  <div class="az-modal-panel">
+    <div class="az-modal-head">
+      <div class="az-modal-title">
+        <i class="fas fa-triangle-exclamation"></i>
+        Supprimer une année
+      </div>
+      
+    </div>
+
+    <div class="az-modal-body">
+      <p class="az-sub">
+        Tu es sûr de vouloir supprimer <b>{{ annee.nom }}</b> ?
+      </p>
+    <br>
+      <div class="az-danger-box">
+        <i class="fas fa-circle-info"></i>
+        Cette action est irréversible.
+      </div>
+    </div>
+
+    <div class="az-modal-foot">
+      <button type="button" class="az-btn" data-close="1">
+        Annuler
+      </button>
+
+      <form method="post" class="az-modal-form" data-az-modal-form>
+        {% csrf_token %}
+        <button class="az-btn az-btn-danger" type="submit">
+          <i class="fas fa-trash"></i>
+          Oui, supprimer
+        </button>
+      </form>
+    </div>
+  </div>
+</div>

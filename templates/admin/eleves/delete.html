@@ -1,0 +1,85 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}Supprimer | AZ{% endblock %}
+{% block page_title %}Supprimer un élève{% endblock %}
+{% block breadcrumb %}Scolaire / Élèves / Supprimer{% endblock %}
+
+{% block content %}
+<div class="az-card" style="grid-column:span 12;max-width:820px;">
+  <h3 style="margin:0 0 8px 0;">Confirmation</h3>
+  <p class="az-sub" style="margin:0 0 14px 0;">
+    Tu es sûr de vouloir supprimer <b>{{ eleve.nom }} {{ eleve.prenom }}</b>
+    (<b>{{ eleve.matricule }}</b>) ?
+  </p>
+
+  <div class="az-card" style="padding:14px; margin: 12px 0;">
+    <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;">
+      <div>
+        <div class="label">Inscriptions</div>
+        <div class="value"><b>{{ nb_inscriptions }}</b></div>
+      </div>
+      <div>
+        <div class="label">Paiements</div>
+        <div class="value"><b>{{ nb_paiements }}</b></div>
+      </div>
+      <div>
+        <div class="label">Statut</div>
+        <div class="value">
+          {% if eleve.is_active %}
+            <span class="az-pill pill-success">Actif</span>
+          {% else %}
+            <span class="az-pill pill-danger">Archivé</span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    {% with ins=eleve.inscriptions.first %}
+    {% if ins %}
+      <hr style="border:none;border-top:1px solid var(--az-border);margin:12px 0;">
+      <div class="label" style="margin-bottom:6px;">Scolarité / Classe (dernière inscription)</div>
+      <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;">
+        <div class="az-info-item" style="margin:0">
+          <span class="label">Année</span>
+          <span class="value">{{ ins.annee.nom }}</span>
+        </div>
+        <div class="az-info-item" style="margin:0">
+          <span class="label">Degré</span>
+          <span class="value">{{ ins.groupe.niveau.degre.nom }}</span>
+        </div>
+        <div class="az-info-item" style="margin:0">
+          <span class="label">Niveau</span>
+          <span class="value">{{ ins.groupe.niveau.nom }}</span>
+        </div>
+        <div class="az-info-item" style="margin:0">
+          <span class="label">Groupe</span>
+          <span class="value highlight">{{ ins.groupe.nom }}</span>
+        </div>
+      </div>
+    {% endif %}
+    {% endwith %}
+  </div>
+
+  <form method="post" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+    {% csrf_token %}
+
+    {# ✅ Safe: archiver #}
+    <button class="az-btn az-btn-gradient" type="submit" name="action" value="archive">
+      <i class="fa-solid fa-box-archive"></i> Archiver (recommandé)
+    </button>
+
+    {# ⚠️ Danger: hard delete #}
+    <button class="az-btn" type="submit" name="action" value="hard"
+            style="border-color:rgba(255,80,80,.35);">
+      <i class="fa-solid fa-trash"></i> Supprimer définitivement
+    </button>
+
+    <a class="az-btn az-btn-outline" href="{% url 'core:eleve_detail' eleve.id %}">
+      Annuler
+    </a>
+  </form>
+
+  <p class="az-sub" style="margin-top:12px;">
+    <b>Note :</b> la suppression définitive efface aussi inscriptions, échéances, paiements, recouvrement, etc.
+  </p>
+</div>
+{% endblock %}

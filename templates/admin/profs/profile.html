@@ -1,0 +1,55 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}Profil prof | AZ{% endblock %}
+{% block page_title %}Profil — {{ ens.nom }} {{ ens.prenom }}{% endblock %}
+{% block breadcrumb %}Profs / Profil{% endblock %}
+
+{% block content %}
+<div class="az-card" style="grid-column:span 12;">
+  <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+    <div>
+      <div class="az-sub">{{ ens.matricule }}</div>
+      <div><b>{{ ens.nom }} {{ ens.prenom }}</b></div>
+    </div>
+    <form method="get" style="display:flex;gap:10px;align-items:end;flex-wrap:wrap;">
+      <div>
+        <label><b>Mois</b></label>
+        <input class="az-btn" type="number" name="month" min="1" max="12" value="{{ month }}" style="width:110px;">
+      </div>
+      <div>
+        <label><b>Année</b></label>
+        <input class="az-btn" type="number" name="year" value="{{ year }}" style="width:130px;">
+      </div>
+      <button class="az-btn az-btn-gradient" type="submit">Voir</button>
+    </form>
+  </div>
+</div>
+
+{% if stats %}
+<div class="az-grid" style="grid-column:span 12;display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
+  <div class="az-card"><b>Heures prévues</b><div style="font-size:22px;margin-top:6px;">{{ stats.prevues_heures }} h</div></div>
+  <div class="az-card"><b>Heures manquées</b><div style="font-size:22px;margin-top:6px;">{{ stats.manquees_heures }} h</div></div>
+  <div class="az-card"><b>Heures faites</b><div style="font-size:22px;margin-top:6px;">{{ stats.faites_heures }} h</div></div>
+</div>
+{% endif %}
+
+<div class="az-card" style="grid-column:span 12;">
+  <h4 style="margin:0 0 10px;">Absences du mois</h4>
+  <table class="az-table" style="width:100%;">
+    <thead>
+      <tr><th>Date</th><th>Groupe</th><th>Créneau</th><th>Minutes</th></tr>
+    </thead>
+    <tbody>
+      {% for a in absences %}
+      <tr>
+        <td>{{ a.date }}</td>
+        <td>{{ a.seance.groupe.nom }}</td>
+        <td>{{ a.seance.get_jour_display }} {{ a.seance.heure_debut }}-{{ a.seance.heure_fin }}</td>
+        <td>{{ a.minutes_perdues }} min</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="4" class="az-sub">Aucune absence ce mois.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

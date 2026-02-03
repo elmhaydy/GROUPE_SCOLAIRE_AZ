@@ -1,0 +1,226 @@
+{% extends "prof/base_prof.html" %}
+{% load static %}
+
+{% block title %}Dashboard Prof | AZ{% endblock %}
+{% block page_title %}Tableau de bord{% endblock %}
+{% block current_page %}Dashboard{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'prof/css/dashboard.css' %}?v=3">
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'prof/js/dashboard.js' %}?v=3" defer></script>
+{% endblock %}
+
+{% block content %}
+<div class="azp azp-prof-dash">
+
+  <!-- HERO SECTION -->
+  <div class="azp-hero azp-card">
+    <div class="hero-left">
+      <div class="azp-pill">
+        <i class="fa-solid fa-chalkboard-user"></i>
+        <span>Espace Professeur</span>
+        <span class="sep">•</span>
+        <span>Vue d'ensemble</span>
+      </div>
+
+      <h1 class="hero-title">Bonjour, {{ request.user.first_name|default:"Professeur" }}</h1>
+      <p class="hero-sub">
+        Année scolaire : <b>{% if annee_active %}{{ annee_active.nom }}{% else %}—{% endif %}</b>
+        <span class="dot" style="margin: 0 8px; opacity: 0.3">•</span>
+        Aujourd'hui : <b>{{ today|date:"d F Y" }}</b>
+      </p>
+
+      <div class="hero-actions">
+        <a class="azp-btn primary" href="{% url 'prof:evaluation_create' %}">
+          <i class="fa-solid fa-plus"></i> Nouvelle évaluation
+        </a>
+        <a class="azp-btn" href="{% url 'prof:cahier_create' %}">
+          <i class="fa-solid fa-book"></i> Ajouter au cahier
+        </a>
+        <a class="azp-btn" href="{% url 'prof:resume_create' %}">
+          <i class="fa-solid fa-file-pdf"></i> Envoyer un PDF
+        </a>
+      </div>
+    </div>
+
+    <div class="hero-right">
+      <div class="hero-search">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input id="gSearch" type="text" placeholder="Rechercher un groupe (ex: CE1-A)..." autocomplete="off">
+      </div>
+
+      <div class="hero-tip">
+        <i class="fa-solid fa-bolt"></i>
+        <span>Astuce : Utilisez la recherche rapide pour filtrer vos classes instantanément.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- KPI STATS -->
+  <div class="kpi-grid">
+    <div class="kpi-card azp-card">
+      <div class="kpi-top">
+        <span class="kpi-label">Mes groupes</span>
+        <span class="kpi-ico"><i class="fa-solid fa-users"></i></span>
+      </div>
+      <div class="kpi-value">{{ kpi.nb_groupes }}</div>
+      <div class="kpi-sub muted">Classes assignées</div>
+    </div>
+
+    <div class="kpi-card azp-card">
+      <div class="kpi-top">
+        <span class="kpi-label">Évaluations</span>
+        <span class="kpi-ico"><i class="fa-solid fa-list-check"></i></span>
+      </div>
+      <div class="kpi-value">{{ kpi.evals }}</div>
+      <div class="kpi-sub muted">Total sur la période</div>
+    </div>
+
+    <div class="kpi-card azp-card">
+      <div class="kpi-top">
+        <span class="kpi-label">Aujourd'hui</span>
+        <span class="kpi-ico"><i class="fa-solid fa-calendar-day"></i></span>
+      </div>
+      <div class="kpi-value">{{ kpi.evals_today }}</div>
+      <div class="kpi-sub muted">Évaluations planifiées</div>
+    </div>
+
+    <div class="kpi-card azp-card">
+      <div class="kpi-top">
+        <span class="kpi-label">Cahier de texte</span>
+        <span class="kpi-ico"><i class="fa-solid fa-book-open"></i></span>
+      </div>
+      <div class="kpi-value">{{ kpi.cahier }}</div>
+      <div class="kpi-sub muted">Entrées saisies</div>
+    </div>
+
+    <div class="kpi-card azp-card">
+      <div class="kpi-top">
+        <span class="kpi-label">Documents PDF</span>
+        <span class="kpi-ico"><i class="fa-solid fa-file-pdf"></i></span>
+      </div>
+      <div class="kpi-value">{{ kpi.pdf }}</div>
+      <div class="kpi-sub muted">Résumés partagés</div>
+    </div>
+  </div>
+
+  <!-- GROUPES SECTION -->
+  <div class="azp-card">
+    <div class="section-head">
+      <div class="section-title">
+        <i class="fa-solid fa-layer-group"></i>
+        <span>Mes groupes</span>
+        <span class="muted" id="gCount" style="font-size: 0.9rem; font-weight: 400; margin-left: 8px;"></span>
+      </div>
+      <div class="muted" style="font-size: 0.85rem;">Accès rapide aux outils par classe.</div>
+    </div>
+
+    <div class="group-grid" id="gGrid">
+      {% for g in groupes %}
+        <div class="g-card" data-search="{{ g.nom|lower }} {{ g.niveau.nom|lower }} {{ g.niveau.degre.nom|lower }}">
+          <div class="g-top">
+            <div class="g-badge">
+              <i class="fa-solid fa-graduation-cap"></i>
+              {{ g.niveau.degre.nom }}
+            </div>
+            <div class="g-pill">{{ g.niveau.nom }}</div>
+          </div>
+
+          <div class="g-name">{{ g.nom }}</div>
+          <div class="g-sub muted">{{ g.niveau.degre.nom }} • {{ g.niveau.nom }}</div>
+
+          <div class="g-actions">
+            <a class="azp-btn sm" href="{% url 'prof:evaluations' %}?groupe={{ g.id }}">
+              <i class="fa-solid fa-list-check"></i> Évals
+            </a>
+            <a class="azp-btn sm" href="{% url 'prof:cahier_list' %}?groupe={{ g.id }}">
+              <i class="fa-solid fa-book"></i> Cahier
+            </a>
+          </div>
+
+          <!-- Overlay clickable pour la carte entière -->
+          <a class="g-overlay" href="{% url 'prof:evaluations' %}?groupe={{ g.id }}" aria-label="Ouvrir les évaluations de {{ g.nom }}"></a>
+        </div>
+      {% empty %}
+        <div class="empty-state">
+          <i class="fa-regular fa-folder-open"></i>
+          <div>
+            <div class="empty-title">Aucun groupe assigné</div>
+            <div class="muted">Veuillez contacter l'administration pour vos affectations.</div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- RECENT ACTIVITY -->
+  <div class="cols-2">
+    <!-- Dernières Évaluations -->
+    <div class="azp-card">
+      <div class="section-head">
+        <div class="section-title">
+          <i class="fa-solid fa-clock-rotate-left"></i>
+          <span>Dernières évaluations</span>
+        </div>
+        <a class="azp-btn sm" href="{% url 'prof:evaluations' %}">Voir tout</a>
+      </div>
+
+      {% if last_evals %}
+        <div class="list">
+          {% for ev in last_evals %}
+          <a class="item" href="{% url 'prof:notes_saisie' evaluation_id=ev.id %}">
+            <div class="item-main">
+              <div class="item-title">{{ ev.matiere.nom }} • <b>{{ ev.periode.nom }}</b></div>
+              <div class="muted">{{ ev.groupe.nom }} • {{ ev.date|date:"d/m/Y" }}</div>
+            </div>
+            <div class="item-side">
+              <span class="pill">/{{ ev.note_max }}</span>
+              <i class="fa-solid fa-chevron-right"></i>
+            </div>
+          </a>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="empty-state" style="padding: 20px;">
+          <div class="muted">Aucune évaluation enregistrée.</div>
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- Derniers Cahiers -->
+    <div class="azp-card">
+      <div class="section-head">
+        <div class="section-title">
+          <i class="fa-solid fa-book-open"></i>
+          <span>Derniers cahiers</span>
+        </div>
+        <a class="azp-btn sm" href="{% url 'prof:cahier_list' %}">Voir tout</a>
+      </div>
+
+      {% if last_cahier %}
+        <div class="list">
+          {% for c in last_cahier %}
+          <a class="item" href="{% url 'prof:cahier_update' c.id %}">
+            <div class="item-main">
+              <div class="item-title">{{ c.titre|truncatechars:40 }}</div>
+              <div class="muted">{{ c.matiere.nom }} • {{ c.groupe.nom }} • {{ c.date|date:"d/m/Y" }}</div>
+            </div>
+            <div class="item-side">
+              <i class="fa-solid fa-chevron-right"></i>
+            </div>
+          </a>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="empty-state" style="padding: 20px;">
+          <div class="muted">Aucune entrée dans le cahier de texte.</div>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+{% endblock %}

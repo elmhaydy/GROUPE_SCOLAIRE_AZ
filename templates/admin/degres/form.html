@@ -1,0 +1,66 @@
+{% extends "admin/base_admin.html" %}
+{% load static %}
+
+{% block title %}Degré | AZ{% endblock %}
+{% block page_title %}{% if mode == "create" %}Ajouter{% else %}Modifier{% endif %} un degré{% endblock %}
+{% block breadcrumb %}Structure / Degrés{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'admin/css/degres/form.css' %}?v=2">
+{% endblock %}
+
+{% block content %}
+
+<div class="az-degre-card">
+  <div class="az-degre-head">
+    <h3 class="az-degre-title">Formulaire</h3>
+    <p class="az-degre-sub">
+      Renseigne le nom du degré (ex : Maternelle, Primaire...) et son ordre d’affichage.
+    </p>
+  </div>
+
+  {# ✅ Messages Django (si tu utilises messages framework) #}
+  {% if messages %}
+    <div class="az-degre-flashes">
+      {% for message in messages %}
+        <div class="az-degre-flash az-degre-flash-{{ message.tags|default:'info' }}">
+          {{ message }}
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <form method="post" class="az-degre-form" novalidate>
+    {% csrf_token %}
+
+    <div class="az-field">
+      <label for="{{ form.nom.id_for_label }}">Nom</label>
+      {{ form.nom }}
+      <div class="az-help">Ex : Maternelle, Primaire, Collège, Lycée</div>
+      <div class="az-error" data-error-for="nom"></div>
+    </div>
+
+    <div class="az-field">
+      <label for="{{ form.ordre.id_for_label }}">Ordre</label>
+      {{ form.ordre }}
+      <div class="az-help">Plus le chiffre est petit, plus il sera affiché en premier.</div>
+      <div class="az-error" data-error-for="ordre"></div>
+    </div>
+
+    <div class="az-degre-actions">
+      <button class="az-btn az-btn-gradient" type="submit" id="saveBtn">
+        <i class="fas fa-save"></i> Enregistrer
+      </button>
+
+      <a class="az-btn" href="{% url 'core:degre_list' %}">
+        <i class="fas fa-arrow-left"></i> Retour
+      </a>
+    </div>
+  </form>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'admin/js/degres/form.js' %}?v=1"></script>
+{% endblock %}

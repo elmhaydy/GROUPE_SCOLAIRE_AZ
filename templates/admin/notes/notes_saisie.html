@@ -1,0 +1,148 @@
+{% extends "admin/base_admin.html" %}
+{% load static %}
+{% load notes_extras %}
+
+{% block title %}Saisie des notes | AZ{% endblock %}
+{% block page_title %}Saisie des notes{% endblock %}
+{% block current_page %}Pédagogie / Notes / Saisie{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'admin/css/notes/saisie.css' %}?v=2">
+{% endblock %}
+
+{% block content %}
+
+<div class="az-notes-top">
+  <div class="az-pill">
+    <i class="fa-solid fa-pen-to-square"></i>
+    <span><b>{{ ev.titre }}</b> — <span class="az-muted">{{ ev.matiere.nom }}</span></span>
+  </div>
+
+  <div class="az-notes-meta">
+    <span class="az-badge az-badge-soft"><i class="fa-regular fa-calendar"></i> {{ ev.date }}</span>
+    <span class="az-badge az-badge-soft"><i class="fa-regular fa-clock"></i> {{ ev.periode.nom }}</span>
+    <span class="az-badge az-badge-soft"><i class="fa-solid fa-users"></i> {{ ev.groupe.nom }}</span>
+    <span class="az-badge az-badge-warn"><i class="fa-solid fa-bullseye"></i> Max: {{ ev.note_max }}</span>
+  </div>
+
+  <div class="az-notes-actions">
+    <a class="az-btn az-btn-ghost" href="{% url 'core:notes_saisie_home' %}">
+      <i class="fa-solid fa-arrow-left"></i> Retour
+    </a>
+  </div>
+</div>
+
+{% if messages %}
+<div class="az-msg-stack">
+  {% for message in messages %}
+    <div class="az-alert az-alert-{{ message.tags|default:'info' }}">{{ message }}</div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<div class="az-card az-notes-card">
+  <div class="az-notes-toolbar">
+    <div class="az-field az-field-wide">
+      <div class="az-field-label">Recherche élève</div>
+      <input id="notesSearch" class="az-input" type="text" placeholder="Matricule, nom, prénom…" autocomplete="off">
+    </div>
+
+    <div class="az-quick">
+      <button type="button" class="az-btn az-btn-soft" id="btnFocusEmpty">
+        <i class="fa-solid fa-bolt"></i> Aller au vide
+      </button>
+      <button type="button" class="az-btn az-btn-outline" id="btnSetZero">
+        <i class="fa-solid fa-0"></i> 0
+      </button>
+      <button type="button" class="az-btn az-btn-outline" id="btnSetMax">
+        <i class="fa-solid fa-arrow-up-wide-short"></i> Max
+      </button>
+      <button type="button" class="az-btn az-btn-ghost" id="btnClearAll">
+        <i class="fa-solid fa-eraser"></i> Vider
+      </button>
+    </div>
+  </div>
+
+  <form method="post" id="notesForm" novalidate>
+    {% csrf_token %}
+
+    <div class="az-notes-grid az-notes-list" id="notesGrid">
+      {% for e in eleves %}
+        {% with n=notes_map|get_item:e.id %}
+        <div class="az-note-card"
+             data-search="{{ e.matricule }} {{ e.nom }} {{ e.prenom }}"
+             data-id="{{ e.id }}">
+          <div class="az-note-head">
+            <div class="az-note-who">
+              <div class="az-note-name">{{ e.nom }} {{ e.prenom }}</div>
+              <div class="az-note-sub">
+                <code class="az-code">{{ e.matricule }}</code>
+              </div>
+            </div>
+
+            <div class="az-note-last">
+              <span class="az-muted">Dernière :</span>
+              <b class="az-last">{% if n %}{{ n.valeur }}{% else %}—{% endif %}</b>
+            </div>
+          </div>
+
+          <div class="az-note-inputRow">
+            <input
+              type="text"
+              name="note_{{ e.id }}"
+              class="az-input az-note"
+              value="{% if n %}{{ n.valeur }}{% endif %}"
+              placeholder="0..{{ ev.note_max }}"
+              inputmode="decimal"
+              autocomplete="off"
+              data-max="{{ ev.note_max }}"
+              data-prev="{% if n %}{{ n.valeur }}{% endif %}"
+            >
+            <div class="az-miniBtns">
+              <button type="button" class="az-mini" data-mini="clear" title="Vider">—</button>
+              <button type="button" class="az-mini" data-mini="zero" title="0">0</button>
+              <button type="button" class="az-mini" data-mini="max" title="Max">M</button>
+            </div>
+          </div>
+
+          <div class="az-note-error" aria-live="polite"></div>
+        </div>
+        {% endwith %}
+      {% empty %}
+        <div class="az-empty">
+          <i class="fa-solid fa-inbox"></i>
+          Aucun élève dans ce groupe.
+        </div>
+      {% endfor %}
+    </div>
+
+    <!-- Sticky footer -->
+    <div class="az-notes-sticky">
+      <div class="az-sticky-left">
+        <span class="az-badge" id="countBadge">
+          <i class="fa-solid fa-pen"></i> 0 modifiée(s)
+        </span>
+        <span class="az-muted" id="hintKeys">
+          Astuce: Entrée/↓ suivant, ↑ précédent
+        </span>
+      </div>
+
+      <div class="az-sticky-right">
+        <a class="az-btn az-btn-soft" href="{% url 'core:notes_saisie' ev.id %}">
+          <i class="fa-solid fa-rotate-right"></i> Reset
+        </a>
+        <button class="az-btn az-btn-gradient" type="submit" id="saveBtn">
+          <i class="fa-solid fa-floppy-disk"></i> Enregistrer
+        </button>
+      </div>
+    </div>
+
+  </form>
+</div>
+
+<script>
+  window.AZ_NOTES_SAISIE = { NOTE_MAX: Number("{{ ev.note_max }}") || 20 };
+</script>
+<script src="{% static 'admin/js/notes/saisie.js' %}?v=1"></script>
+
+{% endblock %}

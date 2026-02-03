@@ -1,0 +1,110 @@
+{% extends "admin/base_admin.html" %}
+{% load static %}
+
+{% block title %}Années scolaires | AZ{% endblock %}
+{% block page_title %}Années scolaires{% endblock %}
+{% block current_page %}Paramètres / Années scolaires{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'admin/css/annees/list.css' %}?v=1">
+{% endblock %}
+
+{% block content %}
+
+<div class="az-page-head">
+  <div class="az-page-head-left">
+    <div class="az-pill">
+      {% if annee_active %}
+        <i class="fa-solid fa-circle-check"></i>
+        <span>Année active : <b>{{ annee_active.nom }}</b></span>
+      {% else %}
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        <span>Aucune année active (active-en une)</span>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="az-page-head-right">
+    <a class="az-btn az-btn-primary" href="{% url 'core:annee_create' %}">
+      <i class="fa-solid fa-plus"></i>
+      Ajouter
+    </a>
+  </div>
+</div>
+
+<div class="az-card az-annee-card">
+  <div class="az-card-head">
+    <h3 class="az-card-title">
+      <i class="fa-solid fa-calendar-days"></i>
+      Liste des années
+    </h3>
+  </div>
+
+  <div class="az-table">
+    <div class="az-thead">
+      <div>Nom</div>
+      <div>Début</div>
+      <div>Fin</div>
+      <div>Active</div>
+      <div class="az-th-actions">Actions</div>
+    </div>
+
+    <div class="az-tbody">
+      {% for a in annees %}
+        <div class="az-row">
+          <div class="az-cell az-strong">{{ a.nom }}</div>
+          <div class="az-cell">
+            {{ a.date_debut|date:"d F Y" }}
+          </div>
+          <div class="az-cell">
+            {{ a.date_fin|date:"d F Y" }}
+          </div>
+
+          <div class="az-cell">
+            {% if a.is_active %}
+              <span class="az-badge az-badge-success">
+                <i class="fa-solid fa-check"></i> Oui
+              </span>
+            {% else %}
+              <span class="az-badge az-badge-muted">—</span>
+            {% endif %}
+          </div>
+
+          <div class="az-cell az-actions">
+            {% if not a.is_active %}
+              <a class="az-btn az-btn-soft" href="{% url 'core:annee_activer' a.id %}">
+                <i class="fa-solid fa-bolt"></i> Activer
+              </a>
+            {% else %}
+              <span class="az-btn az-btn-disabled">
+                <i class="fa-solid fa-lock"></i> Active
+              </span>
+            {% endif %}
+
+            <a class="az-btn az-btn-outline" href="{% url 'core:annee_update' a.id %}">
+              <i class="fa-solid fa-pen"></i> Modifier
+            </a>
+
+            <a class="az-btn az-btn-sm az-btn-danger-soft"
+              href="{% url 'core:annee_delete_modal' a.id %}"
+              data-az-modal-open="{% url 'core:annee_delete_modal' a.id %}">
+              <i class="fas fa-trash"></i> Supprimer
+            </a>
+
+
+          </div>
+        </div>
+      {% empty %}
+        <div class="az-empty">
+          <i class="fa-solid fa-inbox"></i>
+          <div>Aucune année pour le moment.</div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% block extra_js %}
+<script src="{% static 'admin/js/modal.js' %}"></script>
+{% endblock %}
+
+{% endblock %}

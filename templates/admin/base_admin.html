@@ -1,0 +1,452 @@
+{% load static %}
+<!DOCTYPE html>
+<html data-theme="dark" lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}AZ Administration{% endblock %}</title>
+    <script>
+      (function () {
+        try {
+          const saved = localStorage.getItem("az-theme");
+          const theme = (saved === "light" || saved === "dark") ? saved : "dark";
+          document.documentElement.setAttribute("data-theme", theme);
+        } catch (e) {}
+      })();
+    </script>
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'admin/css/paiements/print.css' %}">
+
+    <!-- Police Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'admin/css/modal.css' %}?v=1">
+
+
+
+    <!-- CSS principal -->
+    <link rel="stylesheet" href="{% static 'admin/css/admin.css' %}?v=3">
+    {% block extra_css %}{% endblock %}
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" sizes="32x32" href="{% static 'img/favicon.png' %}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{% static 'img/favicon.png' %}">
+    <link rel="apple-touch-icon" href="{% static 'img/favicon.png' %}">
+</head>
+
+<body class="az-body">
+<div class="az-zoom" id="azZoom">
+  
+  <div class="az-overlay" id="azOverlay"></div>
+
+<!-- ╔════════ SIDEBAR ════════╗ -->
+    <aside class="az-sidebar" id="sidebar">
+  <!-- Logo & Brand -->
+  <div class="az-sidebar-header">
+    <a href="{% url 'core:dashboard' %}" class="az-logo-container">
+      <div class="az-logo-glow"></div>
+      <img src="{% static 'img/logo_AZ.png' %}" class="az-logo-img" alt="AZ Logo">
+    </a>
+
+    <div class="az-brand">
+      <h1 class="az-brand-title">
+        <span class="az-brand-a">A</span>
+        <span class="az-brand-z">Z</span>
+        GROUPS
+      </h1>
+      <div class="az-brand-subtitle">Administration</div>
+    </div>
+  </div>
+
+        <!-- Navigation -->
+<!-- Navigation Optimisée (Structure Originale Conservée) -->
+
+<nav class="az-nav" id="azNav">
+
+  <!-- Dashboard (reste direct) -->
+  <a href="{% url 'core:dashboard' %}"
+    class="az-nav-item {% if request.resolver_match.url_name|slice:":9" == 'dashboard' %}active{% endif %}">
+    <i class="fas fa-chart-line"></i>
+    <span>Dashboard</span>
+    <div class="az-nav-indicator"></div>
+  </a>
+
+  <!-- ================= SCOLARITÉ ================= -->
+  {% if request.user.is_superuser or perms.core.view_eleve or perms.core.view_parent or perms.core.view_inscription %}
+  <div class="az-nav-drop" data-drop="scolarite">
+    <button class="az-nav-section az-nav-drop-btn" type="button" aria-expanded="true">
+      <span>Scolarité</span>
+      <i class="fas fa-chevron-down az-nav-drop-caret"></i>
+    </button>
+
+    <div class="az-nav-drop-panel">
+      {% if request.user.is_superuser or perms.core.view_groupe %}
+      <a href="{% url 'core:groupe_list' %}"
+         class="az-nav-item {% if request.resolver_match.url_name == 'groupe_list' %}active{% endif %}">
+        <i class="fas fa-users"></i><span>Groupes</span>
+        <div class="az-nav-indicator"></div>
+      </a>
+      {% endif %}
+
+      {% if request.user.is_superuser or perms.core.view_eleve %}
+      <a href="{% url 'core:eleve_list' %}"
+         class="az-nav-item {% if request.resolver_match.url_name == 'eleve_list' %}active{% endif %}">
+        <i class="fas fa-graduation-cap"></i><span>Élèves</span>
+        <div class="az-nav-indicator"></div>
+      </a>
+      {% endif %}
+
+      {% if request.user.is_superuser or perms.core.view_parent %}
+      <a href="{% url 'core:parent_list' %}"
+         class="az-nav-item {% if request.resolver_match.url_name == 'parent_list' %}active{% endif %}">
+        <i class="fas fa-user-friends"></i><span>Parents</span>
+        <div class="az-nav-indicator"></div>
+      </a>
+      {% endif %}
+
+      {% if request.user.is_superuser or perms.core.view_inscription %}
+      <a href="{% url 'core:inscription_list' %}"
+         class="az-nav-item {% if request.resolver_match.url_name == 'inscription_list' %}active{% endif %}">
+        <i class="fas fa-file-signature"></i><span>Inscriptions</span>
+        <div class="az-nav-indicator"></div>
+      </a>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- ================= FINANCE ================= -->
+  {% if request.user.is_superuser or perms.core.view_paiement or perms.core.view_recouvrement or perms.core.view_depense %}
+  <div class="az-nav-drop" data-drop="finance">
+    <button class="az-nav-section az-nav-drop-btn" type="button" aria-expanded="true">
+      <span>Finance</span>
+      <i class="fas fa-chevron-down az-nav-drop-caret"></i>
+    </button>
+
+    <div class="az-nav-drop-panel">
+      {% if request.user.is_superuser or perms.core.view_paiement %}
+      <a href="{% url 'core:paiement_list' %}"
+         class="az-nav-item {% if request.resolver_match.url_name == 'paiement_list' %}active{% endif %}">
+        <i class="fas fa-credit-card"></i><span>Paiements</span>
+        <div class="az-nav-indicator"></div>
+      </a>
+      {% endif %}
+
+      <a href="{% url 'core:impayes_mensuels_list' %}"
+         class="az-nav-item {% if request.resolver_match.url_name == 'impayes_mensuels_list' %}active{% endif %}">
+        <i class="fas fa-exclamation-triangle"></i><span>Impayés</span>
+        <div class="az-nav-indicator"></div>
+      </a>
+
+      {% if request.user.is_superuser or perms.core.view_recouvrement %}
+      <a href="{% url 'core:recouvrement_list' %}"
+         class="az-nav-item {% if request.resolver_match.url_name == 'recouvrement_list' %}active{% endif %}">
+        <i class="fas fa-folder-open"></i><span>Recouvrements</span>
+        <div class="az-nav-indicator"></div>
+      </a>
+      {% endif %}
+          {% if request.user.is_superuser or perms.core.view_depense %}
+          <a href="{% url 'core:depense_list' %}"
+            class="az-nav-item {% if request.resolver_match.url_name in 'depense_list depense_create depense_edit depense_delete' %}active{% endif %}">
+            <i class="fas fa-receipt"></i><span>Dépenses</span>
+            <div class="az-nav-indicator"></div>
+          </a>
+          {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- ================= PÉDAGOGIE ================= -->
+  {% if request.user.is_superuser or perms.core.view_enseignant or perms.core.view_seance %}
+  <div class="az-nav-drop" data-drop="pedagogie">
+    <button class="az-nav-section az-nav-drop-btn" type="button" aria-expanded="true">
+      <span>Pédagogie</span>
+      <i class="fas fa-chevron-down az-nav-drop-caret"></i>
+    </button>
+
+    <div class="az-nav-drop-panel">
+      {% if request.user.is_superuser or perms.core.view_enseignant %}
+      <a href="{% url 'core:enseignant_list' %}"
+         class="az-nav-item {% if request.resolver_match.url_name == 'enseignant_list' %}active{% endif %}">
+        <i class="fas fa-chalkboard-teacher"></i><span>Enseignants</span>
+        <div class="az-nav-indicator"></div>
+      </a>
+      {% endif %}
+      {% if request.user.is_superuser or perms.core.view_matiere %}
+      <a href="{% url 'core:matiere_list' %}"
+         class="az-nav-item {% if request.resolver_match.url_name == 'matiere_list' %}active{% endif %}">
+        <i class="fas fa-book"></i><span>Matières</span>
+        <div class="az-nav-indicator"></div>
+      </a>
+      {% endif %}
+      {% if request.user.is_superuser or perms.core.view_seance %}
+      <a href="{% url 'core:seance_list' %}"
+         class="az-nav-item {% if request.resolver_match.url_name == 'seance_list' %}active{% endif %}">
+        <i class="fas fa-calendar-day"></i><span>Séances</span>
+        <div class="az-nav-indicator"></div>
+      </a>
+
+      <a href="{% url 'core:edt_week' %}"
+         class="az-nav-item {% if request.resolver_match.url_name == 'edt_week' %}active{% endif %}">
+        <i class="fas fa-calendar-week"></i><span>Emploi du temps</span>
+        <div class="az-nav-indicator"></div>
+      </a>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- ================= ASSIDUITÉ ================= -->
+  {% if request.user.is_superuser or perms.core.view_absence %}
+  <div class="az-nav-drop" data-drop="assiduite">
+    <button class="az-nav-section az-nav-drop-btn" type="button" aria-expanded="true">
+      <span>Assiduité</span>
+      <i class="fas fa-chevron-down az-nav-drop-caret"></i>
+    </button>
+
+    <div class="az-nav-drop-panel">
+      <a href="{% url 'core:absence_list' %}"
+         class="az-nav-item {% if request.resolver_match.url_name == 'absence_list' %}active{% endif %}">
+        <i class="fas fa-calendar-times"></i><span>Absences</span>
+        <div class="az-nav-indicator"></div>
+      </a>
+
+      <a href="{% url 'core:absences_jour' %}"
+         class="az-nav-item {% if request.resolver_match.url_name == 'absences_jour' %}active{% endif %}">
+        <i class="fas fa-calendar-day"></i><span>Absences du jour</span>
+        <div class="az-nav-indicator"></div>
+      </a>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- ================= NOTES ================= -->
+  {% if request.user.is_superuser or perms.core.view_matiere or perms.core.view_evaluation %}
+  <div class="az-nav-drop" data-drop="notes">
+    <button class="az-nav-section az-nav-drop-btn" type="button" aria-expanded="true">
+      <span>Notes</span>
+      <i class="fas fa-chevron-down az-nav-drop-caret"></i>
+    </button>
+
+    <div class="az-nav-drop-panel">
+
+      {% if request.user.is_superuser or perms.core.view_evaluation %}
+      <a href="{% url 'core:evaluation_list' %}"
+         class="az-nav-item {% if request.resolver_match.url_name == 'evaluation_list' %}active{% endif %}">
+        <i class="fas fa-clipboard-check"></i><span>Évaluations</span>
+        <div class="az-nav-indicator"></div>
+      </a>
+
+      <a href="{% url 'core:notes_saisie_home' %}"
+         class="az-nav-item {% if request.resolver_match.url_name == 'notes_saisie_home' %}active{% endif %}">
+        <i class="fas fa-edit"></i><span>Saisie des notes</span>
+        <div class="az-nav-indicator"></div>
+      </a>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- ================= COMMUNICATION ================= -->
+  {% if request.user.is_superuser or perms.core.view_avis or perms.core.view_smshistorique %}
+  <div class="az-nav-drop" data-drop="communication">
+    <button class="az-nav-section az-nav-drop-btn" type="button" aria-expanded="true">
+      <span>Communication</span>
+      <i class="fas fa-chevron-down az-nav-drop-caret"></i>
+    </button>
+
+    <div class="az-nav-drop-panel">
+      {% if request.user.is_superuser or perms.core.view_avis %}
+      <a href="{% url 'core:avis_list' %}"
+         class="az-nav-item {% if request.resolver_match.url_name == 'avis_list' %}active{% endif %}">
+        <i class="fas fa-bullhorn"></i><span>Avis</span>
+        <div class="az-nav-indicator"></div>
+      </a>
+      {% endif %}
+
+      {% if request.user.is_superuser or perms.core.view_smshistorique %}
+      <a href="{% url 'core:sms_send' %}"
+         class="az-nav-item {% if request.resolver_match.url_name == 'sms_send' %}active{% endif %}">
+        <i class="fas fa-sms"></i><span>SMS</span>
+        <div class="az-nav-indicator"></div>
+      </a>
+
+      <a href="{% url 'core:sms_history' %}"
+         class="az-nav-item {% if request.resolver_match.url_name == 'sms_history' %}active{% endif %}">
+        <i class="fas fa-history"></i><span>Historique SMS</span>
+        <div class="az-nav-indicator"></div>
+      </a>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- ================= SÉCURITÉ ================= -->
+  {% if request.user.is_superuser or perms.auth.view_user %}
+  <div class="az-nav-drop" data-drop="securite">
+    <button class="az-nav-section az-nav-drop-btn" type="button" aria-expanded="true">
+      <span>Sécurité</span>
+      <i class="fas fa-chevron-down az-nav-drop-caret"></i>
+    </button>
+
+    <div class="az-nav-drop-panel">
+      <a href="{% url 'core:users_list' %}"
+         class="az-nav-item {% if request.resolver_match.url_name == 'users_list' %}active{% endif %}">
+        <i class="fas fa-user-gear"></i><span>Utilisateurs</span>
+        <div class="az-nav-indicator"></div>
+      </a>
+    </div>
+  </div>
+  {% endif %}
+
+</nav>
+
+
+
+
+        <!-- Footer Sidebar -->
+        <div class="az-sidebar-footer">
+            <div class="az-user-info">
+                <div class="az-user-avatar">
+                    <i class="fas fa-user"></i>
+                </div>
+                <div class="az-user-details">
+                    <span class="az-user-name">{{ request.user.get_full_name|default:request.user.username }}</span>
+                    <span class="az-user-role">
+                        {% if request.user.is_superuser %}Super Admin{% else %}Administrateur{% endif %}
+                    </span>
+                </div>
+            </div>
+            <a href="{% url 'accounts:logout' %}" class="az-logout-btn">
+                <i class="fas fa-sign-out-alt"></i>
+                <span>Déconnexion</span>
+            </a>
+        </div>
+    </aside>
+
+<!-- ╔════════ MAIN CONTENT ════════╗ -->
+    <main class="az-main">
+        <!-- Top Navbar -->
+        <header class="az-topbar">
+            <button class="az-sidebar-toggle" id="sidebarToggle" aria-label="Toggle sidebar">
+                <i class="fas fa-bars"></i>
+            </button>
+
+            <div class="az-breadcrumb">
+                <span>AZ Admin</span>
+                <i class="fas fa-chevron-right"></i>
+                <span class="az-current-page">{% block current_page %}{% endblock %}</span>
+            </div>
+
+            <div class="az-topbar-actions">
+
+
+                <div class="az-user-dropdown" id="userDropdown">
+                    <button class="az-user-menu-toggle" id="userMenuToggle">
+                        <div class="az-user-avatar-sm">
+                            {{ request.user.first_name|first|default:"A" }}{{ request.user.last_name|first|default:"Z" }}
+                        </div>
+                        <span class="az-user-greeting">
+                            Bonjour, <strong>{{ request.user.first_name|default:"Admin" }}</strong>
+                        </span>
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                    
+                    <div class="az-user-menu" id="userMenu">
+                        <div class="az-user-menu-header">
+                            <div class="az-user-avatar-lg">
+                                {{ request.user.first_name|first|default:"A" }}{{ request.user.last_name|first|default:"Z" }}
+                            </div>
+                            <div>
+                                <h4>{{ request.user.get_full_name|default:request.user.username }}</h4>
+                            </div>
+                        </div>
+                        <div class="az-user-menu-items">
+                            <a href="{% url 'core:profile' %}" class="az-user-menu-item">
+                                <i class="fas fa-user-cog"></i>
+                                <span>Mon profil</span>
+                            </a>
+                            <a href="{% url 'core:settings_home' %}" class="az-user-menu-item">
+                                <i class="fas fa-cog"></i>
+                                <span>Paramètres</span>
+                            </a>
+
+                            <button type="button" class="az-user-menu-item az-theme-item" id="azThemeToggleDropdown">
+                              <i class="fas fa-moon" id="azThemeIconDropdown"></i>
+                              <span id="azThemeLabelDropdown">Mode sombre</span>
+                            </button>
+
+                            <a href="#" class="az-user-menu-item">
+                                <i class="fas fa-question-circle"></i>
+                                <span>Aide & Support</span>
+                            </a>
+                            <div class="az-user-menu-divider"></div>
+                            <a href="{% url 'accounts:logout' %}" class="az-user-menu-item az-logout">
+                                <i class="fas fa-sign-out-alt"></i>
+                                <span>Déconnexion</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Messages -->
+        {% if messages %}
+        <div class="az-messages">
+            {% for message in messages %}
+            <div class="az-alert az-alert-{{ message.tags }}">
+                <i class="fas fa-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}exclamation-circle{% else %}info-circle{% endif %}"></i>
+                <span>{{ message }}</span>
+                <button class="az-alert-close">&times;</button>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Content -->
+        <div class="az-content">
+            <div class="az-content-header">
+                <h1 class="az-page-title">{% block page_title %}Dashboard{% endblock %}</h1>
+                {% block page_actions %}{% endblock %}
+            </div>
+            
+            <div class="az-content-body">
+                {% block content %}{% endblock %}
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="az-footer">
+            <div class="az-footer-content">
+                <span>© 2026 AZ GROUPS - Tous droits réservés</span>
+                <div class="az-footer-links">
+                    <a href="#"><i class="fas fa-question-circle"></i> Aide</a>
+                    <a href="#"><i class="fas fa-shield-alt"></i> Confidentialité</a>
+                    <a href="#"><i class="fas fa-file-contract"></i> Conditions</a>
+                    <a href="#"><i class="fas fa-envelope"></i> Contact</a>
+                </div>
+            </div>
+        </footer>
+    </main>
+
+
+</div>
+
+
+<script></script>
+<script src="{% static 'admin/js/modal.js' %}"></script>
+<script src="{% static 'admin/js/nav_nebula.js' %}?v=1"></script>
+
+
+
+
+<!-- Scripts -->
+<script src="{% static 'admin/js/admin.js' %}?v=2"></script>
+{% block extra_js %}{% endblock %}
+
+{% block modal %}{% endblock %}
+
+</body>
+</html>

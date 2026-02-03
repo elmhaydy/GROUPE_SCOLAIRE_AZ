@@ -1,0 +1,156 @@
+{% extends "admin/base_admin.html" %}
+{% load static %}
+
+{% block title %}Affectations | AZ{% endblock %}
+{% block page_title %}Affectations{% endblock %}
+{% block breadcrumb %}Pédagogie / Enseignants / Affectations{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'admin/css/enseignants/affectations.css' %}?v=3">
+{% endblock %}
+
+{% block content %}
+
+<div class="az-aff-container">
+
+  <!-- HEAD -->
+  <div class="az-card az-aff-head">
+    <div class="az-aff-head-left">
+      <h3 class="az-aff-title">
+        <i class="fa-solid fa-chalkboard-user"></i>
+        {{ ens.matricule }} — {{ ens.nom }} {{ ens.prenom }}
+      </h3>
+      <div class="az-aff-sub">
+        Spécialité : <b>{{ ens.specialite|default:"—" }}</b>
+      </div>
+    </div>
+
+    <div class="az-aff-head-actions">
+      <a class="az-btn az-btn-ghost" href="{% url 'core:enseignant_detail' ens.id %}">
+        <i class="fa-solid fa-eye"></i> Profil
+      </a>
+      <a class="az-btn" href="{% url 'core:enseignant_list' %}">
+        <i class="fa-solid fa-arrow-left"></i> Liste
+      </a>
+    </div>
+  </div>
+
+  <!-- ADD FORM (GROUPES UNIQUEMENT) -->
+  <div class="az-card az-aff-form-card">
+    <div class="az-card-head">
+      <h3 class="az-card-title">
+        <i class="fa-solid fa-plus"></i>
+        Ajouter une affectation (Groupe)
+      </h3>
+    </div>
+
+    <form method="post"
+          action="{% url 'core:enseignant_affectation_add' ens.id %}"
+          class="az-aff-form"
+          novalidate>
+      {% csrf_token %}
+
+      {% if form.non_field_errors %}
+        <div class="az-alert az-alert-danger">
+          {% for e in form.non_field_errors %}<div>{{ e }}</div>{% endfor %}
+        </div>
+      {% endif %}
+
+      {% if form.errors %}
+        <div class="az-alert az-alert-danger">
+          <div class="az-strong">⚠️ Vérifie les champs :</div>
+          <ul style="margin:8px 0 0; padding-left:18px;">
+            {% for field in form %}
+              {% for e in field.errors %}
+                <li><b>{{ field.label }}</b> : {{ e }}</li>
+              {% endfor %}
+            {% endfor %}
+          </ul>
+        </div>
+      {% endif %}
+
+      <div class="az-grid-2">
+        <div class="az-field">
+          <div class="az-field-label">Année</div>
+          {{ form.annee }}
+        </div>
+
+        <div class="az-field">
+          <div class="az-field-label">Groupe</div>
+          {{ form.groupe }}
+          <div class="az-help">Les groupes sont filtrés automatiquement selon l’année choisie.</div>
+        </div>
+      </div>
+
+      <div class="az-aff-actions">
+        <button class="az-btn az-btn-gradient" type="submit">
+          <i class="fa-solid fa-check"></i> Affecter
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- LIST -->
+  <div class="az-card az-aff-list-card">
+    <div class="az-card-head">
+      <h3 class="az-card-title">
+        <i class="fa-solid fa-thumbtack"></i>
+        Affectations actuelles (Groupes)
+      </h3>
+    </div>
+
+    <div class="az-table">
+      <div class="az-thead">
+        <div>Année</div>
+        <div>Groupe</div>
+        <div>Niveau</div>
+        <div>Degré</div>
+        <div class="az-th-actions">Action</div>
+      </div>
+
+      <div class="az-tbody">
+        {% for a in affectations %}
+          <div class="az-row">
+            <div class="az-cell">
+              <span class="az-strong">{{ a.annee.nom }}</span>
+            </div>
+            <div class="az-cell">
+              <span class="az-strong">{{ a.groupe.nom }}</span>
+            </div>
+            <div class="az-cell">{{ a.groupe.niveau.nom }}</div>
+            <div class="az-cell">{{ a.groupe.niveau.degre.nom }}</div>
+
+            <div class="az-cell az-actions">
+              <form method="post" action="{% url 'core:enseignant_affectation_delete' ens.id a.id %}">
+                {% csrf_token %}
+                <button class="az-btn az-btn-danger-soft" type="submit"
+                        onclick="return confirm('Supprimer cette affectation ?');">
+                  <i class="fa-solid fa-trash"></i> Supprimer
+                </button>
+              </form>
+            </div>
+          </div>
+        {% empty %}
+          <div class="az-empty">
+            <i class="fa-solid fa-inbox"></i>
+            <div>Aucune affectation.</div>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  window.AZ_AFF = {
+    urlGroupesParAnnee: "{% url 'core:api_groupes_par_annee' %}",
+    selectedGroupe: "{{ form.groupe.value|default_if_none:'' }}",
+  };
+</script>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'admin/js/enseignants/affectations.js' %}?v=4" defer></script>
+{% endblock %}

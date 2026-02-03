@@ -1,0 +1,132 @@
+{% extends "prof/base_prof.html" %}
+{% load static %}
+
+{% block title %}Cahier de texte | Prof{% endblock %}
+{% block page_title %}Cahier de texte{% endblock %}
+{% block breadcrumb %}Cahier{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'prof/css/cahier.css' %}?v=3">
+{% endblock %}
+
+{% block content %}
+<div class="azp">
+
+  <div class="azp-head">
+    <div>
+      <div class="azp-pill">
+        <i class="fa-solid fa-book"></i>
+        <span>Prof</span>
+        <span class="sep">•</span>
+        <span>{% if mode == "update" %}Modifier{% else %}Ajouter{% endif %}</span>
+      </div>
+      <h1 class="azp-title">{% if mode == "update" %}Modifier une entrée{% else %}Ajouter une entrée{% endif %}</h1>
+      <p class="azp-sub">Renseigne le contenu du cours et le devoir si nécessaire.</p>
+    </div>
+
+    <div class="azp-actions">
+      <a class="azp-btn" href="{% url 'prof:cahier_list' %}">
+        <i class="fa-solid fa-arrow-left"></i> Retour
+      </a>
+    </div>
+  </div>
+
+  <form method="post" enctype="multipart/form-data" class="azp-card azp-form" novalidate>
+    {% csrf_token %}
+
+    {% if form.errors %}
+      <div class="alert danger">
+        <strong>Erreurs :</strong>
+        {% if form.non_field_errors %}<div style="margin-top:8px">{{ form.non_field_errors }}</div>{% endif %}
+      </div>
+    {% endif %}
+
+    <div class="grid">
+
+      <div class="field">
+        <label for="{{ form.titre.id_for_label }}">Titre</label>
+        {{ form.titre }}
+        {% if form.titre.errors %}<div class="err">{{ form.titre.errors }}</div>{% endif %}
+      </div>
+
+      <div class="field">
+        <label for="{{ form.date.id_for_label }}">Date</label>
+        {{ form.date }}
+        {% if form.date.errors %}<div class="err">{{ form.date.errors }}</div>{% endif %}
+      </div>
+
+      <div class="field">
+        <label for="{{ form.groupe.id_for_label }}">Groupe</label>
+
+        {# on garde la valeur actuelle pour update/erreur #}
+        <div class="azp-selectwrap">
+          {{ form.groupe }}
+          <span class="azp-select-icon"><i class="fa-solid fa-chevron-down"></i></span>
+        </div>
+
+        <small class="muted" id="groupeHelp">Choisis ton groupe affecté.</small>
+        {% if form.groupe.errors %}<div class="err">{{ form.groupe.errors }}</div>{% endif %}
+      </div>
+
+      <div class="field">
+        <label for="{{ form.matiere.id_for_label }}">Matière</label>
+
+        <div class="azp-selectwrap">
+          {{ form.matiere }}
+          <span class="azp-select-icon"><i class="fa-solid fa-chevron-down"></i></span>
+        </div>
+
+        <small class="muted" id="matiereHelp">Choisis un groupe d’abord.</small>
+        {% if form.matiere.errors %}<div class="err">{{ form.matiere.errors }}</div>{% endif %}
+      </div>
+
+      <div class="field" style="grid-column:1 / -1">
+        <label for="{{ form.contenu.id_for_label }}">Contenu</label>
+        {{ form.contenu }}
+        {% if form.contenu.errors %}<div class="err">{{ form.contenu.errors }}</div>{% endif %}
+      </div>
+
+      <div class="field" style="grid-column:1 / -1">
+        <label for="{{ form.devoir.id_for_label }}">Devoir</label>
+        {{ form.devoir }}
+        {% if form.devoir.errors %}<div class="err">{{ form.devoir.errors }}</div>{% endif %}
+      </div>
+
+      <div class="field">
+        <label for="{{ form.piece_jointe.id_for_label }}">Pièce jointe</label>
+        {{ form.piece_jointe }}
+        {% if form.piece_jointe.errors %}<div class="err">{{ form.piece_jointe.errors }}</div>{% endif %}
+      </div>
+
+      <div class="field">
+        <label>Publication</label>
+        <label class="chk">
+          {{ form.is_published }}
+          <span>Publier</span>
+        </label>
+        {% if form.is_published.errors %}<div class="err">{{ form.is_published.errors }}</div>{% endif %}
+      </div>
+
+    </div>
+
+    <div class="azp-inline-status" id="azpStatus" aria-live="polite"></div>
+
+    <div class="form-actions">
+      <button class="azp-btn primary" type="submit">
+        <i class="fa-solid fa-save"></i> Enregistrer
+      </button>
+      <a href="{% url 'prof:cahier_list' %}" class="azp-btn">Annuler</a>
+    </div>
+  </form>
+
+</div>
+
+<script>
+  window.AZ_CAHIER = {
+    URL_GROUPES: "{% url 'prof:ajax_groupes' %}",
+    URL_MATIERES: "{% url 'prof:ajax_matieres' %}"
+  };
+</script>
+
+<script src="{% static 'prof/js/cahier_form.js' %}?v=4" defer></script>
+{% endblock %}

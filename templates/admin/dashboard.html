@@ -1,0 +1,520 @@
+{# ✅ TEMPLATE ACTIF : templates/admin/dashboard.html #}
+{% extends "admin/base_admin.html" %}
+{% load static %}
+
+{% block current_page %}Tableau de bord {% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'admin/css/dashboard.css' %}?v=1">
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-page">
+
+    <!-- En-tête du dashboard -->
+    <div class="dashboard-header">
+        <div class="header-content">
+            <h1><i class="fas fa-chart-line"></i> Tableau de bord</h1>
+            <p class="subtitle">Vue d'ensemble de l'activité et des performances</p>
+        </div>
+
+        <div class="header-actions">
+            <div class="date-selector">
+                <i class="far fa-calendar-alt"></i>
+                <span id="currentDate">{{ current_date|date:"d F Y" }}</span>
+            </div>
+            <button class="btn-secondary" id="refreshDashboard">
+                <i class="fas fa-sync-alt"></i>
+                Actualiser
+            </button>
+        </div>
+    </div>
+
+    <!-- Statistiques principales -->
+    <div class="dashboard-stats">
+        <div class="stat-card">
+            <div class="stat-icon students">
+                <i class="fas fa-user-graduate"></i>
+            </div>
+            <div class="stat-content">
+                <span class="stat-value">{{ nb_eleves|default:0 }}</span>
+                <span class="stat-label">Élèves actifs</span>
+                <div class="stat-trend">
+                    {% if eleves_trend > 0 %}
+                    <i class="fas fa-arrow-up success"></i>
+                    <span class="trend-text success">+{{ eleves_trend }}%</span>
+                    {% elif eleves_trend < 0 %}
+                    <i class="fas fa-arrow-down warning"></i>
+                    <span class="trend-text warning">{{ eleves_trend }}%</span>
+                    {% else %}
+                    <i class="fas fa-minus"></i>
+                    <span class="trend-text">Stable</span>
+                    {% endif %}
+                    <span class="trend-period">vs mois dernier</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon groups">
+                <i class="fas fa-users"></i>
+            </div>
+            <div class="stat-content">
+                <span class="stat-value">{{ nb_groupes|default:0 }}</span>
+                <span class="stat-label">Groupes actifs</span>
+                <div class="stat-trend">
+                    {% if groupes_trend > 0 %}
+                    <i class="fas fa-arrow-up success"></i>
+                    <span class="trend-text success">+{{ groupes_trend }}%</span>
+                    {% elif groupes_trend < 0 %}
+                    <i class="fas fa-arrow-down warning"></i>
+                    <span class="trend-text warning">{{ groupes_trend }}%</span>
+                    {% else %}
+                    <i class="fas fa-minus"></i>
+                    <span class="trend-text">Stable</span>
+                    {% endif %}
+                    <span class="trend-period">vs mois dernier</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon revenue">
+                <i class="fas fa-money-bill-wave"></i>
+            </div>
+            <div class="stat-content">
+                <span class="stat-value">{{ total_paye|default:0 }} MAD</span>
+                <span class="stat-label">Chiffre d'affaires</span>
+                <div class="stat-trend">
+                    {% if revenue_trend > 0 %}
+                    <i class="fas fa-arrow-up success"></i>
+                    <span class="trend-text success">+{{ revenue_trend }}%</span>
+                    {% elif revenue_trend < 0 %}
+                    <i class="fas fa-arrow-down warning"></i>
+                    <span class="trend-text warning">{{ revenue_trend }}%</span>
+                    {% else %}
+                    <i class="fas fa-minus"></i>
+                    <span class="trend-text">Stable</span>
+                    {% endif %}
+                    <span class="trend-period">vs mois dernier</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon payment">
+                <i class="fas fa-percentage"></i>
+            </div>
+            <div class="stat-content">
+                <span class="stat-value">{{ taux_paiement|default:0 }}%</span>
+                <span class="stat-label">Taux de paiement</span>
+                <div class="stat-trend">
+                    {% if payment_trend > 0 %}
+                    <i class="fas fa-arrow-up success"></i>
+                    <span class="trend-text success">+{{ payment_trend }}%</span>
+                    {% elif payment_trend < 0 %}
+                    <i class="fas fa-arrow-down warning"></i>
+                    <span class="trend-text warning">{{ payment_trend }}%</span>
+                    {% else %}
+                    <i class="fas fa-minus"></i>
+                    <span class="trend-text">Stable</span>
+                    {% endif %}
+                    <span class="trend-period">vs mois dernier</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Graphiques -->
+    <div class="dashboard-charts">
+        <div class="chart-card">
+            <div class="chart-header">
+                <h3><i class="fas fa-chart-bar"></i> Évolution mensuelle</h3>
+                <div class="chart-controls">
+                    <select class="chart-select" id="chartPeriod">
+                        <option value="monthly">Mensuel</option>
+                        <option value="quarterly">Trimestriel</option>
+                        <option value="yearly">Annuel</option>
+                    </select>
+                    <button class="btn-tertiary" id="exportChart">
+                        <i class="fas fa-download"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="chart-container">
+                <canvas id="monthlyChart"></canvas>
+            </div>
+        </div>
+
+        <div class="chart-card">
+            <div class="chart-header">
+                <h3><i class="fas fa-chart-pie"></i> Répartition par niveau</h3>
+                <div class="chart-legend">
+                    {% for niveau in repartition_eleves %}
+                    <div class="legend-item">
+                        <span class="legend-color" style="background: {{ niveau.couleur|default:'#3b82f6' }};"></span>
+                        <span>{{ niveau.nom }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="chart-container">
+                <canvas id="distributionChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Situation financière -->
+    <div class="finance-section">
+        <div class="section-header">
+            <h2><i class="fas fa-coins"></i> Situation financière</h2>
+            <div class="section-actions">
+                <span class="year-badge">{{ annee_active|default:"—" }}</span>
+
+                {# ✅ si l'URL n'existe pas encore, remplace par "#" #}
+                <a href="{% url 'core:paiement_list' %}" class="btn-tertiary">
+
+                    <i class="fas fa-external-link-alt"></i>
+                    Détails
+                </a>
+            </div>
+        </div>
+
+        <div class="finance-cards">
+            <div class="finance-card success">
+                <div class="finance-icon"><i class="fas fa-check-circle"></i></div>
+                <div class="finance-content">
+                    <span class="finance-label">Total payé</span>
+                    <span class="finance-value">{{ total_paye|default:"0" }} MAD</span>
+                    <span class="finance-detail">{{ nb_paiements|default:0 }} paiements</span>
+                </div>
+            </div>
+
+            <div class="finance-card warning">
+                <div class="finance-icon"><i class="fas fa-clock"></i></div>
+                <div class="finance-content">
+                    <span class="finance-label">En attente</span>
+                    <span class="finance-value">{{ total_impayes|default:"0" }} MAD</span>
+                    <span class="finance-detail">{{ nb_impayes|default:0 }} impayés</span>
+                </div>
+            </div>
+
+            <div class="finance-card info">
+                <div class="finance-icon"><i class="fas fa-chart-line"></i></div>
+                <div class="finance-content">
+                    <span class="finance-label">Taux de paiement</span>
+                    <span class="finance-value">{{ taux_paiement|default:0 }}%</span>
+                    <div class="finance-progress">
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: {{ taux_paiement|default:0 }}%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="finance-card primary">
+                <div class="finance-icon"><i class="fas fa-target"></i></div>
+                <div class="finance-content">
+                    <span class="finance-label">Objectif mensuel</span>
+                    <span class="finance-value">{{ objectif_mensuel|default:"0" }} MAD</span>
+                    <span class="finance-detail">
+                        {% with taux_objectif=objectif_atteint|default:0 %}
+                        {{ taux_objectif }}% atteint
+                        {% endwith %}
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Données récentes -->
+    <div class="recent-data">
+        <div class="data-section">
+            <div class="section-header">
+                <h3><i class="fas fa-history"></i> Activité récente</h3>
+                <div class="tabs">
+                    <button class="tab-btn active" data-tab="paiements">Paiements</button>
+                    <button class="tab-btn" data-tab="inscriptions">Inscriptions</button>
+                    <button class="tab-btn" data-tab="impayes">Impayés</button>
+                </div>
+            </div>
+
+            <div class="tab-content active" id="paiementsTab">
+                <div class="data-table">
+                    <div class="table-header">
+                        <span>Derniers paiements</span>
+                        <a href="{% url 'core:paiement_list' %}" class="link-action">
+                            Voir tout <i class="fas fa-arrow-right"></i>
+                        </a>
+                    </div>
+
+                    <div class="table-body">
+                        {% for paiement in derniers_paiements %}
+                        <div class="table-row">
+                            <div class="row-left">
+                                <div class="row-avatar">
+                                    {{ paiement.inscription.eleve.nom|first|upper }}
+                                </div>
+                                <div class="row-info">
+                                    <span class="row-title">{{ paiement.inscription.eleve.nom_complet }}</span>
+                                    <span class="row-subtitle">{{ paiement.inscription.groupe.nom }}</span>
+                                </div>
+                            </div>
+
+                            <div class="row-right">
+                                <div class="row-amount">
+                                    <span class="amount-value">{{ paiement.montant }} MAD</span>
+                                    <span class="amount-date">{{ paiement.date_paiement|date:"d/m/Y" }}</span>
+                                </div>
+
+                                <div class="row-status">
+                                    <span class="status-badge {{ paiement.mode|lower }}">
+                                      <i class="fas fa-{% if paiement.mode == 'ESPECES' %}money-bill{% elif paiement.mode == 'CHEQUE' %}file-invoice{% elif paiement.mode == 'VIREMENT' %}right-left{% else %}credit-card{% endif %}"></i>
+                                      {{ paiement.get_mode_display }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="empty-state">
+                            <i class="fas fa-money-bill-wave"></i>
+                            <span>Aucun paiement récent</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-content" id="inscriptionsTab">
+                <div class="data-table">
+                    <div class="table-header">
+                        <span>Nouvelles inscriptions</span>
+                        <a href="{% url 'core:inscription_list' %}" class="link-action">
+                            Voir tout <i class="fas fa-arrow-right"></i>
+                        </a>
+                    </div>
+
+                    <div class="table-body">
+                        {% for inscription in nouvelles_inscriptions %}
+                        <div class="table-row">
+                            <div class="row-left">
+                                <div class="row-avatar">
+                                    {{ inscription.eleve.nom|first|upper }}
+                                </div>
+                                <div class="row-info">
+                                    <span class="row-title">{{ inscription.eleve.nom_complet }}</span>
+                                    <span class="row-subtitle">{{ inscription.groupe.niveau.nom }} • {{ inscription.groupe.nom }}</span>
+                                </div>
+                            </div>
+
+                            <div class="row-right">
+                                <div class="row-amount">
+                                    <span class="amount-value">{{ inscription.montant_total|default:"0" }} MAD</span>
+                                    <span class="amount-date">{{ inscription.date_inscription|date:"d/m/Y" }}</span>
+                                </div>
+
+                                <div class="row-status">
+                                    {% if inscription.statut == 'VALIDEE' %}
+                                      <span class="status-badge success">Validée</span>
+                                    {% elif inscription.statut == 'EN_COURS' %}
+                                      <span class="status-badge warning">En cours</span>
+                                    {% else %}
+                                      <span class="status-badge info">{{ inscription.get_statut_display }}</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="empty-state">
+                            <i class="fas fa-user-plus"></i>
+                            <span>Aucune inscription récente</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-content" id="impayesTab">
+                <div class="data-table">
+                    <div class="table-header">
+                        <span>Impayés en attente</span>
+                        <a href="{% url 'core:impayes_mensuels_list' %}" class="link-action">
+                        Gérer <i class="fas fa-external-link-alt"></i>
+                        </a>
+
+                    </div>
+
+                    <div class="table-body">
+                        {% for impaye in impayes_recents %}
+                        <div class="table-row">
+                            <div class="row-left">
+                                <div class="row-avatar warning">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                </div>
+                                <div class="row-info">
+                                    <span class="row-title">{{ impaye.eleve.nom_complet }}</span>
+                                    <span class="row-subtitle">{{ impaye.groupe.nom }}</span>
+                                </div>
+                            </div>
+
+                            <div class="row-right">
+                                <div class="row-amount">
+                                    <span class="amount-value warning">{{ impaye.reste }} MAD</span>
+                                    <span class="amount-date">Depuis {{ impaye.delai }} jours</span>
+                                </div>
+
+                                <div class="row-actions">
+                                    <a href="#" class="btn-action" title="Relancer">
+                                        <i class="fas fa-envelope"></i>
+                                    </a>
+                                    <a href="#" class="btn-action" title="Marquer comme payé">
+                                        <i class="fas fa-check-circle"></i>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="empty-state">
+                            <i class="fas fa-check-circle success"></i>
+                            <span>Aucun impayé en attente</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="data-section">
+            <div class="section-header">
+                <h3><i class="fas fa-calendar-check"></i> Présences aujourd'hui</h3>
+                <span class="date-today">{{ today|date:"d F Y" }}</span>
+            </div>
+
+            <div class="presence-stats">
+                <div class="presence-card">
+                    <div class="presence-header present">
+                        <i class="fas fa-user-check"></i>
+                        <span>Présents</span>
+                    </div>
+                    <div class="presence-count">{{ presences.presents|default:0 }}</div>
+                    <div class="presence-percentage">{{ presences.taux_presence|default:0 }}%</div>
+                </div>
+
+                <div class="presence-card">
+                    <div class="presence-header absent">
+                        <i class="fas fa-user-times"></i>
+                        <span>Absents</span>
+                    </div>
+                    <div class="presence-count">{{ presences.absents|default:0 }}</div>
+                    <div class="presence-percentage">{{ presences.taux_absence|default:0 }}%</div>
+                </div>
+
+                <div class="presence-card">
+                    <div class="presence-header late">
+                        <i class="fas fa-clock"></i>
+                        <span>Retards</span>
+                    </div>
+                    <div class="presence-count">{{ presences.retards|default:0 }}</div>
+                    <div class="presence-percentage">{{ presences.taux_retard|default:0 }}%</div>
+                </div>
+
+                <div class="presence-card">
+                    <div class="presence-header total">
+                        <i class="fas fa-users"></i>
+                        <span>Total élèves</span>
+                    </div>
+                    <div class="presence-count">{{ presences.total|default:0 }}</div>
+                    <div class="presence-percentage">100%</div>
+                </div>
+            </div>
+
+            <div class="quick-actions">
+                <a href="{% url 'core:absence_list' %}" class="btn-primary">
+                    <i class="fas fa-clipboard-check"></i>
+                    Gérer les présences
+                </a>
+                <button class="btn-secondary" id="sendReminders">
+                    <i class="fas fa-bell"></i>
+                    Envoyer rappels
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Accès rapides -->
+    <div class="quick-access">
+        <div class="section-header">
+            <h3><i class="fas fa-bolt"></i> Accès rapides</h3>
+        </div>
+
+        <div class="access-grid">
+            <a href="{% url 'core:eleve_create' %}" class="access-card">
+                <div class="access-icon success"><i class="fas fa-user-plus"></i></div>
+                <div class="access-content">
+                    <span class="access-title">Ajouter un élève</span>
+                    <span class="access-desc">Créer un nouveau profil élève</span>
+                </div>
+            </a>
+
+            <a href="{% url 'core:inscription_create' %}" class="access-card">
+                <div class="access-icon primary"><i class="fas fa-file-signature"></i></div>
+                <div class="access-content">
+                    <span class="access-title">Nouvelle inscription</span>
+                    <span class="access-desc">Inscrire un élève à un groupe</span>
+                </div>
+            </a>
+
+            <a href="{% url 'core:paiement_create' %}" class="access-card">
+                <div class="access-icon warning"><i class="fas fa-credit-card"></i></div>
+                <div class="access-content">
+                    <span class="access-title">Enregistrer paiement</span>
+                    <span class="access-desc">Saisir un nouveau paiement</span>
+                </div>
+            </a>
+
+            <a href="{% url 'core:recouvrement_list' %}" class="access-card">
+                <div class="access-icon danger"><i class="fas fa-exclamation-triangle"></i></div>
+                <div class="access-content">
+                    <span class="access-title">Gérer les impayés</span>
+                    <span class="access-desc">Suivre et traiter les impayés</span>
+                </div>
+            </a>
+
+            <a href="{% url 'core:users_list' %}" class="access-card">
+                <div class="access-icon info"><i class="fas fa-user-shield"></i></div>
+                <div class="access-content">
+                    <span class="access-title">Gestion utilisateurs</span>
+                    <span class="access-desc">Gérer les comptes et permissions</span>
+                </div>
+            </a>
+
+            <a href="{% url 'core:groupe_list' %}" class="access-card">
+                <div class="access-icon purple"><i class="fas fa-layer-group"></i></div>
+                <div class="access-content">
+                    <span class="access-title">Gérer les groupes</span>
+                    <span class="access-desc">Organiser les classes et niveaux</span>
+                </div>
+            </a>
+        </div>
+    </div>
+
+</div>
+
+{# ✅ données chart backend #}
+{{ monthly_chart_json|json_script:"monthly-chart-data" }}
+<script>
+  window.AZ_DASH = {
+    repartitionLen: {{ repartition_eleves|length|default:0 }},
+    repartitionLabels: [{% for n in repartition_eleves %}'{{ n.nom|escapejs }}',{% endfor %}],
+    repartitionData: [{% for n in repartition_eleves %}{{ n.total }},{% endfor %}]
+  };
+</script>
+
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{% static 'admin/js/dashboard.js' %}?v=1"></script>
+{% endblock %}

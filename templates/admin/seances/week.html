@@ -1,0 +1,118 @@
+{% extends "admin/base_admin.html" %}
+{% load static %}
+{% load core_extras %}
+
+{% block title %}Emploi du temps | AZ{% endblock %}
+{% block page_title %}Emploi du temps (Semaine){% endblock %}
+{% block breadcrumb %}Pédagogie / Emploi du temps / Semaine{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css">
+
+<link rel="stylesheet" href="{% static 'admin/css/seances/week.css' %}?v=4">
+{% endblock %}
+
+{% block content %}
+<div class="az-schedule-container">
+    
+    <!-- Filtres de recherche -->
+<!-- Filtres de recherche -->
+<section class="az-filters-card">
+  <form method="get" class="az-filters-form">
+
+    <div class="az-filter-group">
+      <div class="az-filter-label">ANNÉE</div>
+      <select id="id_annee" name="annee" class="az-select-modern">
+        {% for a in annees %}
+          <option value="{{ a.id }}" {% if a.id|stringformat:"s" == annee_selected %}selected{% endif %}>{{ a.nom }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="az-filter-group">
+      <div class="az-filter-label">NIVEAU</div>
+      <select id="id_niveau" name="niveau" class="az-select-modern">
+        <option value="">Tous les niveaux</option>
+        {% for n in niveaux %}
+          <option value="{{ n.id }}" {% if n.id|stringformat:"s" == niveau_selected %}selected{% endif %}>
+            {{ n.degre.nom }} / {{ n.nom }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="az-filter-group">
+      <div class="az-filter-label">GROUPE</div>
+      <select id="id_groupe" name="groupe" class="az-select-modern">
+        <option value="">— Choisir un groupe —</option>
+        {% for g in groupes %}
+          <option value="{{ g.id }}" {% if g.id|stringformat:"s" == groupe_selected %}selected{% endif %}>
+            {{ g.niveau.nom }} / {{ g.nom }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="az-filter-actions">
+      <button class="az-btn az-btn-gradient az-filter-submit" type="submit">
+        <i class="fas fa-search"></i> Afficher
+      </button>
+    </div>
+
+  </form>
+</section>
+
+
+    <!-- Grille de l'emploi du temps -->
+    <div class="az-schedule-grid">
+        {% for code, label in days %}
+            <div class="az-day-column">
+                <div class="az-day-header">
+                    <h3>{{ label }}</h3>
+                    <a class="az-btn-icon" title="Ajouter une séance"
+                       href="{% url 'core:seance_create' %}?annee={{ annee_selected }}&groupe={{ groupe_selected }}&jour={{ code }}">
+                        <i class="fas fa-plus"></i>
+                    </a>
+                </div>
+
+                <div class="az-sessions-list">
+                    {% for s in by_day|get_item:code %}
+                        <article class="az-session-card">
+                            <div class="az-session-time">
+                                <span><i class="far fa-clock"></i> {{ s.heure_debut }} – {{ s.heure_fin }}</span>
+                                <div class="az-session-actions">
+                                    <a class="az-action-link edit" href="{% url 'core:seance_update' s.id %}" title="Modifier"><i class="fas fa-pen"></i></a>
+                                    <a class="az-action-link delete" href="{% url 'core:seance_delete' s.id %}" title="Supprimer"><i class="fas fa-trash"></i></a>
+                                    <a class="az-action-link absence" href="{% url 'core:absence_create' %}?annee={{ annee_selected }}&groupe={{ groupe_selected }}&date={{ date_selected|default:'' }}&seance={{ s.id }}" title="Signaler absence"><i class="fas fa-user-slash"></i></a>
+                                </div>
+                            </div>
+
+                            <div class="az-session-details">
+                                <p class="az-teacher"><i class="fas fa-chalkboard-teacher"></i> {{ s.enseignant.nom }} {{ s.enseignant.prenom }}</p>
+                                {% if s.matiere %}<p class="az-subject"><i class="fas fa-book"></i> {{ s.matiere }}</p>{% endif %}
+                                {% if s.salle %}<p class="az-room"><i class="fas fa-school"></i> Salle : {{ s.salle }}</p>{% endif %}
+                            </div>
+                        </article>
+                    {% empty %}
+                        <div class="az-empty-state">
+                            <p>Aucune séance</p>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
+<script>
+  window.AZ_PARENT = {
+    urlNiveaux: "{% url 'core:ajax_niveaux' %}",
+    urlGroupes: "{% url 'core:ajax_groupes' %}"
+  };
+</script>
+</script>
+<script src="{% static 'admin/js/seances/week.js' %}?v=1"></script>
+{% endblock %}

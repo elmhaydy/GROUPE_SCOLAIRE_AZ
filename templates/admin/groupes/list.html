@@ -1,0 +1,168 @@
+{% extends "admin/base_admin.html" %}
+{% load static %}
+
+{% block title %}Groupes | AZ{% endblock %}
+{% block page_title %}Groupes{% endblock %}
+{% block current_page %}Structure / Groupes{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'admin/css/groupes/list.css' %}?v=2">
+{% endblock %}
+
+{% block content %}
+
+<div class="az-page-head">
+
+  <div class="az-page-head-left">
+    <div class="az-pill">
+      {% if annee_active %}
+        <i class="fa-solid fa-circle-check"></i>
+        <span>Année active : <b>{{ annee_active.nom }}</b></span>
+      {% else %}
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        <span>Aucune année active</span>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="az-page-head-right">
+    <a class="az-btn az-btn-outline" href="{% url 'core:niveau_list' %}">
+      <i class="fa-solid fa-book"></i> Niveaux
+    </a>
+
+    <a class="az-btn az-btn-primary" href="{% url 'core:groupe_create' %}">
+      <i class="fa-solid fa-plus"></i> Ajouter
+    </a>
+  </div>
+
+</div>
+
+<div class="az-filter-bar">
+  <form method="get" class="az-filter-form">
+
+    <div class="az-filter-label">
+      <i class="fa-solid fa-filter"></i>
+      <span>Filtres</span>
+    </div>
+
+    <div class="az-field">
+      <div class="az-field-label">Recherche</div>
+      <input
+        class="az-input"
+        name="q"
+        value="{{ q }}"
+        placeholder="CP-A, Collège, 1AC..."
+      >
+    </div>
+
+    <div class="az-field">
+      <div class="az-field-label">Année</div>
+      <select name="annee" class="az-select">
+        <option value="">(Auto: année active)</option>
+        {% for a in annees %}
+          <option value="{{ a.id }}" {% if a.id|stringformat:"s" == annee_selected %}selected{% endif %}>
+            {{ a.nom }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="az-field">
+      <div class="az-field-label">Niveau</div>
+      <select name="niveau" class="az-select az-select-wide">
+        <option value="">Tous</option>
+        {% for n in niveaux %}
+          <option value="{{ n.id }}" {% if n.id|stringformat:"s" == niveau_selected %}selected{% endif %}>
+            {{ n.degre.nom }} — {{ n.nom }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <button class="az-btn az-btn-soft" type="submit">
+      <i class="fa-solid fa-magnifying-glass"></i> Filtrer
+    </button>
+
+    <a class="az-btn az-btn-ghost" href="{% url 'core:groupe_list' %}">
+      <i class="fa-solid fa-rotate-right"></i> Reset
+    </a>
+
+  </form>
+</div>
+
+<div class="az-card az-groupe-card">
+  <div class="az-card-head">
+    <h3 class="az-card-title">
+      <i class="fa-solid fa-people-group"></i>
+      Liste des groupes
+    </h3>
+  </div>
+
+  <div class="az-table">
+    <div class="az-thead">
+      <div>Année</div>
+      <div>Degré</div>
+      <div>Niveau</div>
+      <div>Groupe</div>
+      <div>Capacité</div>
+      <div class="az-th-actions">Actions</div>
+    </div>
+
+    <div class="az-tbody">
+      {% for g in groupes %}
+        <div class="az-row az-row-clickable"
+            onclick="window.location.href='{% url 'core:eleve_list' %}?groupe={{ g.id }}&annee={{ g.annee.id }}&niveau={{ g.niveau.id }}'">
+
+
+          <div class="az-cell">
+            <span class="az-badge az-badge-muted">
+              <i class="fa-solid fa-calendar-days"></i> {{ g.annee.nom }}
+            </span>
+          </div>
+
+          <div class="az-cell">{{ g.niveau.degre.nom }}</div>
+
+          <div class="az-cell">{{ g.niveau.nom }}</div>
+
+          <div class="az-cell az-strong">
+            <a href="{% url 'core:eleve_list' %}?groupe={{ g.id }}&annee={{ g.annee.id }}&niveau={{ g.niveau.id }}"
+              class="az-link">
+              {{ g.nom }}
+            </a>
+          </div>
+
+
+          <div class="az-cell">
+            <span class="az-badge az-badge-muted">
+              <i class="fa-solid fa-users"></i> {{ g.nb_eleves|default:"0" }}
+            </span>
+          </div>
+
+          <div class="az-cell az-actions">
+            <a class="az-btn az-btn-outline" href="{% url 'core:groupe_update' g.id %}">
+              <i class="fa-solid fa-pen"></i> Modifier
+            </a>
+
+            <a class="az-btn az-btn-sm az-btn-danger-soft" href="{% url 'core:groupe_delete' g.id %}">
+              <i class="fas fa-trash"></i> Supprimer
+            </a>
+          </div>
+
+        </div>
+      {% empty %}
+        <div class="az-empty">
+          <i class="fa-solid fa-inbox"></i>
+          <div>Aucun groupe.</div>
+        </div>
+      {% endfor %}
+    </div>
+
+  </div>
+</div>
+
+
+{% block extra_js %}
+<script src="{% static 'admin/js/groupes/list.js' %}?v=1"></script>
+{% endblock %}
+
+{% endblock %}

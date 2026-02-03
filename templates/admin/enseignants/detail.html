@@ -1,0 +1,236 @@
+{% extends "admin/base_admin.html" %}
+{% load static %}
+
+{% block title %}{{ ens.matricule }} | Enseignant{% endblock %}
+{% block page_title %}Fiche enseignant{% endblock %}
+{% block breadcrumb %}Pédagogie / Enseignants / {{ ens.matricule }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'admin/css/enseignants/detail.css' %}?v=4">
+{% endblock %}
+
+{% block content %}
+<div class="az-ensd">
+
+  <!-- ===== Header ===== -->
+  <div class="az-ensd-header" data-sticky>
+    <div class="az-ensd-header-left">
+      <a class="az-btn az-btn-ghost" href="{% url 'core:enseignant_list' %}">
+        <i class="fa-solid fa-arrow-left"></i> Retour
+      </a>
+
+      <div class="az-ensd-title">
+        <div class="az-pill">
+          <i class="fa-solid fa-chalkboard-user"></i>
+          <span>Fiche enseignant</span>
+          <span class="az-pill-sep">•</span>
+          <span>{{ ens.matricule }}</span>
+        </div>
+        <h2 class="az-ensd-h2">{{ ens.nom }} {{ ens.prenom }}</h2>
+        <div class="az-ensd-sub">
+          {% if ens.specialite %}{{ ens.specialite }}{% else %}Spécialité non définie{% endif %}
+          <span class="az-dot">•</span>
+          {% if ens.is_active %}
+            <span class="az-badge az-badge-success"><i class="fa-solid fa-check"></i> Actif</span>
+          {% else %}
+            <span class="az-badge az-badge-muted"><i class="fa-solid fa-minus"></i> Inactif</span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div class="az-ensd-header-actions">
+      <a class="az-btn az-btn-soft" href="{% url 'core:enseignant_update' ens.id %}">
+        <i class="fa-solid fa-pen"></i> Modifier
+      </a>
+      <a class="az-btn az-btn-soft" href="{% url 'core:enseignant_delete' ens.id %}" style="border-color: rgba(239,68,68,.25); color:#ef4444;">
+        <i class="fa-solid fa-trash"></i> Supprimer
+      </a>
+      <button class="az-btn az-btn-primary" type="button" disabled title="Bientôt" style="opacity:.7;cursor:not-allowed;">
+        <i class="fa-solid fa-calendar-days"></i> EDT
+      </button>
+    </div>
+  </div>
+
+  <!-- ===== Identity + Pro ===== -->
+  <div class="az-ensd-grid">
+    <!-- Identité -->
+    <div class="az-card az-ensd-card">
+      <div class="az-ensd-card-head">
+        <div class="az-ensd-card-title">
+          <i class="fa-solid fa-id-card"></i>
+          <span>Identité</span>
+        </div>
+      </div>
+
+      <div class="az-ensd-ident">
+        <div class="az-ensd-avatar">
+          {% if ens.photo %}
+            <img src="{{ ens.photo.url }}" alt="Photo {{ ens.nom }} {{ ens.prenom }}">
+          {% else %}
+            <span class="az-ensd-initials">
+              {{ ens.nom|default:""|slice:":1"|upper }}{{ ens.prenom|default:""|slice:":1"|upper }}
+            </span>
+          {% endif %}
+        </div>
+
+        <div class="az-ensd-ident-meta">
+          <div class="az-ensd-ident-name">{{ ens.nom }} {{ ens.prenom }}</div>
+          <div class="az-ensd-ident-sub">
+            <span class="az-code">{{ ens.matricule }}</span>
+            <span class="az-dot">•</span>
+            {% if ens.is_active %}
+              <span class="az-badge az-badge-success"><i class="fa-solid fa-check"></i> Actif</span>
+            {% else %}
+              <span class="az-badge az-badge-muted"><i class="fa-solid fa-minus"></i> Inactif</span>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <div class="az-ensd-kv">
+        <div class="az-ensd-kv-item">
+          <div class="az-ensd-k">Email</div>
+          <div class="az-ensd-v">{{ ens.email|default:"—" }}</div>
+        </div>
+        <div class="az-ensd-kv-item">
+          <div class="az-ensd-k">Téléphone</div>
+          <div class="az-ensd-v">{{ ens.telephone|default:"—" }}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pro -->
+    <div class="az-card az-ensd-card">
+      <div class="az-ensd-card-head">
+        <div class="az-ensd-card-title">
+          <i class="fa-solid fa-briefcase"></i>
+          <span>Professionnel</span>
+        </div>
+      </div>
+
+      <div class="az-ensd-kv">
+        <div class="az-ensd-kv-item">
+          <div class="az-ensd-k">Spécialité</div>
+          <div class="az-ensd-v">{{ ens.specialite|default:"—" }}</div>
+        </div>
+        <div class="az-ensd-kv-item">
+          <div class="az-ensd-k">Statut</div>
+          <div class="az-ensd-v">
+            {% if ens.is_active %}
+              <span class="az-badge az-badge-success"><i class="fa-solid fa-check"></i> Actif</span>
+            {% else %}
+              <span class="az-badge az-badge-muted"><i class="fa-solid fa-minus"></i> Inactif</span>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <div class="az-ensd-note">
+        <i class="fa-solid fa-circle-info"></i>
+        <span>Les absences et statistiques sont calculées à partir de l’année scolaire active.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Recap Mensuel ===== -->
+  <div class="az-card az-ensd-card az-ensd-recap">
+
+    <div class="az-ensd-recap-head">
+      <div>
+        <div class="az-ensd-recap-title">
+          <i class="fa-solid fa-chart-column"></i>
+          <span>Récapitulatif mensuel</span>
+        </div>
+        <div class="az-ensd-recap-sub">
+          {% if annee %}
+            Année active : <b>{{ annee.nom }}</b>
+          {% else %}
+            Aucune année active
+          {% endif %}
+        </div>
+      </div>
+
+      <form method="get" class="az-ensd-recap-filters">
+        <div class="az-field">
+          <div class="az-field-label">Mois</div>
+          <input class="az-input" type="number" name="month" min="1" max="12" value="{{ month }}">
+        </div>
+        <div class="az-field">
+          <div class="az-field-label">Année</div>
+          <input class="az-input" type="number" name="year" min="2020" max="2100" value="{{ year }}">
+        </div>
+
+        <button class="az-btn az-btn-primary" type="submit">
+          <i class="fa-solid fa-magnifying-glass"></i> Voir
+        </button>
+
+        <a class="az-btn az-btn-soft" href="{% url 'core:absence_prof_create' %}?enseignant={{ ens.id }}&year={{ year }}&month={{ month }}">
+          <i class="fa-solid fa-plus"></i> Absence
+        </a>
+      </form>
+    </div>
+
+    {% if stats %}
+    <div class="az-ensd-stats">
+      <div class="az-ensd-stat">
+        <div class="az-ensd-stat-k">Heures prévues</div>
+        <div class="az-ensd-stat-v">{{ stats.prevues_heures }}h</div>
+        <div class="az-ensd-stat-s">{{ stats.prevues_minutes }} min</div>
+      </div>
+      <div class="az-ensd-stat az-ensd-stat-danger">
+        <div class="az-ensd-stat-k">Heures manquées</div>
+        <div class="az-ensd-stat-v">{{ stats.manquees_heures }}h</div>
+        <div class="az-ensd-stat-s">{{ stats.manquees_minutes }} min</div>
+      </div>
+      <div class="az-ensd-stat az-ensd-stat-success">
+        <div class="az-ensd-stat-k">Heures effectuées</div>
+        <div class="az-ensd-stat-v">{{ stats.faites_heures }}h</div>
+        <div class="az-ensd-stat-s">{{ stats.faites_minutes }} min</div>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- ===== Table ===== -->
+    <div class="az-ensd-table-wrap" id="absencesTable">
+      <div class="az-ensd-table-title">
+        <i class="fa-solid fa-calendar-xmark"></i>
+        <span>Absences du mois</span>
+      </div>
+
+      <div class="az-ensd-table">
+        <div class="az-ensd-thead">
+          <div>Date</div>
+          <div>Groupe</div>
+          <div>Créneau</div>
+          <div class="az-right">Durée</div>
+        </div>
+
+        <div class="az-ensd-tbody">
+          {% for a in absences_profs %}
+          <div class="az-ensd-tr">
+            <div class="az-ensd-td"><b>{{ a.date|date:"d/m/Y" }}</b></div>
+            <div class="az-ensd-td">
+              <span class="az-chip">{{ a.seance.groupe.nom }}</span>
+            </div>
+            <div class="az-ensd-td">{{ a.seance.get_jour_display }} {{ a.seance.heure_debut }}-{{ a.seance.heure_fin }}</div>
+            <div class="az-ensd-td az-right"><span class="az-chip az-chip-danger">{{ a.minutes_perdues }} min</span></div>
+          </div>
+          {% empty %}
+          <div class="az-ensd-empty">
+            <i class="fa-solid fa-inbox"></i>
+            <div class="az-ensd-empty-title">Aucune absence enregistrée</div>
+            <div class="az-ensd-empty-sub">Pour ce mois, aucun enregistrement.</div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'admin/js/enseignants/detail.js' %}?v=1"></script>
+{% endblock %}

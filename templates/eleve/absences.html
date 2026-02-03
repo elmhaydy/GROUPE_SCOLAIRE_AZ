@@ -1,0 +1,210 @@
+{% extends "eleve/base.html" %}
+{% load static %}
+
+
+{% block title %}Absences | Portail Élève{% endblock %}
+{% block page_title %}Absences{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'eleve/css/absences.css' %}">
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'eleve/js/absences.js' %}"></script>
+{% endblock %}
+
+{% block content %}
+<div class="card az-abs">
+
+  <!-- Header -->
+  <div class="az-abs-head">
+    <div>
+      <h3 class="az-abs-title">Historique des absences</h3>
+      <div class="muted az-abs-sub">Suivi des absences et retards • justificatifs • motifs</div>
+    </div>
+
+    <div class="az-abs-actions">
+      <div class="az-abs-search">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input id="absSearch" type="text" placeholder="Rechercher (motif, type, séance...)">
+        <button class="abs-clear" id="absClear" type="button" title="Effacer">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div class="az-abs-filters">
+        <select id="absType">
+          <option value="">Tous</option>
+          <option value="ABS">Absence</option>
+          <option value="RET">Retard</option>
+        </select>
+
+        <select id="absJustif">
+          <option value="">Justifié: Tous</option>
+          <option value="1">Oui</option>
+          <option value="0">Non</option>
+        </select>
+
+
+      </div>
+    </div>
+  </div>
+
+  <!-- KPI -->
+  <div class="az-abs-kpi">
+    <div class="kpi">
+      <div class="kpi-label">Total</div>
+      <div class="kpi-value" id="kpiTotal">—</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Absences</div>
+      <div class="kpi-value" id="kpiAbs">—</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Retards</div>
+      <div class="kpi-value" id="kpiRet">—</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Non justifiées</div>
+      <div class="kpi-value" id="kpiNoJustif">—</div>
+    </div>
+  </div>
+
+  {% if absences %}
+    <!-- Desktop table -->
+    <div class="az-abs-table-wrap">
+      <table class="az-abs-table" id="absTable">
+        <thead>
+          <tr>
+            <th data-sort="date">Date <i class="fa-solid fa-sort"></i></th>
+            <th data-sort="type">Type <i class="fa-solid fa-sort"></i></th>
+            <th>Séance</th>
+            <th data-sort="justif">Justifié <i class="fa-solid fa-sort"></i></th>
+            <th>Motif</th>
+          </tr>
+        </thead>
+
+        <tbody id="absTbody">
+          {% for a in absences %}
+          <tr class="abs-row"
+              data-date="{{ a.date|date:'Y-m-d' }}"
+              data-type="{{ a.type }}"
+              data-justif="{% if a.justifie %}1{% else %}0{% endif %}"
+              data-haystack="{{ a.get_type_display }} {% if a.seance %}{{ a.seance.get_jour_display }} {{ a.seance.heure_debut }} {{ a.seance.heure_fin }}{% endif %} {{ a.motif|default:'' }}">
+            <td class="abs-date">
+              <span class="abs-date-pill">
+                <i class="fa-regular fa-calendar"></i>
+                {{ a.date|date:"d/m/Y" }}
+              </span>
+            </td>
+
+            <td>
+              {% if a.type == "ABS" %}
+                <span class="abs-pill abs-pill-abs"><i class="fa-solid fa-user-xmark"></i> Absence</span>
+              {% else %}
+                <span class="abs-pill abs-pill-ret"><i class="fa-solid fa-clock"></i> Retard</span>
+              {% endif %}
+            </td>
+
+            <td class="abs-seance">
+              {% if a.seance %}
+                <span class="abs-seance-main">
+                  {{ a.seance.get_jour_display }}
+                  <span class="abs-sep">•</span>
+                  {{ a.seance.heure_debut }}–{{ a.seance.heure_fin }}
+                </span>
+              {% else %}
+                <span class="muted">—</span>
+              {% endif %}
+            </td>
+
+            <td>
+              {% if a.justifie %}
+                <span class="abs-pill abs-pill-ok"><i class="fa-solid fa-circle-check"></i> Oui</span>
+              {% else %}
+                <span class="abs-pill abs-pill-warn"><i class="fa-solid fa-triangle-exclamation"></i> Non</span>
+              {% endif %}
+            </td>
+
+            <td class="abs-motif">
+              {% if a.motif %}
+                <span class="abs-motif-text">{{ a.motif }}</span>
+              {% else %}
+                <span class="muted">—</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      <div class="abs-empty" id="absEmpty" style="display:none">
+        <i class="fa-regular fa-face-meh"></i>
+        <div>
+          <div class="abs-empty-title">Aucun résultat</div>
+          <div class="muted">Modifie les filtres ou ta recherche.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mobile cards -->
+    <div class="az-abs-mobile" id="absMobile">
+      {% for a in absences %}
+      <div class="abs-card"
+           data-date="{{ a.date|date:'Y-m-d' }}"
+           data-type="{{ a.type }}"
+           data-justif="{% if a.justifie %}1{% else %}0{% endif %}"
+           data-haystack="{{ a.get_type_display }} {% if a.seance %}{{ a.seance.get_jour_display }} {{ a.seance.heure_debut }} {{ a.seance.heure_fin }}{% endif %} {{ a.motif|default:'' }}">
+
+        <div class="abs-card-top">
+          <div class="abs-card-date">
+            <i class="fa-regular fa-calendar"></i> {{ a.date|date:"d/m/Y" }}
+          </div>
+          <div class="abs-card-tags">
+            {% if a.type == "ABS" %}
+              <span class="abs-pill abs-pill-abs">Absence</span>
+            {% else %}
+              <span class="abs-pill abs-pill-ret">Retard</span>
+            {% endif %}
+
+            {% if a.justifie %}
+              <span class="abs-pill abs-pill-ok">Justifié</span>
+            {% else %}
+              <span class="abs-pill abs-pill-warn">Non justifié</span>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="abs-card-mid">
+          <div class="abs-card-line">
+            <span class="muted">Séance</span>
+            <span>
+              {% if a.seance %}
+                {{ a.seance.get_jour_display }} • {{ a.seance.heure_debut }}–{{ a.seance.heure_fin }}
+              {% else %}
+                —
+              {% endif %}
+            </span>
+          </div>
+
+          <div class="abs-card-line">
+            <span class="muted">Motif</span>
+            <span>{% if a.motif %}{{ a.motif }}{% else %}—{% endif %}</span>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+  {% else %}
+    <div class="abs-empty-state">
+      <div class="abs-empty-icon"><i class="fa-regular fa-circle-check"></i></div>
+      <div>
+        <div class="abs-empty-title">Aucune absence enregistrée</div>
+        <div class="muted">Ton historique est vide pour le moment.</div>
+      </div>
+    </div>
+  {% endif %}
+
+</div>
+{% endblock %}

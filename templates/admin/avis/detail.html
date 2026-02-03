@@ -1,0 +1,18 @@
+{% extends "admin/base_admin.html" %}
+{% block page_title %}📢 Détail avis{% endblock %}
+{% block content %}
+
+<div class="az-card">
+  <h2 style="margin:0 0 10px 0;">{{ obj.titre }}</h2>
+  <p><b>Cible:</b> {{ obj.get_cible_type_display }}</p>
+  <p><b>Date:</b> {{ obj.date_publication|date:"d/m/Y H:i" }}</p>
+  <hr>
+  <div style="white-space:pre-wrap;">{{ obj.contenu }}</div>
+
+  <div class="az-toolbar" style="margin-top:16px;">
+    <a class="az-btn az-btn-ghost" href="{% url 'core:avis_list' %}">⬅ Retour</a>
+    <a class="az-btn az-btn-danger" href="{% url 'core:avis_delete' obj.pk %}">🗑️ Supprimer</a>
+  </div>
+</div>
+
+{% endblock %}

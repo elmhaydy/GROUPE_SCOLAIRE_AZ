@@ -1,0 +1,404 @@
+/* admin/css/niveaux/list.css
+   AZ — Niveaux (List) — FINAL (AZ NEBULA)
+   - Chip "Filtres" + focus glow violet
+   - Table grid premium responsive (labels mobile)
+   - Dark/Light via html[data-theme]
+   - Fix dropdown select dark (options/optgroup)
+   - ✅ Colonne "Capacité" (nb élèves)
+*/
+
+/* ===== Page Head ===== */
+.az-page-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap: var(--az-spacing-lg);
+  margin-bottom: var(--az-spacing-lg);
+}
+
+.az-page-head-left,
+.az-page-head-right{
+  display:flex;
+  align-items:center;
+  gap: var(--az-spacing-md);
+  flex-wrap:wrap;
+}
+
+/* ===== Pill ===== */
+.az-pill{
+  display:inline-flex;
+  align-items:center;
+  gap:10px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--az-border);
+  background: linear-gradient(180deg, var(--az-bg-primary), var(--az-bg-secondary));
+  box-shadow: var(--az-shadow-sm);
+  color: var(--az-text-secondary);
+  font-weight: 800;
+  animation: az-fadeUp .35s ease both;
+}
+.az-pill i{ color: var(--az-primary); }
+
+html[data-theme="dark"] .az-pill{
+  background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.02));
+}
+
+/* ===== Filter Bar ===== */
+.az-filter-bar{ margin-bottom: var(--az-spacing-xl); }
+
+.az-filter-form{
+  display:flex;
+  align-items:end;
+  flex-wrap:wrap;
+  gap: var(--az-spacing-md);
+  padding: var(--az-spacing-lg);
+  border-radius: 18px;
+  border: 1px solid var(--az-border);
+  background: linear-gradient(180deg, var(--az-bg-secondary), var(--az-bg-primary));
+  box-shadow: var(--az-shadow-sm);
+  animation: az-fadeUp .45s ease both;
+}
+
+/* Chip "Filtres" */
+.az-filter-label{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1.6px dashed rgba(100, 116, 139, .35);
+  background: rgba(255,255,255,.35);
+  color: var(--az-text-secondary);
+  font-weight: 900;
+  box-shadow: var(--az-shadow-sm);
+  user-select:none;
+}
+.az-filter-label i{
+  color: #6366f1;
+  filter: drop-shadow(0 6px 16px rgba(99,102,241,.25));
+}
+html[data-theme="dark"] .az-filter-label{
+  background: rgba(15,23,42,.35);
+  border-color: rgba(148,163,184,.18);
+  color: rgba(226,232,240,.85);
+}
+
+/* select */
+.az-filter-form .az-select{
+  min-width: 260px;
+  min-height: 46px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(148, 163, 184, .35);
+  background: var(--az-bg-primary);
+  color: var(--az-text-primary);
+  font-family: inherit;
+  font-size: .95rem;
+  transition: var(--az-transition-fast);
+}
+html[data-theme="dark"] .az-filter-form .az-select{
+  border-color: rgba(148, 163, 184, .22);
+  background: rgba(2,6,23,.18);
+}
+
+/* Focus violet */
+.az-filter-form .az-select:focus{
+  outline:none;
+  border-color: rgba(99,102,241,.65);
+  box-shadow:
+    0 0 0 4px rgba(99,102,241,.18),
+    0 10px 22px rgba(99,102,241,.10);
+  transform: translateY(-1px);
+}
+html[data-theme="dark"] .az-filter-form .az-select:focus{
+  border-color: rgba(129,140,248,.75);
+  box-shadow:
+    0 0 0 4px rgba(129,140,248,.22),
+    0 14px 28px rgba(99,102,241,.12);
+}
+
+/* ===== Card ===== */
+.az-niveau-card{
+  overflow:hidden;
+  animation: az-fadeUp .55s ease both;
+}
+
+.az-card-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap: var(--az-spacing-md);
+  margin-bottom: var(--az-spacing-md);
+}
+
+.az-card-title{
+  display:flex;
+  align-items:center;
+  gap: 10px;
+}
+.az-card-title i{ color: var(--az-primary); }
+
+/* ===== Table Grid ===== */
+.az-table{ width:100%; }
+
+/* ✅ Header (6 colonnes) : Degré | Ordre | Nom | Capacité | Frais | Actions */
+.az-thead{
+  display:grid;
+  grid-template-columns: 220px 110px 1.15fr 170px 2fr 1.6fr;
+  gap: 10px;
+  padding: 12px 12px;
+  border-radius: 12px;
+  background: var(--az-bg-secondary);
+  border: 1px solid var(--az-border);
+  color: var(--az-text-tertiary);
+  font-weight: 900;
+  font-size: .78rem;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+/* Body */
+.az-tbody{
+  display:flex;
+  flex-direction:column;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+/* ✅ Row (6 colonnes) */
+.az-row{
+  display:grid;
+  grid-template-columns: 220px 110px 1.15fr 170px 2fr 1.6fr;
+  gap: 10px;
+  align-items:center;
+  padding: 12px 12px;
+  border-radius: 14px;
+  border: 1px solid var(--az-border);
+  background: var(--az-bg-primary);
+  box-shadow: var(--az-shadow-sm);
+  transition: var(--az-transition-fast);
+  position:relative;
+  overflow:hidden;
+}
+
+.az-row:hover{
+  border-color: rgba(99, 102, 241, .45);
+  box-shadow: var(--az-shadow-md);
+  transform: translateY(-2px);
+}
+
+.az-row::before{
+  content:"";
+  position:absolute;
+  left:0; top:0; bottom:0;
+  width: 3px;
+  background: linear-gradient(180deg, var(--az-primary), var(--az-primary-light));
+  opacity:0;
+  transition: var(--az-transition-fast);
+}
+.az-row:hover::before{ opacity:1; }
+
+.az-cell{
+  color: var(--az-text-secondary);
+  min-width: 0;
+}
+.az-strong{
+  color: var(--az-text-primary);
+  font-weight: 900;
+}
+
+/* ===== Badges ===== */
+.az-badge{
+  display:inline-flex;
+  align-items:center;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: 999px;
+  font-weight: 900;
+  font-size: .78rem;
+  border: 1px solid var(--az-border);
+  background: var(--az-bg-secondary);
+  color: var(--az-text-secondary);
+  white-space: nowrap;
+}
+
+.az-badge-muted{
+  background: rgba(148, 163, 184, .12);
+  border: 1px solid rgba(148, 163, 184, .25);
+  color: var(--az-text-secondary);
+}
+html[data-theme="dark"] .az-badge-muted{
+  background: rgba(255,255,255,.05);
+  border: 1px solid rgba(255,255,255,.08);
+  color: rgba(255,255,255,.80);
+}
+
+/* ✅ Badge Capacité (violet doux) */
+.az-badge-cap{
+  background: rgba(99,102,241,.10);
+  border-color: rgba(99,102,241,.22);
+  color: var(--az-text-primary);
+}
+html[data-theme="dark"] .az-badge-cap{
+  background: rgba(99,102,241,.12);
+  border-color: rgba(129,140,248,.25);
+}
+
+/* Prix */
+.az-price{
+  display:inline-flex;
+  align-items:center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-weight: 900;
+  letter-spacing: .02em;
+  font-size: .85rem;
+  border: 1px solid rgba(99,102,241,.22);
+  background: rgba(99,102,241,.10);
+  color: var(--az-primary);
+}
+
+/* Frais multi lignes */
+.az-cell > div{ min-width: 0; }
+
+/* ===== Actions ===== */
+.az-th-actions{ text-align:right; }
+
+.az-actions{
+  display:flex;
+  justify-content:flex-end;
+  align-items:center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* Empty */
+.az-empty{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap: 10px;
+  padding: 28px 18px;
+  border-radius: 16px;
+  border: 1px dashed var(--az-border);
+  background: var(--az-bg-secondary);
+  color: var(--az-text-secondary);
+  text-align:center;
+}
+.az-empty i{ font-size: 1.6rem; color: var(--az-primary); }
+
+/* Anim */
+@keyframes az-fadeUp{
+  from{ opacity:0; transform: translateY(10px); }
+  to{ opacity:1; transform: translateY(0); }
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 1100px){
+  .az-thead,
+  .az-row{
+    grid-template-columns: 210px 100px 1.15fr 170px 2fr 1.6fr;
+  }
+}
+
+@media (max-width: 900px){
+  .az-thead{ display:none; }
+
+  .az-row{
+    grid-template-columns: 1fr;
+    gap: 10px;
+    padding: 14px;
+  }
+
+  .az-cell{
+    display:flex;
+    justify-content:space-between;
+    gap: 12px;
+  }
+
+  /* ✅ labels mobile (6 cellules) */
+  .az-row .az-cell:nth-child(1)::before{ content:"Degré"; }
+  .az-row .az-cell:nth-child(2)::before{ content:"Ordre"; }
+  .az-row .az-cell:nth-child(3)::before{ content:"Nom"; }
+  .az-row .az-cell:nth-child(4)::before{ content:"Capacité"; }
+  .az-row .az-cell:nth-child(5)::before{ content:"Frais"; }
+  .az-row .az-cell:nth-child(6)::before{ content:"Actions"; }
+
+  .az-row .az-cell::before{
+    color: var(--az-text-tertiary);
+    font-weight: 900;
+    font-size: .78rem;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+  }
+
+  .az-actions{
+    justify-content:flex-end;
+    gap: 10px;
+  }
+
+  .az-filter-form{
+    padding: var(--az-spacing-md);
+    border-radius: 16px;
+  }
+
+  .az-filter-form .az-select{
+    min-width: 100%;
+  }
+}
+
+/* ===== FIX SELECT DROPDOWN (Dark) ===== */
+.az-filter-form select.az-select{
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+}
+
+html[data-theme="dark"] .az-filter-form select.az-select{ color-scheme: dark; }
+html:not([data-theme="dark"]) .az-filter-form select.az-select{ color-scheme: light; }
+
+html[data-theme="dark"] .az-filter-form .az-select{
+  background-color: rgba(2, 6, 23, .22) !important;
+  color: rgba(241, 245, 249, .95) !important;
+  border-color: rgba(148, 163, 184, .22) !important;
+}
+
+html[data-theme="dark"] .az-filter-form .az-select option,
+html[data-theme="dark"] .az-filter-form .az-select optgroup{
+  background-color: #0b1220 !important;
+  color: rgba(241, 245, 249, .95) !important;
+}
+
+html[data-theme="dark"] .az-filter-form .az-select option:checked{
+  background: #1d4ed8 !important;
+  color: #fff !important;
+}
+
+html[data-theme="dark"] .az-filter-form .az-select optgroup{
+  font-weight: 800;
+  color: rgba(203, 213, 225, .95) !important;
+}
+
+/* caret injection */
+.az-filter-form{ position: relative; }
+.az-filter-form select.az-select{ padding-right: 44px; }
+
+.az-filter-form::after{
+  content:"\f078";
+  font-family:"Font Awesome 6 Free";
+  font-weight:900;
+  position:absolute;
+  right: 24px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: .85rem;
+  color: var(--az-text-tertiary);
+  pointer-events:none;
+  opacity:.9;
+}
+
+html[data-theme="dark"] .az-filter-form::after{
+  color: rgba(148,163,184,.9);
+}

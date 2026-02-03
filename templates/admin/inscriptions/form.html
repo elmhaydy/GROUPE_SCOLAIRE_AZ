@@ -1,0 +1,196 @@
+{% extends "admin/base_admin.html" %}
+{% load static %}
+
+{% block title %}Inscription | AZ{% endblock %}
+{% block page_title %}{% if mode == "create" %}Nouvelle{% else %}Modifier{% endif %} inscription{% endblock %}
+{% block breadcrumb %}Scolaire / Inscriptions{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'admin/css/inscriptions/form.css' %}?v=4">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css">
+{% endblock %}
+
+{% block content %}
+
+<div class="az-insc-card">
+  <div class="az-insc-head">
+    <div>
+      <h3 class="az-insc-title">Formulaire</h3>
+      <p class="az-insc-sub">
+        Sélectionne l’élève, l’année et le groupe. Le groupe se charge automatiquement selon l’année.
+      </p>
+    </div>
+
+    {% if eleve %}
+      <span class="az-insc-pill">
+        <i class="fas fa-user-graduate"></i>
+        <b>{{ eleve.matricule }}</b> — {{ eleve.nom }} {{ eleve.prenom }}
+      </span>
+    {% endif %}
+  </div>
+
+  {% if form.non_field_errors %}
+    <div class="az-insc-flashes">
+      {% for err in form.non_field_errors %}
+        <div class="az-insc-flash az-insc-flash-error">{{ err }}</div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <form method="post" class="az-insc-form" novalidate>
+    {% csrf_token %}
+
+    <div class="az-field">
+      <label for="{{ form.eleve.id_for_label }}">Élève</label>
+      {{ form.eleve }}
+      <div class="az-help">Recherche rapide par nom / prénom / matricule.</div>
+      {% for err in form.eleve.errors %}<div class="az-error">{{ err }}</div>{% endfor %}
+    </div>
+
+    <div class="az-grid-2">
+      <div class="az-field">
+        <label for="{{ form.annee.id_for_label }}">Année</label>
+        {{ form.annee }}
+        <div class="az-help">Choisir l’année scolaire.</div>
+      </div>
+
+      <div class="az-field">
+        <label for="{{ form.statut.id_for_label }}">Statut</label>
+        {{ form.statut }}
+        <div class="az-help">Ex : En cours, Validée, Annulée…</div>
+        {% for err in form.statut.errors %}<div class="az-error">{{ err }}</div>{% endfor %}
+      </div>
+    </div>
+
+    <div class="az-field">
+      <label for="{{ form.groupe.id_for_label }}">Groupe</label>
+
+      {# valeur sélectionnée en mode edit #}
+      <div id="selected_groupe_value" style="display:none;">{{ form.groupe.value|default_if_none:"" }}</div>
+
+      {{ form.groupe }}
+      <div class="az-help">Le groupe dépend de l’année sélectionnée.</div>
+      {% for err in form.groupe.errors %}<div class="az-error">{{ err }}</div>{% endfor %}
+    </div>
+
+    <div class="az-insc-actions">
+      <button class="az-btn az-btn-gradient" type="submit" id="saveBtn">
+        <i class="fas fa-save"></i> Enregistrer
+      </button>
+      <a class="az-btn" href="{% url 'core:inscription_list' %}">
+        <i class="fas fa-arrow-left"></i> Retour
+      </a>
+    </div>
+  </form>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const annee = document.getElementById("id_annee");
+  const groupe = document.getElementById("id_groupe");
+  const eleve  = document.getElementById("id_eleve");
+
+  if (!annee || !groupe) return;
+
+  const apiUrl = "{% url 'core:api_groupes_par_annee' %}";
+  const selectedEl = document.getElementById("selected_groupe_value");
+  const selectedValue = selectedEl ? selectedEl.textContent.trim() : "";
+
+  // ==========================
+  // Tom Select init
+  // ==========================
+  function initTom(selectEl, opts){
+    if (!selectEl || typeof TomSelect === "undefined") return null;
+    if (selectEl.tomselect) return selectEl.tomselect;
+    return new TomSelect(selectEl, opts);
+  }
+
+  // Élève : tom utile (recherche)
+  const eleveTom = initTom(eleve, {
+    create: false,
+    maxItems: 1,
+    allowEmptyOption: true,
+    placeholder: "Choisir un élève…",
+    searchField: ["text"],
+    closeAfterSelect: true
+  });
+
+  // Groupe : tom utile aussi (liste longue après chargement)
+  const groupeTom = initTom(groupe, {
+    create: false,
+    maxItems: 1,
+    allowEmptyOption: true,
+    placeholder: "— Choisir un groupe —",
+    searchField: ["text"],
+    closeAfterSelect: true
+  });
+
+  function resetGroupes(){
+    // reset select natif
+    groupe.innerHTML = "";
+    const opt0 = document.createElement("option");
+    opt0.value = "";
+    opt0.textContent = "— Choisir un groupe —";
+    groupe.appendChild(opt0);
+
+    // reset tom
+    if (groupeTom){
+      groupeTom.clear(true);
+      groupeTom.clearOptions();
+      groupeTom.addOption({ value:"", text:"— Choisir un groupe —" });
+      groupeTom.refreshOptions(false);
+    }
+  }
+
+  function addGroupeOption(id, label, selected=false){
+    // natif
+    const opt = document.createElement("option");
+    opt.value = id;
+    opt.textContent = label;
+    if (selected) opt.selected = true;
+    groupe.appendChild(opt);
+
+    // tom
+    if (groupeTom){
+      groupeTom.addOption({ value: String(id), text: label });
+      if (selected) groupeTom.setValue(String(id), true);
+    }
+  }
+
+  async function loadGroupes(keepSelected=true){
+    const anneeId = annee.value;
+    resetGroupes();
+    if (!anneeId) return;
+
+    try{
+      const res = await fetch(`${apiUrl}?annee_id=${anneeId}`);
+      if(!res.ok) throw new Error("API error: " + res.status);
+      const data = await res.json();
+
+      (data.results || []).forEach(item => {
+        const shouldSelect = keepSelected && selectedValue && String(item.id) === String(selectedValue);
+        addGroupeOption(item.id, item.label, shouldSelect);
+      });
+
+      // tom refresh
+      if (groupeTom){
+        groupeTom.refreshOptions(false);
+      }
+
+    } catch(e){
+      console.error("Erreur chargement groupes:", e);
+    }
+  }
+
+  // 1) au démarrage (mode modifier)
+  loadGroupes(true);
+
+  // 2) quand on change l'année
+  annee.addEventListener("change", () => loadGroupes(false));
+});
+</script>
+{% endblock %}

@@ -1,0 +1,201 @@
+/* admin/css/groupes/form.css
+   AZ — Groupes (Form)
+   - S'appuie sur ton thème global (variables + .az-btn/.az-card/.az-input/.az-select)
+   - Style premium + responsive
+*/
+
+/* wrapper global */
+.az-groupe-card{
+  max-width: 980px;
+  margin: 0 auto;
+  border: 1px solid var(--az-border);
+  border-radius: 16px;
+  background: var(--az-bg-primary);
+  box-shadow: var(--az-shadow-sm);
+  padding: var(--az-spacing-xl);
+  animation: az-fadeUp .45s ease both;
+  position: relative;
+  overflow: hidden;
+}
+
+/* petit accent */
+.az-groupe-card::before{
+  content:"";
+  position:absolute;
+  left:0; top:0; right:0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--az-primary), var(--az-primary-light));
+  opacity: .9;
+}
+
+/* header */
+.az-groupe-head{
+  display:flex;
+  flex-direction:column;
+  gap: 8px;
+  margin-bottom: var(--az-spacing-xl);
+  padding-bottom: var(--az-spacing-lg);
+  border-bottom: 1px solid var(--az-border);
+}
+
+.az-groupe-title{
+  margin:0;
+  font-size: 1.35rem;
+  font-weight: 900;
+  color: var(--az-text-primary);
+  letter-spacing: -0.3px;
+}
+
+.az-groupe-sub{
+  margin:0;
+  color: var(--az-text-secondary);
+  font-size: .95rem;
+}
+
+/* form grid */
+.az-groupe-form{
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--az-spacing-lg);
+}
+
+/* fields */
+.az-field{
+  display:flex;
+  flex-direction:column;
+  gap: 8px;
+}
+
+.az-field label{
+  font-weight: 800;
+  color: var(--az-text-primary);
+  font-size: .92rem;
+}
+
+/* On force une apparence AZ sur widgets Django */
+.az-field input,
+.az-field select,
+.az-field textarea{
+  width:100%;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--az-border);
+  background: var(--az-bg-primary);
+  color: var(--az-text-primary);
+  font-family: inherit;
+  font-size: .95rem;
+  transition: var(--az-transition-fast);
+}
+
+.az-field input:focus,
+.az-field select:focus,
+.az-field textarea:focus{
+  outline:none;
+  border-color: var(--az-primary);
+  box-shadow: 0 0 0 4px rgba(99,102,241,.12);
+}
+
+html[data-theme="dark"] .az-field input,
+html[data-theme="dark"] .az-field select,
+html[data-theme="dark"] .az-field textarea{
+  box-shadow: none;
+}
+
+/* helpers */
+.az-help{
+  font-size: .82rem;
+  color: var(--az-text-tertiary);
+  line-height: 1.35;
+}
+
+/* error bloc (rempli par JS) */
+.az-error{
+  min-height: 18px;
+  font-size: .85rem;
+  font-weight: 700;
+  color: var(--az-danger);
+  opacity: 0;
+  transform: translateY(-2px);
+  transition: var(--az-transition-fast);
+}
+
+.az-field.is-invalid .az-error{
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* invalid input style */
+.az-field.is-invalid input,
+.az-field.is-invalid select,
+.az-field.is-invalid textarea{
+  border-color: rgba(239,68,68,.7);
+  box-shadow: 0 0 0 4px rgba(239,68,68,.12);
+}
+
+/* actions */
+.az-groupe-actions{
+  grid-column: 1 / -1;
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap: var(--az-spacing-md);
+  padding-top: var(--az-spacing-lg);
+  margin-top: var(--az-spacing-sm);
+  border-top: 1px solid var(--az-border);
+}
+
+/* bouton gradient si pas déjà dans global */
+.az-btn-gradient{
+  background: linear-gradient(135deg, var(--az-primary), var(--az-primary-light));
+  color:#fff;
+  border: none;
+  box-shadow: 0 10px 25px rgba(99,102,241,.18);
+}
+.az-btn-gradient:hover{
+  transform: translateY(-1px);
+  box-shadow: 0 14px 30px rgba(99,102,241,.22);
+}
+
+/* effet "saving" */
+.az-btn.is-loading{
+  opacity:.85;
+  pointer-events:none;
+  position: relative;
+}
+.az-btn.is-loading::after{
+  content:"";
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  border: 2px solid rgba(255,255,255,.55);
+  border-top-color: #fff;
+  display:inline-block;
+  margin-left: 10px;
+  animation: az-spin .8s linear infinite;
+}
+
+/* animation */
+@keyframes az-fadeUp{
+  from{ opacity:0; transform: translateY(10px); }
+  to{ opacity:1; transform: translateY(0); }
+}
+@keyframes az-spin{
+  to{ transform: rotate(360deg); }
+}
+
+/* responsive */
+@media (max-width: 900px){
+  .az-groupe-card{
+    padding: var(--az-spacing-lg);
+  }
+  .az-groupe-form{
+    grid-template-columns: 1fr;
+  }
+  .az-groupe-actions{
+    justify-content:stretch;
+    flex-wrap: wrap;
+  }
+  .az-groupe-actions .az-btn{
+    width:100%;
+  }
+}

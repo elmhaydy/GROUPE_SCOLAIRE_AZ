@@ -1,0 +1,226 @@
+/* role_form_modern.css */
+:root {
+    --glass-bg: rgba(255, 255, 255, 0.7);
+    --glass-border: rgba(255, 255, 255, 0.3);
+    --primary: #6366f1;
+    --primary-soft: rgba(99, 102, 241, 0.1);
+    --text-main: #1e293b;
+    --text-muted: #64748b;
+    --radius: 20px;
+    --card-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+}
+
+[data-theme="dark"] {
+    --glass-bg: rgba(15, 23, 42, 0.8);
+    --glass-border: rgba(255, 255, 255, 0.1);
+    --text-main: #f8fafc;
+    --text-muted: #94a3b8;
+}
+
+.role-form-container {
+    max-width: 1100px;
+    margin: 0 auto;
+    animation: fadeIn 0.6s ease-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.modern-card {
+    background: var(--glass-bg);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius);
+    padding: 2.5rem;
+    box-shadow: var(--card-shadow);
+    margin-bottom: 2rem;
+}
+
+.form-header {
+    margin-bottom: 2.5rem;
+}
+
+.form-header h3 {
+    font-size: 1.75rem;
+    font-weight: 800;
+    background: linear-gradient(to right, var(--primary), #a855f7);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin: 0;
+}
+
+/* Input Styling */
+.field-group {
+    margin-bottom: 2rem;
+}
+
+.field-group label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.75rem;
+}
+
+.input-modern {
+    width: 100%;
+    max-width: 600px;
+    padding: 0.85rem 1.25rem;
+    border-radius: 12px;
+    border: 1px solid var(--glass-border);
+    background: rgba(0, 0, 0, 0.05);
+    color: var(--text-main);
+    font-size: 1rem;
+    font-weight: 600;
+    transition: all 0.3s;
+    outline: none;
+}
+
+.input-modern:focus {
+    border-color: var(--primary);
+    background: var(--glass-bg);
+    box-shadow: 0 0 0 4px var(--primary-soft);
+}
+
+/* Permissions Section */
+.perms-section {
+    margin-top: 2rem;
+}
+
+.app-block {
+    margin-top: 2.5rem;
+}
+
+.app-title {
+    font-size: 0.9rem;
+    font-weight: 800;
+    color: var(--primary);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.app-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--glass-border);
+}
+
+.model-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+}
+
+.model-box {
+    background: rgba(0, 0, 0, 0.02);
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    padding: 1.25rem;
+    transition: all 0.3s;
+}
+
+.model-box:hover {
+    border-color: var(--primary-soft);
+    background: rgba(99, 102, 241, 0.02);
+}
+
+.model-name {
+    font-weight: 700;
+    color: var(--text-main);
+    margin-bottom: 1rem;
+    font-size: 0.95rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.perm-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.perm-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    padding: 0.4rem 0.75rem;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+    font-size: 0.85rem;
+    color: var(--text-main);
+    transition: all 0.2s;
+    user-select: none;
+}
+
+.perm-item:hover {
+    border-color: var(--primary);
+}
+
+.perm-item input[type="checkbox"] {
+    accent-color: var(--primary);
+    width: 16px;
+    height: 16px;
+}
+
+.perm-item.is-checked {
+    background: var(--primary-soft);
+    border-color: var(--primary);
+    color: var(--primary);
+    font-weight: 600;
+}
+
+/* Actions */
+.form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    margin-top: 3rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--glass-border);
+}
+
+.btn-modern {
+    padding: 0.85rem 2rem;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: all 0.3s;
+    border: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    text-decoration: none;
+}
+
+.btn-save {
+    background: var(--primary);
+    color: white;
+    box-shadow: 0 4px 12px var(--primary-glow);
+}
+
+.btn-save:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px var(--primary-glow);
+}
+
+.btn-cancel {
+    background: var(--glass-border);
+    color: var(--text-main);
+}
+
+.btn-cancel:hover {
+    background: rgba(0, 0, 0, 0.1);
+}

@@ -1,0 +1,239 @@
+{% extends "admin/base_admin.html" %}
+{% load static %}
+
+{% block title %}Nouveau Paiement | AZ{% endblock %}
+{% block page_title %}Paiement{% endblock %}
+{% block breadcrumb %}Finance / Paiements / Nouveau{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'admin/css/paiements/form.css' %}?v=20">
+{% endblock %}
+
+{% block extra_js %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css">
+<script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
+<script src="{% static 'admin/js/paiements/form.js' %}?v=20" defer></script>
+{% endblock %}
+
+{% block content %}
+<div class="az-pay-shell">
+
+  <div class="az-pay-card">
+
+    <div class="az-pay-head">
+      <div>
+        <h2 class="az-pay-title">Paiement — Scolarité (Sep → Juin)</h2>
+        <p class="az-pay-sub">Sélectionne l’élève, choisis les mois, modifie les montants (réduction), puis valide.</p>
+      </div>
+      <div class="az-pay-badge">
+        <i class="fa-solid fa-layer-group"></i> AZ NEBULA
+      </div>
+    </div>
+
+    {% if form.non_field_errors %}
+      <div class="az-alert az-alert-danger">
+        <b>Erreur</b><br>
+        {{ form.non_field_errors }}
+      </div>
+    {% endif %}
+
+    {% if form.errors %}
+      <div class="az-alert az-alert-danger" style="white-space:pre-wrap;">
+        <b>Erreurs formulaire</b><br>
+        {{ form.errors }}
+      </div>
+    {% endif %}
+
+    <form method="post" class="az-pay-form" id="payForm" novalidate>
+      {% csrf_token %}
+
+      <!-- payload JSON multi-mois -->
+      <input type="hidden" name="echeances_payload" id="id_echeances_payload" value="{{ form.echeances_payload.value|default:'' }}">
+
+      <!-- nature fixée -->
+      <input type="hidden" name="nature" value="SCOLARITE">
+
+      <!-- =========================
+           STEP BAR
+      ========================== -->
+      <div class="az-card-inner az-stepbar">
+        <div class="az-step-left">
+          <span id="stepPill1" class="az-step-pill is-on">
+            <b>1</b> Choix élève
+          </span>
+          <span class="az-step-sep">—</span>
+          <span id="stepPill2" class="az-step-pill is-off">
+            <b>2</b> Mois & Total
+          </span>
+        </div>
+        <div class="az-step-hint" id="stepHint">Étape 1 : Choisis Niveau → Groupe → Élève.</div>
+      </div>
+
+      <!-- =========================
+           STEP 1
+      ========================== -->
+      <div class="az-card-inner" id="step1">
+        <div class="az-section-title">
+          <h4>Choix élève</h4>
+          <span class="az-chip">Recherche rapide</span>
+        </div>
+
+        <div class="az-grid-2">
+          <div class="az-field">
+            <label for="id_niveau_ui">Niveau</label>
+            <select id="id_niveau_ui" class="az-select">
+              <option value="">— Choisir un niveau —</option>
+              {% for n in niveaux %}
+                <option value="{{ n.id }}">{{ n.nom }}{% if n.degre %} ({{ n.degre.nom }}){% endif %}</option>
+              {% endfor %}
+            </select>
+            <div class="az-help">Les groupes sont chargés selon l’année active.</div>
+          </div>
+
+          <div class="az-field">
+            <label for="id_groupe_ui">Groupe</label>
+            <select id="id_groupe_ui" class="az-select" disabled>
+              <option value="">— Choisir un groupe —</option>
+            </select>
+            <div class="az-help">Chargé via AJAX (groupes du niveau).</div>
+          </div>
+        </div>
+
+        <div class="az-field" style="margin-top:10px;">
+          <label for="id_inscription">Élève (via inscription)</label>
+          {{ form.inscription }}
+          {% if form.inscription.errors %}
+            <div class="az-error">{{ form.inscription.errors }}</div>
+          {% endif %}
+          <div class="az-help">Recherche par matricule / nom / prénom (TomSelect).</div>
+        </div>
+
+        <div class="az-info-box" id="inscInfo" style="display:none;">
+          <div class="az-info-title">Infos élève</div>
+          <div class="az-info-text" id="inscInfoText"></div>
+        </div>
+      </div>
+
+      <!-- =========================
+           STEP 2
+      ========================== -->
+      <div class="az-card-inner" id="step2" style="display:none;">
+        <div class="az-section-title">
+          <h4>Mois (Sep → Juin)</h4>
+          <span class="az-chip az-chip-purple">Montant modifiable</span>
+        </div>
+
+        <div class="az-help" id="multiHint" style="margin-top:-6px;">
+          Clique sur un mois pour sélectionner. Tu peux ajuster le montant si réduction. Les mois déjà payés sont verrouillés.
+        </div>
+
+        <!-- Quick actions -->
+        <div class="az-month-actions">
+          <button type="button" class="az-btn az-btn-soft" id="btnSelectAllDue">
+            <i class="fa-solid fa-check-double"></i> Tout sélectionner (restants)
+          </button>
+          <button type="button" class="az-btn az-btn-soft" id="btnClearAll">
+            <i class="fa-solid fa-eraser"></i> Tout désélectionner
+          </button>
+          <div class="az-spacer"></div>
+          <div class="az-mini">
+            <span>Choisis :</span> <b id="pickedCount">0</b> mois
+          </div>
+        </div>
+
+        <div id="monthsGrid" class="az-months-grid"></div>
+
+        <!-- Paiement meta -->
+        <div class="az-grid-2" style="margin-top:14px;">
+          <div class="az-field">
+            <label for="id_mode">Mode</label>
+            {{ form.mode }}
+            {% if form.mode.errors %}<div class="az-error">{{ form.mode.errors }}</div>{% endif %}
+          </div>
+          <div class="az-field">
+            <label for="id_reference">Référence</label>
+            {{ form.reference }}
+            {% if form.reference.errors %}<div class="az-error">{{ form.reference.errors }}</div>{% endif %}
+            <div class="az-help">Optionnel (chèque, virement, transaction…)</div>
+          </div>
+        </div>
+
+        <div class="az-field">
+          <label for="id_note">Note</label>
+          {{ form.note }}
+          {% if form.note.errors %}<div class="az-error">{{ form.note.errors }}</div>{% endif %}
+        </div>
+
+        <!-- champs cachés -->
+        <input type="hidden" name="montant_total" id="id_montant_total" value="0.00">
+        <input type="hidden" name="montant" id="id_montant" value="0.00">
+        <input type="hidden" name="echeance" id="id_echeance" value="">
+      </div>
+
+      <!-- =========================
+           Actions
+      ========================== -->
+      <div class="az-pay-actions">
+        <a href="{% url 'core:paiement_list' %}" class="az-btn">← Retour</a>
+
+        <button type="submit"
+                class="az-btn az-btn-gradient"
+                id="submitBtn"
+                disabled
+                style="display:none">
+          <span class="az-btn-label">Valider le paiement</span>
+          <span class="az-btn-spin" aria-hidden="true"></span>
+        </button>
+      </div>
+
+    </form>
+  </div>
+
+  <!-- ============= RIGHT SUMMARY (sticky) ============= -->
+  <aside class="az-pay-side" id="sidePanel" aria-label="Résumé paiement">
+    <div class="az-side-card">
+      <div class="az-side-title">
+        <div>
+          <div class="az-side-kicker">Résumé</div>
+          <div class="az-side-h">Paiement scolarité</div>
+        </div>
+        <span class="az-chip az-chip-glow">LIVE</span>
+      </div>
+
+      <div class="az-kpi-grid">
+        <div class="az-kpi">
+          <div class="k-label">Total sélectionné</div>
+          <div class="k-value"><span id="totalDisplay">0.00</span> <span class="k-unit">MAD</span></div>
+        </div>
+        <div class="az-kpi">
+          <div class="k-label">Mois choisis</div>
+          <div class="k-value"><span id="pickedCount2">0</span> <span class="k-unit">/10</span></div>
+        </div>
+      </div>
+
+      <div class="az-side-list" id="pickedList">
+        <div class="az-empty">Aucun mois sélectionné.</div>
+      </div>
+
+      <div class="az-side-foot" id="sideStatus">
+        <i class="fa-solid fa-circle-info"></i>
+        <span>Choisis un élève puis sélectionne les mois.</span>
+      </div>
+    </div>
+
+    <div class="az-side-card az-side-card-muted">
+      <div class="az-side-mini">
+        <b>Astuce</b> : clique le mois → ON/OFF. Tu peux éditer le montant sans quitter.
+      </div>
+    </div>
+  </aside>
+
+</div>
+
+<script>
+  window.AZ_PAY = {
+    groupesParNiveauUrl: "{% url 'core:api_groupes_par_niveau' %}",
+    echeancesUrl: "{% url 'core:ajax_echeances' %}"
+  };
+</script>
+{% endblock %}

@@ -1,0 +1,229 @@
+{% extends "admin/base_admin.html" %}
+{% block page_title %}📩 Envoyer SMS{% endblock %}
+{% block content %}
+
+<div class="az-card">
+  <form method="post">
+    {% csrf_token %}
+
+    <div class="az-form">
+
+      <p>
+        <label><b>Ciblage</b></label><br>
+        {{ form.cible_type }}
+      </p>
+
+      <p>
+        <label><b>Message</b></label><br>
+        {{ form.message }}
+        <small style="opacity:.7">Le numéro sera normalisé automatiquement en +212…</small>
+      </p>
+
+      <hr>
+
+      <p style="opacity:.85"><b>Choisis une cible</b> (si tu n’es pas sur “TOUS”) :</p>
+
+      <!-- ✅ Degré -->
+      <p id="wrap-degre">
+        <label>Degré</label><br>
+        <select name="degre" id="degre_select">
+          <option value="">— Choisir —</option>
+          {% for d in degres %}
+            <option value="{{ d.id }}">{{ d.nom }}</option>
+          {% endfor %}
+        </select>
+      </p>
+
+      <!-- ✅ Niveau -->
+      <p id="wrap-niveau">
+        <label>Niveau</label><br>
+        <select name="niveau" id="niveau_select" disabled>
+          <option value="">— Choisir —</option>
+        </select>
+      </p>
+
+      <!-- ✅ Groupe -->
+      <p id="wrap-groupe">
+        <label>Groupe</label><br>
+        <select name="groupe" id="groupe_select" disabled>
+          <option value="">— Choisir —</option>
+        </select>
+      </p>
+
+      <!-- ✅ Élève -->
+      <p id="wrap-eleve">
+        <label>Élève</label><br>
+        <select name="eleve" id="eleve_select" disabled>
+          <option value="">— Choisir —</option>
+        </select>
+      </p>
+
+      <small style="opacity:.7">
+        Astuce : si tu cibles “Élève”, choisis d’abord Groupe → Élève.
+      </small>
+    </div>
+
+    <div class="az-toolbar">
+      <button class="az-btn az-btn-primary" type="submit">📤 Envoyer</button>
+      <a class="az-btn az-btn-ghost" href="{% url 'core:sms_history' %}">Historique</a>
+    </div>
+
+  </form>
+</div>
+
+<script>
+(function() {
+  const cibleType = document.getElementById("id_cible_type");
+
+  const wrapDegre = document.getElementById("wrap-degre");
+  const wrapNiveau = document.getElementById("wrap-niveau");
+  const wrapGroupe = document.getElementById("wrap-groupe");
+  const wrapEleve = document.getElementById("wrap-eleve");
+
+  const degreSelect = document.getElementById("degre_select");
+  const niveauSelect = document.getElementById("niveau_select");
+  const groupeSelect = document.getElementById("groupe_select");
+  const eleveSelect = document.getElementById("eleve_select");
+
+  // Endpoints existants chez toi
+  const URL_NIVEAUX = "{% url 'core:ajax_niveaux' %}";     // ?degre_id=...
+  const URL_GROUPES = "{% url 'core:ajax_groupes' %}";     // ?niveau_id=...
+  const URL_ELEVES  = "{% url 'core:ajax_eleves_par_groupe' %}"; // ?groupe_id=...
+
+  function hideAllTargets() {
+    wrapDegre.style.display = "none";
+    wrapNiveau.style.display = "none";
+    wrapGroupe.style.display = "none";
+    wrapEleve.style.display = "none";
+  }
+
+  function resetSelect(sel, placeholder="— Choisir —") {
+    sel.innerHTML = "";
+    const opt = document.createElement("option");
+    opt.value = "";
+    opt.textContent = placeholder;
+    sel.appendChild(opt);
+    sel.value = "";
+  }
+
+  async function fetchJSON(url) {
+    const res = await fetch(url, {headers: {"X-Requested-With": "XMLHttpRequest"}});
+    return await res.json();
+  }
+
+  async function loadNiveaux(degreId) {
+    resetSelect(niveauSelect);
+    resetSelect(groupeSelect);
+    resetSelect(eleveSelect);
+
+    niveauSelect.disabled = true;
+    groupeSelect.disabled = true;
+    eleveSelect.disabled = true;
+
+    if (!degreId) return;
+
+    const data = await fetchJSON(URL_NIVEAUX + "?degre_id=" + encodeURIComponent(degreId));
+    const items = data.results || data || [];
+    items.forEach(it => {
+      const o = document.createElement("option");
+      o.value = it.id;
+      o.textContent = it.nom || it.label || ("Niveau #" + it.id);
+      niveauSelect.appendChild(o);
+    });
+    niveauSelect.disabled = false;
+  }
+
+  async function loadGroupes(niveauId) {
+    resetSelect(groupeSelect);
+    resetSelect(eleveSelect);
+
+    groupeSelect.disabled = true;
+    eleveSelect.disabled = true;
+
+    if (!niveauId) return;
+
+    const data = await fetchJSON(URL_GROUPES + "?niveau_id=" + encodeURIComponent(niveauId));
+    const items = data.results || data || [];
+    items.forEach(it => {
+      const o = document.createElement("option");
+      o.value = it.id;
+      o.textContent = it.nom || it.label || ("Groupe #" + it.id);
+      groupeSelect.appendChild(o);
+    });
+    groupeSelect.disabled = false;
+  }
+
+  async function loadEleves(groupeId) {
+    resetSelect(eleveSelect);
+    eleveSelect.disabled = true;
+    if (!groupeId) return;
+
+    const data = await fetchJSON(URL_ELEVES + "?groupe_id=" + encodeURIComponent(groupeId));
+    const items = data.results || [];
+    items.forEach(it => {
+      const o = document.createElement("option");
+      o.value = it.id;
+      o.textContent = it.label || ("Élève #" + it.id);
+      eleveSelect.appendChild(o);
+    });
+    eleveSelect.disabled = false;
+  }
+
+  function applyCiblageUI() {
+    const t = cibleType.value;
+
+    hideAllTargets();
+
+    // Toujours reset
+    // (on évite d’envoyer des IDs non voulus)
+    // On laisse Degré pour démarrer la chaîne
+    if (t === "TOUS") return;
+
+    if (t === "DEGRE") {
+      wrapDegre.style.display = "";
+      return;
+    }
+
+    if (t === "NIVEAU") {
+      wrapDegre.style.display = "";
+      wrapNiveau.style.display = "";
+      return;
+    }
+
+    if (t === "GROUPE") {
+      wrapDegre.style.display = "";
+      wrapNiveau.style.display = "";
+      wrapGroupe.style.display = "";
+      return;
+    }
+
+    if (t === "ELEVE") {
+      wrapDegre.style.display = "";
+      wrapNiveau.style.display = "";
+      wrapGroupe.style.display = "";
+      wrapEleve.style.display = "";
+      return;
+    }
+  }
+
+  // Events
+  cibleType.addEventListener("change", applyCiblageUI);
+
+  degreSelect.addEventListener("change", async () => {
+    await loadNiveaux(degreSelect.value);
+  });
+
+  niveauSelect.addEventListener("change", async () => {
+    await loadGroupes(niveauSelect.value);
+  });
+
+  groupeSelect.addEventListener("change", async () => {
+    await loadEleves(groupeSelect.value);
+  });
+
+  // Init
+  applyCiblageUI();
+})();
+</script>
+
+{% endblock %}

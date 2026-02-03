@@ -1,0 +1,69 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}Absences profs | AZ{% endblock %}
+{% block page_title %}Absences profs{% endblock %}
+{% block breadcrumb %}Pédagogie / Absences profs{% endblock %}
+
+{% block content %}
+<div class="az-card" style="grid-column:span 12;">
+  <form method="get" style="display:flex;gap:10px;flex-wrap:wrap;align-items:end;">
+    <div>
+      <label><b>Prof</b></label>
+      <select class="az-btn" name="enseignant" style="min-width:260px;">
+        <option value="">— Tous —</option>
+        {% for e in enseignants %}
+          <option value="{{ e.id }}" {% if enseignant_id == e.id|stringformat:"s" %}selected{% endif %}>
+            {{ e.matricule }} — {{ e.nom }} {{ e.prenom }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div>
+      <label><b>Mois</b></label>
+      <input class="az-btn" type="number" name="month" min="1" max="12" value="{{ month }}" style="width:110px;">
+    </div>
+    <div>
+      <label><b>Année</b></label>
+      <input class="az-btn" type="number" name="year" min="2020" max="2100" value="{{ year }}" style="width:130px;">
+    </div>
+
+    <button class="az-btn az-btn-gradient" type="submit">Filtrer</button>
+    <a class="az-btn" href="{% url 'core:absence_prof_create' %}">+ Ajouter absence</a>
+  </form>
+</div>
+
+{% if stats %}
+<div class="az-grid" style="grid-column:span 12;display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
+  <div class="az-card"><b>Heures prévues</b><div style="font-size:22px;margin-top:6px;">{{ stats.prevues_heures }} h</div></div>
+  <div class="az-card"><b>Heures manquées</b><div style="font-size:22px;margin-top:6px;">{{ stats.manquees_heures }} h</div></div>
+  <div class="az-card"><b>Heures faites</b><div style="font-size:22px;margin-top:6px;">{{ stats.faites_heures }} h</div></div>
+</div>
+{% endif %}
+
+<div class="az-card" style="grid-column:span 12;">
+  <table class="az-table" style="width:100%;">
+    <thead>
+      <tr>
+        <th>Date</th><th>Prof</th><th>Groupe</th><th>Jour</th><th>Heure</th><th>Durée</th><th>Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for a in rows %}
+      <tr>
+        <td>{{ a.date }}</td>
+        <td>{{ a.enseignant.nom }} {{ a.enseignant.prenom }}</td>
+        <td>{{ a.seance.groupe.nom }}</td>
+        <td>{{ a.seance.get_jour_display }}</td>
+        <td>{{ a.seance.heure_debut }} - {{ a.seance.heure_fin }}</td>
+        <td>{{ a.minutes_perdues|floatformat:0 }} min</td>
+        <td>
+          <a class="az-btn" href="{% url 'core:absence_prof_delete' a.id %}">Supprimer</a>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="7" class="az-sub">Aucune absence.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

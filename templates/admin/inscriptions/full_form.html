@@ -1,0 +1,210 @@
+{% extends "admin/base_admin.html" %}
+{% load static %}
+
+{% block title %}Nouvelle inscription | AZ{% endblock %}
+{% block page_title %}Nouvelle inscription (Pratique){% endblock %}
+{% block breadcrumb %}Scolaire / Inscriptions / Pratique{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'admin/css/inscriptions/pratique.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="az-form-container">
+    <div class="az-form-card">
+        <!-- En-tête du formulaire -->
+        <div class="az-form-header">
+            <div class="az-header-content">
+                <h3 class="az-form-title">Nouvelle inscription</h3>
+                <p class="az-form-subtitle">Créez un <strong>Élève</strong>, son <strong>Parent</strong> et son <strong>Inscription</strong> simultanément.</p>
+            </div>
+            <div class="az-header-badge">
+                <span class="az-badge-bolt"><i class="fas fa-bolt"></i> Mode Pratique</span>
+            </div>
+        </div>
+
+        <form method="post" enctype="multipart/form-data" class="az-main-form" novalidate>
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+                <div class="az-alert az-alert-danger">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    {{ form.non_field_errors }}
+                </div>
+            {% endif %}
+
+            <!-- SECTION ÉLÈVE -->
+            <section class="az-form-section">
+                <div class="az-section-header">
+                    <div class="az-section-icon"><i class="fas fa-user-graduate"></i></div>
+                    <div class="az-section-text">
+                        <h4>Informations de l'Élève</h4>
+                        <p>Identité et coordonnées de base de l'apprenant.</p>
+                    </div>
+                </div>
+
+                <div class="az-form-grid az-grid-3">
+                    <div class="az-field">
+                        {{ form.eleve_nom.label_tag }}
+                        {{ form.eleve_nom }}
+                        {% for e in form.eleve_nom.errors %}<div class="az-error-msg">{{ e }}</div>{% endfor %}
+                    </div>
+                    <div class="az-field">
+                        {{ form.eleve_prenom.label_tag }}
+                        {{ form.eleve_prenom }}
+                        {% for e in form.eleve_prenom.errors %}<div class="az-error-msg">{{ e }}</div>{% endfor %}
+                    </div>
+                    <div class="az-field">
+                        {{ form.eleve_sexe.label_tag }}
+                        {{ form.eleve_sexe }}
+                        {% for e in form.eleve_sexe.errors %}<div class="az-error-msg">{{ e }}</div>{% endfor %}
+                    </div>
+                </div>
+<!-- ✅ PHOTO ÉLÈVE -->
+<div class="az-form-grid az-grid-3">
+  <div class="az-field az-field-file">
+    {{ form.eleve_photo.label_tag }}
+    {{ form.eleve_photo }}
+    <div class="az-field-help">Formats: JPG/PNG/WEBP • max 2MB • conseillé: carré 400×400</div>
+    {% for e in form.eleve_photo.errors %}<div class="az-error-msg">{{ e }}</div>{% endfor %}
+
+    <!-- preview -->
+    <div class="az-photo-preview" id="photoPreview" style="display:none;">
+      <img id="photoPreviewImg" alt="Aperçu photo élève" />
+      <button type="button" class="az-btn az-btn-ghost" id="photoReset">
+        <i class="fa-solid fa-rotate-left"></i> Retirer
+      </button>
+    </div>
+  </div>
+</div>
+
+                <div class="az-form-grid az-grid-3">
+                    <div class="az-field">
+                        {{ form.eleve_date_naissance.label_tag }}
+                        {{ form.eleve_date_naissance }}
+                        {% for e in form.eleve_date_naissance.errors %}<div class="az-error-msg">{{ e }}</div>{% endfor %}
+                    </div>
+                    <div class="az-field">
+                        {{ form.eleve_lieu_naissance.label_tag }}
+                        {{ form.eleve_lieu_naissance }}
+                        {% for e in form.eleve_lieu_naissance.errors %}<div class="az-error-msg">{{ e }}</div>{% endfor %}
+                    </div>
+                    <div class="az-field">
+                        {{ form.eleve_telephone.label_tag }}
+                        {{ form.eleve_telephone }}
+                        {% for e in form.eleve_telephone.errors %}<div class="az-error-msg">{{ e }}</div>{% endfor %}
+                    </div>
+                </div>
+
+                <div class="az-field">
+                    {{ form.eleve_adresse.label_tag }}
+                    {{ form.eleve_adresse }}
+                    {% for e in form.eleve_adresse.errors %}<div class="az-error-msg">{{ e }}</div>{% endfor %}
+                </div>
+            </section>
+
+            <!-- SECTION PARENT -->
+            <section class="az-form-section">
+                <div class="az-section-header">
+                    <div class="az-section-icon"><i class="fas fa-user-shield"></i></div>
+                    <div class="az-section-text">
+                        <h4>Informations du Parent</h4>
+                        <p>Coordonnées du tuteur légal et lien de parenté.</p>
+                    </div>
+                </div>
+
+                <div class="az-form-grid az-grid-3">
+                    <div class="az-field">
+                        {{ form.parent_nom.label_tag }}
+                        {{ form.parent_nom }}
+                        {% for e in form.parent_nom.errors %}<div class="az-error-msg">{{ e }}</div>{% endfor %}
+                    </div>
+                    <div class="az-field">
+                        {{ form.parent_prenom.label_tag }}
+                        {{ form.parent_prenom }}
+                        {% for e in form.parent_prenom.errors %}<div class="az-error-msg">{{ e }}</div>{% endfor %}
+                    </div>
+                    <div class="az-field">
+                        {{ form.lien.label_tag }}
+                        {{ form.lien }}
+                        {% for e in form.lien.errors %}<div class="az-error-msg">{{ e }}</div>{% endfor %}
+                    </div>
+                </div>
+
+                <div class="az-form-grid az-grid-3">
+                    <div class="az-field">
+                        {{ form.parent_telephone.label_tag }}
+                        {{ form.parent_telephone }}
+                        {% for e in form.parent_telephone.errors %}<div class="az-error-msg">{{ e }}</div>{% endfor %}
+                    </div>
+                    <div class="az-field">
+                        {{ form.parent_email.label_tag }}
+                        {{ form.parent_email }}
+                        {% for e in form.parent_email.errors %}<div class="az-error-msg">{{ e }}</div>{% endfor %}
+                    </div>
+                    <div class="az-field-info">
+                        <div class="az-info-box">
+                            <i class="fas fa-info-circle"></i>
+                            <span>L'email permettra l'envoi automatique des notifications.</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="az-field">
+                    {{ form.parent_adresse.label_tag }}
+                    {{ form.parent_adresse }}
+                    {% for e in form.parent_adresse.errors %}<div class="az-error-msg">{{ e }}</div>{% endfor %}
+                </div>
+            </section>
+
+            <!-- SECTION INSCRIPTION -->
+            <section class="az-form-section">
+                <div class="az-section-header">
+                    <div class="az-section-icon"><i class="fas fa-clipboard-check"></i></div>
+                    <div class="az-section-text">
+                        <h4>Détails de l'Inscription</h4>
+                        <p>Sélection de l'année scolaire et affectation au groupe.</p>
+                    </div>
+                </div>
+
+                <div class="az-form-grid az-grid-3">
+                    <div class="az-field">
+                        {{ form.annee.label_tag }}
+                        {{ form.annee }}
+                        <div class="az-field-help">L'année détermine les groupes disponibles.</div>
+                        {% for e in form.annee.errors %}<div class="az-error-msg">{{ e }}</div>{% endfor %}
+                    </div>
+                    <div class="az-field">
+                        {{ form.groupe.label_tag }}
+                        {{ form.groupe }}
+                        <div class="az-field-help" id="groupeHelp">Veuillez d'abord choisir une année.</div>
+                        {% for e in form.groupe.errors %}<div class="az-error-msg">{{ e }}</div>{% endfor %}
+                    </div>
+                    <div class="az-field">
+                        {{ form.statut.label_tag }}
+                        {{ form.statut }}
+                        {% for e in form.statut.errors %}<div class="az-error-msg">{{ e }}</div>{% endfor %}
+                    </div>
+                </div>
+            </section>
+
+            <!-- ACTIONS -->
+            <div class="az-form-actions">
+                <a class="az-btn az-btn-outline" href="{% url 'core:inscription_list' %}">
+                    <i class="fas fa-arrow-left"></i> Annuler
+                </a>
+                <button class="az-btn az-btn-gradient" type="submit" id="saveBtn">
+                    <i class="fas fa-check-circle"></i> Finaliser l'Inscription
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  window.AZ_GROUPES_API = "{% url 'core:api_groupes_par_annee' %}";
+</script>
+<script src="{% static 'admin/js/inscriptions/pratique.js' %}?v=1"></script>
+{% endblock %}

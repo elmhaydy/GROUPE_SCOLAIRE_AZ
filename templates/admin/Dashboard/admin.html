@@ -1,0 +1,450 @@
+{# templates/admin/dashboard_admin.html #}
+{% extends "admin/base_admin.html" %}
+{% load static %}
+
+{% block title %}Admin • Tableau de bord | AZ{% endblock %}
+{% block current_page %}Admin • Tableau de bord{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'admin/css/dashboard/admin.css' %}?v=2">
+{% endblock %}
+
+{% block content %}
+<div class="azad">
+
+  <!-- HERO / HEADER -->
+  <div class="azad-hero">
+    <div class="azad-hero-left">
+      <div class="azad-pill">
+        <i class="fa-solid fa-gauge-high"></i>
+        <span>Admin</span>
+        <span class="azad-pill-sep">•</span>
+        <span>Pilotage quotidien</span>
+      </div>
+
+      <h1 class="azad-title">
+        <i class="fa-solid fa-chart-line"></i>
+        Tableau de bord
+      </h1>
+
+      <p class="azad-subtitle">
+        Vue rapide sur les indicateurs clés (élèves, groupes, finances, impayés) et l’activité récente.
+      </p>
+    </div>
+
+    <div class="azad-hero-right">
+      <div class="azad-date">
+        <i class="fa-regular fa-calendar"></i>
+        <span id="currentDate">{{ current_date|date:"d F Y" }}</span>
+      </div>
+
+      <div class="azad-actions">
+        <a class="azad-btn azad-btn-soft" href="{% url 'core:eleve_list' %}">
+          <i class="fa-solid fa-user-graduate"></i> Élèves
+        </a>
+        <a class="azad-btn azad-btn-soft" href="{% url 'core:groupe_list' %}">
+          <i class="fa-solid fa-layer-group"></i> Groupes
+        </a>
+        <button class="azad-btn azad-btn-primary" id="refreshDashboard">
+          <i class="fa-solid fa-rotate"></i> Actualiser
+        </button>
+      </div>
+   
+    </div>
+
+    <div class="azad-hero-glow"></div>
+  </div>
+
+  <!-- KPI GRID -->
+  <div class="azad-kpi-grid">
+
+    <div class="azad-kpi">
+      <div class="azad-kpi-ic azad-ic-grad a"><i class="fa-solid fa-user-graduate"></i></div>
+      <div class="azad-kpi-meta">
+        <div class="azad-kpi-val">{{ nb_eleves|default:0 }}</div>
+        <div class="azad-kpi-label">Élèves actifs</div>
+        <div class="azad-kpi-trend">
+          {% if eleves_trend > 0 %}
+            <span class="azad-tr up"><i class="fa-solid fa-arrow-up"></i> +{{ eleves_trend }}%</span>
+          {% elif eleves_trend < 0 %}
+            <span class="azad-tr down"><i class="fa-solid fa-arrow-down"></i> {{ eleves_trend }}%</span>
+          {% else %}
+            <span class="azad-tr flat"><i class="fa-solid fa-minus"></i> Stable</span>
+          {% endif %}
+          <span class="azad-tr-sub">vs mois dernier</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="azad-kpi">
+      <div class="azad-kpi-ic azad-ic-grad b"><i class="fa-solid fa-layer-group"></i></div>
+      <div class="azad-kpi-meta">
+        <div class="azad-kpi-val">{{ nb_groupes|default:0 }}</div>
+        <div class="azad-kpi-label">Groupes actifs</div>
+        <div class="azad-kpi-trend">
+          {% if groupes_trend > 0 %}
+            <span class="azad-tr up"><i class="fa-solid fa-arrow-up"></i> +{{ groupes_trend }}%</span>
+          {% elif groupes_trend < 0 %}
+            <span class="azad-tr down"><i class="fa-solid fa-arrow-down"></i> {{ groupes_trend }}%</span>
+          {% else %}
+            <span class="azad-tr flat"><i class="fa-solid fa-minus"></i> Stable</span>
+          {% endif %}
+          <span class="azad-tr-sub">vs mois dernier</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="azad-kpi">
+      <div class="azad-kpi-ic azad-ic-grad c"><i class="fa-solid fa-coins"></i></div>
+      <div class="azad-kpi-meta">
+        <div class="azad-kpi-val">{{ total_paye|default:0 }} <span class="azad-kpi-unit">MAD</span></div>
+        <div class="azad-kpi-label">Total encaissé</div>
+        <div class="azad-kpi-trend">
+          {% if revenue_trend > 0 %}
+            <span class="azad-tr up"><i class="fa-solid fa-arrow-up"></i> +{{ revenue_trend }}%</span>
+          {% elif revenue_trend < 0 %}
+            <span class="azad-tr down"><i class="fa-solid fa-arrow-down"></i> {{ revenue_trend }}%</span>
+          {% else %}
+            <span class="azad-tr flat"><i class="fa-solid fa-minus"></i> Stable</span>
+          {% endif %}
+          <span class="azad-tr-sub">vs mois dernier</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="azad-kpi azad-kpi-warn">
+      <div class="azad-kpi-ic azad-ic-grad d"><i class="fa-solid fa-triangle-exclamation"></i></div>
+      <div class="azad-kpi-meta">
+        <div class="azad-kpi-val">{{ total_impayes|default:"0" }} <span class="azad-kpi-unit">MAD</span></div>
+        <div class="azad-kpi-label">Impayés (reste)</div>
+        <div class="azad-kpi-trend">
+          <span class="azad-tr warn"><i class="fa-solid fa-clock"></i> {{ nb_impayes|default:0 }} dossiers</span>
+          <span class="azad-tr-sub">à traiter</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="azad-kpi azad-kpi-soft">
+      <div class="azad-kpi-ic azad-ic-grad e"><i class="fa-solid fa-percent"></i></div>
+      <div class="azad-kpi-meta">
+        <div class="azad-kpi-val">{{ taux_paiement|default:0 }}<span class="azad-kpi-unit">%</span></div>
+        <div class="azad-kpi-label">Taux de paiement</div>
+        <div class="azad-kpi-trend">
+          {% if payment_trend > 0 %}
+            <span class="azad-tr up"><i class="fa-solid fa-arrow-up"></i> +{{ payment_trend }}%</span>
+          {% elif payment_trend < 0 %}
+            <span class="azad-tr down"><i class="fa-solid fa-arrow-down"></i> {{ payment_trend }}%</span>
+          {% else %}
+            <span class="azad-tr flat"><i class="fa-solid fa-minus"></i> Stable</span>
+          {% endif %}
+          <span class="azad-tr-sub">vs mois dernier</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="azad-kpi">
+      <div class="azad-kpi-ic azad-ic-grad f"><i class="fa-solid fa-receipt"></i></div>
+      <div class="azad-kpi-meta">
+        <div class="azad-kpi-val">{{ nb_paiements|default:0 }}</div>
+        <div class="azad-kpi-label">Paiements enregistrés</div>
+        <div class="azad-kpi-trend">
+          <span class="azad-tr flat"><i class="fa-solid fa-wave-square"></i> Activité</span>
+          <span class="azad-tr-sub">tous modes</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- PANELS: FINANCE + CHART -->
+  <div class="azad-panels">
+
+    <!-- FINANCE / HEALTH -->
+    <div class="azad-card">
+      <div class="azad-card-head">
+        <h3><i class="fa-solid fa-coins"></i> Finance & alertes</h3>
+        <span class="azad-badge">{% if nb_impayes|default:0 > 0 %}Action{% else %}OK{% endif %}</span>
+      </div>
+
+      <div class="azad-health-grid">
+        <div class="azad-health">
+          <div class="azad-health-top">
+            <span class="azad-health-label">Année active</span>
+            <span class="azad-health-val">{{ annee_active|default:"—" }}</span>
+          </div>
+          <div class="azad-health-sub">
+            <i class="fa-regular fa-calendar-check"></i>
+            <span>Configuration scolaire</span>
+          </div>
+        </div>
+
+        <div class="azad-health">
+          <div class="azad-health-top">
+            <span class="azad-health-label">Objectif mensuel</span>
+            <span class="azad-health-val">{{ objectif_mensuel|default:"0" }} MAD</span>
+          </div>
+          <div class="azad-health-sub">
+            <i class="fa-solid fa-target"></i>
+            <span>{{ objectif_atteint|default:0 }}% atteint</span>
+          </div>
+        </div>
+
+        <div class="azad-health azad-health-warn">
+          <div class="azad-health-top">
+            <span class="azad-health-label">Impayés</span>
+            <span class="azad-health-val">{{ nb_impayes|default:0 }}</span>
+          </div>
+          <div class="azad-health-sub">
+            <i class="fa-solid fa-bell"></i>
+            <span>Relances & recouvrement</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="azad-quick">
+        <a class="azad-q" href="{% url 'core:paiement_list' %}">
+          <i class="fa-solid fa-money-check-dollar"></i>
+          <div>
+            <div class="azad-q-title">Paiements</div>
+            <div class="azad-q-sub">Liste & filtres</div>
+          </div>
+          <i class="fa-solid fa-arrow-right azad-q-go"></i>
+        </a>
+
+        <a class="azad-q" href="{% url 'core:inscription_list' %}">
+          <i class="fa-solid fa-file-signature"></i>
+          <div>
+            <div class="azad-q-title">Inscriptions</div>
+            <div class="azad-q-sub">Suivi des dossiers</div>
+          </div>
+          <i class="fa-solid fa-arrow-right azad-q-go"></i>
+        </a>
+
+        <a class="azad-q" href="{% url 'core:impayes_mensuels_list' %}">
+          <i class="fa-solid fa-file-circle-exclamation"></i>
+          <div>
+            <div class="azad-q-title">Impayés mensuels</div>
+            <div class="azad-q-sub">Échéances & retards</div>
+          </div>
+          <i class="fa-solid fa-arrow-right azad-q-go"></i>
+        </a>
+      </div>
+    </div>
+
+    <!-- CHART -->
+    <div class="azad-card">
+      <div class="azad-card-head">
+        <h3><i class="fa-solid fa-chart-column"></i> Pilotage (12 mois)</h3>
+        <div class="azad-card-actions">
+          <select class="azad-select" id="chartPeriod">
+            <option value="12m" selected>12 mois</option>
+            <option value="6m">6 mois</option>
+          </select>
+          <button class="azad-btn azad-btn-ghost" id="exportChart" title="Exporter le graphique">
+            <i class="fa-solid fa-download"></i>
+          </button>
+        </div>
+      </div>
+      <div class="azad-chart">
+        <canvas id="monthlyChart"></canvas>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ACTIVITÉ RÉCENTE -->
+  <div class="azad-activity">
+
+    <div class="azad-card">
+      <div class="azad-card-head">
+        <h3><i class="fa-solid fa-clock-rotate-left"></i> Activité récente</h3>
+        <div class="azad-tabs">
+          <button class="azad-tab active" data-tab="paiements">Paiements</button>
+          <button class="azad-tab" data-tab="inscriptions">Inscriptions</button>
+          <button class="azad-tab" data-tab="impayes">Impayés</button>
+        </div>
+      </div>
+
+      <!-- PAIEMENTS -->
+      <div class="azad-tabpanel active" id="paiementsTab">
+        <div class="azad-table-head">
+          <span>Derniers paiements</span>
+          <a class="azad-link" href="{% url 'core:paiement_list' %}">Voir tout <i class="fa-solid fa-arrow-right"></i></a>
+        </div>
+
+        <div class="azad-list">
+          {% for paiement in derniers_paiements %}
+            <div class="azad-row">
+              <div class="azad-row-left">
+                <div class="azad-avatar">{{ paiement.inscription.eleve.nom|first|upper }}</div>
+                <div class="azad-row-info">
+                  <div class="azad-row-title">{{ paiement.inscription.eleve.nom_complet }}</div>
+                  <div class="azad-row-sub">{{ paiement.inscription.groupe.nom }}</div>
+                </div>
+              </div>
+
+              <div class="azad-row-right">
+                <div class="azad-amt">
+                  <div class="azad-amt-val">{{ paiement.montant }} MAD</div>
+                  <div class="azad-amt-sub">{{ paiement.date_paiement|date:"d/m/Y" }}</div>
+                </div>
+
+                <div class="azad-badges">
+                  <span class="azad-badge-mode {{ paiement.mode|lower }}">
+                    <i class="fa-solid fa-{% if paiement.mode == 'ESPECES' %}money-bill{% elif paiement.mode == 'CHEQUE' %}file-invoice{% elif paiement.mode == 'VIREMENT' %}right-left{% else %}credit-card{% endif %}"></i>
+                    {{ paiement.get_mode_display }}
+                  </span>
+                </div>
+              </div>
+            </div>
+          {% empty %}
+            <div class="azad-empty">
+              <i class="fa-solid fa-receipt"></i>
+              <span>Aucun paiement récent</span>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- INSCRIPTIONS -->
+      <div class="azad-tabpanel" id="inscriptionsTab">
+        <div class="azad-table-head">
+          <span>Nouvelles inscriptions</span>
+          <a class="azad-link" href="{% url 'core:inscription_list' %}">Voir tout <i class="fa-solid fa-arrow-right"></i></a>
+        </div>
+
+        <div class="azad-list">
+          {% for inscription in nouvelles_inscriptions %}
+            <div class="azad-row">
+              <div class="azad-row-left">
+                <div class="azad-avatar">{{ inscription.eleve.nom|first|upper }}</div>
+                <div class="azad-row-info">
+                  <div class="azad-row-title">{{ inscription.eleve.nom_complet }}</div>
+                  <div class="azad-row-sub">{{ inscription.groupe.niveau.nom }} • {{ inscription.groupe.nom }}</div>
+                </div>
+              </div>
+
+              <div class="azad-row-right">
+                <div class="azad-amt">
+                  <div class="azad-amt-val">{{ inscription.montant_total|default:"0" }} MAD</div>
+                  <div class="azad-amt-sub">{{ inscription.date_inscription|date:"d/m/Y" }}</div>
+                </div>
+
+                <div class="azad-badges">
+                  {% if inscription.statut == 'VALIDEE' %}
+                    <span class="azad-badge-ok">Validée</span>
+                  {% elif inscription.statut == 'EN_COURS' %}
+                    <span class="azad-badge-warn">En cours</span>
+                  {% else %}
+                    <span class="azad-badge-soft">{{ inscription.get_statut_display }}</span>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+          {% empty %}
+            <div class="azad-empty">
+              <i class="fa-solid fa-user-plus"></i>
+              <span>Aucune inscription récente</span>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- IMPAYÉS -->
+      <div class="azad-tabpanel" id="impayesTab">
+        <div class="azad-table-head">
+          <span>Impayés (Top)</span>
+          <a class="azad-link" href="{% url 'core:impayes_mensuels_list' %}">Gérer <i class="fa-solid fa-arrow-right"></i></a>
+        </div>
+
+        <div class="azad-list">
+          {% for impaye in impayes_recents %}
+            <div class="azad-row">
+              <div class="azad-row-left">
+                <div class="azad-avatar azad-avatar-warn"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                <div class="azad-row-info">
+                  <div class="azad-row-title">{{ impaye.eleve.nom_complet }}</div>
+                  <div class="azad-row-sub">{{ impaye.groupe.nom }}</div>
+                </div>
+              </div>
+
+              <div class="azad-row-right">
+                <div class="azad-amt">
+                  <div class="azad-amt-val azad-amt-warn">{{ impaye.reste }} MAD</div>
+                  <div class="azad-amt-sub">En attente</div>
+                </div>
+
+                <div class="azad-actions-mini">
+                  <a class="azad-icbtn" href="{% url 'core:recouvrement_list' %}" title="Ouvrir recouvrement">
+                    <i class="fa-solid fa-hand-holding-dollar"></i>
+                  </a>
+                  <a class="azad-icbtn" href="{% url 'core:impayes_mensuels_list' %}" title="Détails impayés">
+                    <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                  </a>
+                </div>
+              </div>
+            </div>
+          {% empty %}
+            <div class="azad-empty">
+              <i class="fa-solid fa-circle-check"></i>
+              <span>Aucun impayé en attente</span>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+
+    </div>
+
+    <!-- MINI CARD: PRÉSENCES -->
+    <div class="azad-card">
+      <div class="azad-card-head">
+        <h3><i class="fa-solid fa-clipboard-check"></i> Présences (aujourd’hui)</h3>
+        <span class="azad-badge">{{ today|date:"d/m/Y" }}</span>
+      </div>
+
+      <div class="azad-pres-grid">
+        <div class="azad-pres">
+          <div class="azad-pres-top ok"><i class="fa-solid fa-user-check"></i> Présents</div>
+          <div class="azad-pres-val">{{ presences.presents|default:0 }}</div>
+          <div class="azad-pres-sub">{{ presences.taux_presence|default:0 }}%</div>
+        </div>
+        <div class="azad-pres">
+          <div class="azad-pres-top bad"><i class="fa-solid fa-user-xmark"></i> Absents</div>
+          <div class="azad-pres-val">{{ presences.absents|default:0 }}</div>
+          <div class="azad-pres-sub">{{ presences.taux_absence|default:0 }}%</div>
+        </div>
+        <div class="azad-pres">
+          <div class="azad-pres-top warn"><i class="fa-solid fa-clock"></i> Retards</div>
+          <div class="azad-pres-val">{{ presences.retards|default:0 }}</div>
+          <div class="azad-pres-sub">{{ presences.taux_retard|default:0 }}%</div>
+        </div>
+        <div class="azad-pres">
+          <div class="azad-pres-top soft"><i class="fa-solid fa-users"></i> Total</div>
+          <div class="azad-pres-val">{{ presences.total|default:0 }}</div>
+          <div class="azad-pres-sub">100%</div>
+        </div>
+      </div>
+
+      <div class="azad-pres-actions">
+        <a class="azad-btn azad-btn-primary" href="{% url 'core:absence_list' %}">
+          <i class="fa-solid fa-clipboard-check"></i> Gérer
+        </a>
+        <button class="azad-btn azad-btn-soft" id="sendReminders">
+          <i class="fa-solid fa-bell"></i> Rappels
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+{# ✅ données chart backend #}
+{{ monthly_chart_json|json_script:"monthly-chart-data" }}
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{% static 'admin/js/dashboard/admin.js' %}?v=1"></script>
+{% endblock %}

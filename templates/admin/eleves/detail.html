@@ -1,0 +1,421 @@
+{% extends "admin/base_admin.html" %}
+{% load static %}
+
+{% block title %}{{ eleve.matricule }} | Élève{% endblock %}
+{% block page_title %}Fiche élève{% endblock %}
+{% block breadcrumb %}Scolaire / Élèves / {{ eleve.matricule }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'admin/css/eleves/detail.css' %}?v=5">
+{% endblock %}
+
+{% block content %}
+<div class="az-detail-container">
+
+  <!-- =========================
+       ACTION BAR
+       ========================= -->
+  <div class="az-action-bar">
+    <a class="az-btn az-btn-outline" href="{% url 'core:eleve_list' %}">
+      <i class="fas fa-arrow-left"></i>
+      Retour
+    </a>
+
+    <div class="az-action-group">
+      <a class="az-btn az-btn-edit" href="{% url 'core:eleve_update' eleve.id %}">
+        <i class="fas fa-edit"></i>
+        Modifier
+      </a>
+
+      <!-- ✅ data-confirm pour le JS -->
+      <a class="az-btn az-btn-delete"
+         href="{% url 'core:eleve_delete' eleve.id %}"
+         data-confirm="Êtes-vous sûr de vouloir supprimer cet élève ? Cette action est irréversible.">
+        <i class="fas fa-trash"></i>
+        Supprimer
+      </a>
+
+      <a class="az-btn az-btn-gradient" href="{% url 'core:inscription_create_for_eleve' eleve.id %}">
+        <i class="fas fa-user-plus"></i>
+        Inscrire
+      </a>
+    </div>
+  </div>
+
+  <!-- =========================
+       MAIN GRID
+       ========================= -->
+  <div class="az-main-grid">
+
+    <!-- =========================
+         IDENTITÉ
+         ========================= -->
+    <section class="az-card az-card-identity">
+      <header class="az-card-header">
+        <i class="fas fa-id-card"></i>
+        <h3>Identité</h3>
+      </header>
+
+      <div class="az-identity-content">
+        <div class="az-avatar-wrapper" aria-label="Avatar élève">
+          {% if eleve.photo %}
+            <img src="{{ eleve.photo.url }}" alt="Photo de {{ eleve.nom }} {{ eleve.prenom }}" class="az-avatar">
+          {% else %}
+            <div class="az-avatar-placeholder" aria-hidden="true">
+              <i class="fas fa-user"></i>
+            </div>
+          {% endif %}
+          <span class="az-status-badge {% if eleve.is_active %}active{% else %}inactive{% endif %}"
+                title="{% if eleve.is_active %}Actif{% else %}Inactif{% endif %}"></span>
+        </div>
+
+        <div class="az-identity-info">
+          <h2 class="az-name">{{ eleve.nom }} {{ eleve.prenom }}</h2>
+
+          <div class="az-info-row">
+            <span class="label">Matricule</span>
+            <!-- ✅ le JS copie au clic -->
+            <span class="value highlight" role="button" tabindex="0" aria-label="Copier le matricule">
+              {{ eleve.matricule }}
+            </span>
+          </div>
+
+          <div class="az-info-row">
+            <span class="label">Sexe</span>
+            <span class="value">{{ eleve.get_sexe_display|default:"—" }}</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =========================
+         NAISSANCE
+         ========================= -->
+    <section class="az-card az-card-birth">
+      <header class="az-card-header">
+        <i class="fas fa-birthday-cake"></i>
+        <h3>Naissance</h3>
+      </header>
+
+      <div class="az-card-body">
+        <div class="az-info-item">
+          <span class="label">Date de naissance</span>
+          <span class="value">{{ eleve.date_naissance|default:"—" }}</span>
+        </div>
+
+        <div class="az-info-item">
+          <span class="label">Lieu de naissance</span>
+          <span class="value">{{ eleve.lieu_naissance|default:"—" }}</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- =========================
+         CONTACT & STATUT
+         ========================= -->
+    <section class="az-card az-card-contact">
+      <header class="az-card-header">
+        <i class="fas fa-address-book"></i>
+        <h3>Contact & Statut</h3>
+      </header>
+
+      <div class="az-card-body az-grid-2">
+        <div class="az-info-item">
+          <span class="label">Téléphone</span>
+          <span class="value">{{ eleve.telephone|default:"—" }}</span>
+        </div>
+
+        <div class="az-info-item">
+          <span class="label">Statut actuel</span>
+          <span class="value">
+            <span class="az-pill {% if eleve.is_active %}pill-success{% else %}pill-danger{% endif %}">
+              {% if eleve.is_active %}Actif{% else %}Inactif{% endif %}
+            </span>
+          </span>
+        </div>
+
+        <div class="az-info-item full-width">
+          <span class="label">Adresse</span>
+          <span class="value">{{ eleve.adresse|default:"—" }}</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- =========================
+         SCOLARITÉ / CLASSE
+         ========================= -->
+    <section class="az-card az-card-school">
+      <header class="az-card-header">
+        <i class="fas fa-school"></i>
+        <h3>Scolarité / Classe</h3>
+      </header>
+
+      <div class="az-card-body">
+        {% if classe_active %}
+          <div class="az-info-item">
+            <span class="label">Année</span>
+            <span class="value"><b>{{ classe_active.annee.nom }}</b></span>
+          </div>
+
+          <div class="az-info-item">
+            <span class="label">Période</span>
+            <span class="value">{% if classe_active.periode %}{{ classe_active.periode.nom }}{% else %}—{% endif %}</span>
+          </div>
+
+          <div class="az-info-item">
+            <span class="label">Degré</span>
+            <span class="value">{{ classe_active.degre.nom }}</span>
+          </div>
+
+          <div class="az-info-item">
+            <span class="label">Niveau</span>
+            <span class="value">{{ classe_active.niveau.nom }}</span>
+          </div>
+
+          <div class="az-info-item">
+            <span class="label">Groupe</span>
+            <span class="value highlight"><b>{{ classe_active.groupe.nom }}</b></span>
+          </div>
+        {% else %}
+          <div class="az-empty-state">
+            <i class="fas fa-user-plus"></i>
+            <p>Aucune inscription trouvée.</p>
+          </div>
+        {% endif %}
+      </div>
+    </section>
+
+    <!-- =========================
+         PARENTS / TUTEURS
+         ========================= -->
+    <section class="az-card az-card-parents">
+      <header class="az-card-header">
+        <i class="fas fa-users"></i>
+        <h3>Parents / Tuteurs</h3>
+      </header>
+
+      <div class="az-parents-list">
+        {% for l in liens_parents %}
+          <div class="az-parent-item">
+            <div class="az-parent-icon" aria-hidden="true">
+              <i class="fas fa-user-shield"></i>
+            </div>
+            <div class="az-parent-details">
+              <span class="parent-name">{{ l.parent.nom }} {{ l.parent.prenom }}</span>
+              <span class="parent-relation">{{ l.get_lien_display }}</span>
+            </div>
+          </div>
+        {% empty %}
+          <div class="az-empty-state">
+            <i class="fas fa-user-slash"></i>
+            <p>Aucun parent lié à cet élève.</p>
+          </div>
+        {% endfor %}
+      </div>
+    </section>
+
+  </div><!-- /az-main-grid -->
+<div class="az-card" style="margin-top:12px;">
+  <div class="az-row az-row-3" style="align-items:end;">
+    <div>
+      <div class="az-muted" style="margin-bottom:6px;">Transport</div>
+
+      {% if eleve.transport and eleve.transport.enabled %}
+        <span class="az-badge az-badge-success">Activé</span>
+      {% else %}
+        <span class="az-badge az-badge-muted">Désactivé</span>
+      {% endif %}
+
+      <div class="az-muted" style="margin-top:6px;">
+        Tarif : <b>
+          {% if eleve.transport %}{{ eleve.transport.tarif_mensuel }}{% else %}0.00{% endif %}
+        </b> MAD / mois
+      </div>
+    </div>
+
+    <div>
+      <form method="post" action="{% url 'core:transport_set_tarif' eleve.id %}">
+        {% csrf_token %}
+        <label class="az-label">Tarif mensuel</label>
+        <input class="az-input" name="tarif_mensuel" type="number" step="0.01" min="0"
+               value="{% if eleve.transport %}{{ eleve.transport.tarif_mensuel }}{% else %}0.00{% endif %}">
+        <div class="az-muted">Met 0.00 pour désactiver.</div>
+        <button class="az-btn az-btn-outline" type="submit" style="margin-top:8px;">
+          Enregistrer tarif
+        </button>
+      </form>
+    </div>
+
+    <div style="display:flex; gap:10px; justify-content:flex-end;">
+      <a class="az-btn az-btn-primary" href="{% url 'core:transport_toggle' eleve.id %}">
+        {% if eleve.transport and eleve.transport.enabled %}
+          Désactiver
+        {% else %}
+          Activer
+        {% endif %}
+      </a>
+    </div>
+  </div>
+</div>
+
+  <!-- =========================
+       HISTORIQUE INSCRIPTIONS
+       ========================= -->
+  <section class="az-section">
+    <h3 class="az-section-title">
+      <i class="fas fa-clock-rotate-left"></i>
+      Historique des inscriptions
+    </h3>
+
+    <div class="az-card">
+      <div class="az-table-wrap">
+        <table class="az-table">
+          <thead>
+            <tr>
+              <th>Année</th>
+              <th>Période</th>
+              <th>Degré</th>
+              <th>Niveau</th>
+              <th>Groupe</th>
+              <th>Statut</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for ins in inscriptions %}
+              <tr>
+                <td><b>{{ ins.annee.nom }}</b></td>
+                <td>{% if ins.periode %}{{ ins.periode.nom }}{% else %}—{% endif %}</td>
+                <td>{{ ins.groupe.niveau.degre.nom }}</td>
+                <td>{{ ins.groupe.niveau.nom }}</td>
+                <td><b>{{ ins.groupe.nom }}</b></td>
+                <td>
+                  <span class="az-pill {% if ins.statut == 'VALIDEE' %}pill-success{% else %}pill-warning{% endif %}">
+                    {{ ins.get_statut_display }}
+                  </span>
+                </td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="6" class="az-empty">Aucune inscription.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  {% if finance %}
+  <!-- =========================
+       FINANCE & PAIEMENTS
+       ========================= -->
+  <section class="az-section">
+    <h3 class="az-section-title">
+      <i class="fas fa-wallet"></i>
+      Situation financière
+    </h3>
+
+    <!-- KPI -->
+    <div class="az-kpi-grid">
+      <div class="az-kpi-card">
+        <span>Reste inscription</span>
+        <b>{{ finance.kpi.insc_reste }} DH</b>
+      </div>
+      <div class="az-kpi-card">
+        <span>Reste scolarité</span>
+        <b>{{ finance.kpi.mensuel_reste }} DH</b>
+      </div>
+      <div class="az-kpi-card danger">
+        <span>Reste total</span>
+        <b>{{ finance.kpi.global_reste }} DH</b>
+      </div>
+    </div>
+
+    <!-- Échéances mensuelles -->
+    <div class="az-card" style="margin-top:14px;">
+      <div class="az-table-wrap">
+        <h4>Échéances mensuelles</h4>
+        <table class="az-table">
+          <thead>
+            <tr>
+              <th>Mois</th>
+              <th>Du</th>
+              <th>Payé</th>
+              <th>Reste</th>
+              <th>Statut</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for e in finance.echeances %}
+              <tr>
+                <td>{{ e.mois_nom }}</td>
+                <td>{{ e.montant_du }}</td>
+                <td>{{ e.montant_paye }}</td>
+                <td><b>{{ e.reste }}</b></td>
+                <td>
+                  {% if e.statut == "PAYE" %}
+                    <span class="az-pill pill-success">Payé</span>
+                  {% elif e.statut == "PARTIEL" %}
+                    <span class="az-pill pill-warning">Partiel</span>
+                  {% else %}
+                    <span class="az-pill pill-danger">Impayé</span>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Historique paiements -->
+    <div class="az-card" style="margin-top:14px;">
+      <div class="az-table-wrap">
+        <h4>Historique des paiements</h4>
+        <table class="az-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Nature</th>
+              <th>Mois</th>
+              <th>Montant</th>
+              <th>Mode</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for p in finance.paiements %}
+              <tr>
+                <td>{{ p.date_paiement }}</td>
+                <td>{{ p.get_nature_display }}</td>
+                <td>{% if p.echeance %}{{ p.echeance.mois_nom }}{% else %}—{% endif %}</td>
+                <td><b>{{ p.montant }} DH</b></td>
+                <td>{{ p.get_mode_display }}</td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="5" class="az-empty">Aucun paiement enregistré.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+  {% endif %}
+
+  <!-- =========================
+       CTA
+       ========================= -->
+  <div class="az-footer-actions">
+    <a class="az-btn az-btn-gradient az-btn-lg" href="{% url 'core:bulletin_view' eleve.id %}">
+      <i class="fas fa-graduation-cap"></i>
+      Voir le Bulletin Scolaire
+    </a>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'admin/js/eleves/detail.js' %}?v=1"></script>
+{% endblock %}

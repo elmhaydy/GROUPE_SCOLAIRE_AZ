@@ -1,0 +1,73 @@
+{% extends "admin/base_admin.html" %}
+{% load static %}
+
+{% block title %}Niveau | AZ{% endblock %}
+{% block page_title %}{% if mode == "create" %}Ajouter{% else %}Modifier{% endif %} un niveau{% endblock %}
+{% block breadcrumb %}Structure / Niveaux{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'admin/css/niveaux/form.css' %}?v=3">
+
+{% endblock %}
+
+{% block content %}
+
+<div class="az-niveau-card">
+  <div class="az-niveau-head">
+    <h3 class="az-niveau-title">Formulaire</h3>
+    <p class="az-niveau-sub">
+      Choisis le degré, puis renseigne le nom du niveau et son ordre d’affichage.
+    </p>
+  </div>
+
+  {% if messages %}
+    <div class="az-niveau-flashes">
+      {% for message in messages %}
+        <div class="az-niveau-flash az-niveau-flash-{{ message.tags|default:'info' }}">
+          {{ message }}
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <form method="post" class="az-niveau-form" novalidate>
+    {% csrf_token %}
+
+    <div class="az-field">
+      <label for="{{ form.degre.id_for_label }}">Degré</label>
+      {{ form.degre }}
+      <div class="az-help">Ex : Maternelle, Primaire, Collège…</div>
+      <div class="az-error" data-error-for="degre"></div>
+    </div>
+
+    <div class="az-field">
+      <label for="{{ form.nom.id_for_label }}">Nom</label>
+      {{ form.nom }}
+      <div class="az-help">Ex : 1ère année, 2ème année, Tronc commun…</div>
+      <div class="az-error" data-error-for="nom"></div>
+    </div>
+
+    <div class="az-field">
+      <label for="{{ form.ordre.id_for_label }}">Ordre</label>
+      {{ form.ordre }}
+      <div class="az-help">Plus le chiffre est petit, plus il sera affiché en premier.</div>
+      <div class="az-error" data-error-for="ordre"></div>
+    </div>
+
+    <div class="az-niveau-actions">
+      <button class="az-btn az-btn-gradient" type="submit" id="saveBtn">
+        <i class="fas fa-save"></i> Enregistrer
+      </button>
+
+      <a class="az-btn" href="{% url 'core:niveau_list' %}">
+        <i class="fas fa-arrow-left"></i> Retour
+      </a>
+    </div>
+  </form>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'admin/js/niveaux/form.js' %}?v=3"></script>
+{% endblock %}

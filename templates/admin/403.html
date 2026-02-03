@@ -1,0 +1,16 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}Accès refusé | AZ{% endblock %}
+{% block page_title %}Accès refusé{% endblock %}
+{% block breadcrumb %}Sécurité{% endblock %}
+
+{% block content %}
+<div class="az-card" style="grid-column:span 12;max-width:760px;">
+  <h3>⛔ Vous n’avez pas l’autorisation</h3>
+  <p class="az-sub">
+    Votre rôle ne permet pas d’accéder à cette page.
+  </p>
+  <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap;">
+    <a class="az-btn az-btn-gradient" href="{% url 'dashboard' %}">🏠 Retour dashboard</a>
+  </div>
+</div>
+{% endblock %}

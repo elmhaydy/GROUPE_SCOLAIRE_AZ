@@ -1,0 +1,95 @@
+{% extends "prof/base_prof.html" %}
+{% load notes_extras %}
+{% block title %}Prise d'appel | Prof{% endblock %}
+{% block page_title %}Prise d'appel{% endblock %}
+{% block breadcrumb %}Prof / Absences / Prise{% endblock %}
+
+{% block content %}
+<div class="az-card" style="grid-column:span 12;">
+  <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center;">
+    <div>
+      <h3>Absences — Journée</h3>
+      <div class="az-sub">Année active : <b>{{ annee_active.nom }}</b></div>
+    </div>
+    <a class="az-btn" href="{% url 'prof:absences' %}">📄 Liste absences</a>
+  </div>
+
+  <form method="get" style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap;align-items:end;">
+    <div>
+      <div class="az-sub">Groupe</div>
+      <select name="groupe" required>
+        <option value="">— Choisir —</option>
+        {% for g in groupes %}
+          <option value="{{ g.id }}" {% if g.id|stringformat:"s" == groupe_selected %}selected{% endif %}>
+            {{ g.nom }} — {{ g.niveau.degre.nom }}/{{ g.niveau.nom }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div>
+      <div class="az-sub">Date</div>
+      <input type="date" name="date" value="{{ date_selected }}" required>
+    </div>
+
+    <button class="az-btn az-btn-gradient" type="submit">Afficher</button>
+  </form>
+
+  {% if selected_groupe %}
+    <form method="post" style="margin-top:14px;">
+      {% csrf_token %}
+      <input type="hidden" name="groupe" value="{{ selected_groupe.id }}">
+      <input type="hidden" name="date" value="{{ date_selected }}">
+
+      <table>
+        <thead>
+          <tr>
+            <th>Absent ?</th>
+            <th>Matricule</th>
+            <th>Nom</th>
+            <th>Prénom</th>
+            <th>Type</th>
+            <th>Justifié</th>
+            <th>Motif</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for e in eleves %}
+            {% with a=abs_map|get_item:e.id %}
+            <tr>
+              <td>
+                <input type="checkbox" name="abs_{{ e.id }}" {% if a %}checked{% endif %}>
+              </td>
+              <td><b>{{ e.matricule }}</b></td>
+              <td>{{ e.nom }}</td>
+              <td>{{ e.prenom }}</td>
+              <td>
+                <select name="type_{{ e.id }}">
+                  <option value="ABS" {% if a and a.type == "ABS" %}selected{% endif %}>Absence</option>
+                  <option value="RET" {% if a and a.type == "RET" %}selected{% endif %}>Retard</option>
+                </select>
+              </td>
+              <td style="text-align:center;">
+                <input type="checkbox" name="just_{{ e.id }}" {% if a and a.justifie %}checked{% endif %}>
+              </td>
+              <td>
+                <input type="text" name="motif_{{ e.id }}" value="{% if a %}{{ a.motif }}{% endif %}" placeholder="Motif (option)" style="width:260px;">
+              </td>
+            </tr>
+            {% endwith %}
+          {% empty %}
+            <tr><td colspan="7" class="az-sub">Aucun élève inscrit dans ce groupe.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap;">
+        <button class="az-btn az-btn-gradient" type="submit">💾 Enregistrer</button>
+        <a class="az-btn" href="{% url 'prof:dashboard' %}">↩️ Dashboard</a>
+      </div>
+    </form>
+  {% else %}
+    <div class="az-sub" style="margin-top:14px;">Choisis un groupe + une date pour commencer.</div>
+  {% endif %}
+</div>
+{% endblock %}

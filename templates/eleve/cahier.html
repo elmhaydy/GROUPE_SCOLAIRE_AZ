@@ -1,0 +1,179 @@
+{% extends "eleve/base.html" %}
+{% load static %}
+{% block title %}Cahier de texte | Portail Élève{% endblock %}
+{% block page_title %}Cahier de texte{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'eleve/css/cahier.css' %}?v=99">
+{% endblock %}
+
+{% block content %}
+
+<section class="az-card az-page">
+  <div class="az-page-head">
+    <div>
+      <h3 style="margin:0">Cahier de texte</h3>
+      <div class="muted">Affichage “emploi du temps” par semaine (Lun → Dim)</div>
+    </div>
+
+    <a class="az-link" href="{% url 'eleve:dashboard' %}">
+      <i class="fa-solid fa-arrow-left"></i> Retour
+    </a>
+  </div>
+
+  <form class="az-filters" method="get">
+    <div class="az-filter">
+      <label class="muted">Recherche</label>
+      <div class="az-input">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input name="q" value="{{ q }}" placeholder="Titre, contenu, devoir, matière..." />
+      </div>
+    </div>
+
+    <div class="az-filter">
+      <label class="muted">Matière</label>
+      <select name="matiere" class="az-select">
+        <option value="">— Toutes —</option>
+        {% for m in matieres %}
+          <option value="{{ m.id }}" {% if matiere_selected == m.id|stringformat:"s" %}selected{% endif %}>
+            {{ m.nom }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="az-filter">
+      <label class="muted">Semaine</label>
+      {# ✅ On choisit une date => on affiche toute la semaine correspondante #}
+      <input type="date" name="week" class="az-date" value="{{ week_selected }}">
+    </div>
+
+    <div class="az-filter az-filter-actions">
+      <button class="az-btn primary" type="submit">
+        <i class="fa-solid fa-filter"></i> Filtrer
+      </button>
+
+      <a class="az-btn" href="{% url 'eleve:cahier' %}">
+        Réinitialiser
+      </a>
+    </div>
+  </form>
+
+  {# ✅ Barre semaine + navigation #}
+  <div class="az-weekbar">
+    <div class="az-weekbar-left">
+      <div class="az-week-title">
+        Semaine du <strong>{{ week_start|date:"d/m/Y" }}</strong> au <strong>{{ week_end|date:"d/m/Y" }}</strong>
+      </div>
+      <div class="muted">Clique sur un élément pour voir Résumé + Exercices</div>
+    </div>
+
+    <div class="az-weekbar-actions">
+      <a class="az-btn" href="?week={{ prev_week }}{% if q %}&q={{ q|urlencode }}{% endif %}{% if matiere_selected %}&matiere={{ matiere_selected }}{% endif %}">
+        <i class="fa-solid fa-chevron-left"></i> Semaine -1
+      </a>
+
+      <a class="az-btn" href="?week={{ next_week }}{% if q %}&q={{ q|urlencode }}{% endif %}{% if matiere_selected %}&matiere={{ matiere_selected }}{% endif %}">
+        Semaine +1 <i class="fa-solid fa-chevron-right"></i>
+      </a>
+    </div>
+  </div>
+
+  {# ✅ GRILLE SEMAINE #}
+  <div class="az-week-wrap">
+    <table class="az-week">
+      <thead>
+        <tr>
+          {% for d in days %}
+            <th>
+              <div class="az-week-head">
+                <div class="az-week-day">{{ d|date:"D" }}</div>
+                <div class="az-week-date muted">{{ d|date:"d/m" }}</div>
+              </div>
+            </th>
+          {% endfor %}
+        </tr>
+      </thead>
+
+      <tbody>
+        <tr>
+          {% for d in days %}
+            <td>
+              <div class="az-week-cell">
+                {% if grouped.d %}
+                  {# (Ce bloc ne marche pas car Django ne lit pas grouped[d] comme ça) #}
+                {% endif %}
+
+                {# ✅ Accès dict: on boucle sur grouped.items et on compare #}
+                {% with day_items=grouped.d %}
+                {% endwith %}
+
+                {% if grouped %}
+                  {% for key, val in grouped.items %}
+                    {% if key == d %}
+                      {% if val %}
+                        <div class="az-week-items">
+                          {% for c in val %}
+                            <details class="az-week-item">
+                              <summary>
+                                <span class="az-tag">
+                                  <i class="fa-solid fa-book"></i> {{ c.matiere.nom }}
+                                </span>
+                                {% if c.titre %}
+                                  <span class="az-week-item-title">{{ c.titre }}</span>
+                                {% else %}
+                                  <span class="az-week-item-title muted">Sans titre</span>
+                                {% endif %}
+                              </summary>
+
+                              <div class="az-week-item-body">
+                                <div class="az-week-block">
+                                  <div class="az-week-block-head">
+                                    <span class="az-badge now">Résumé</span>
+                                  </div>
+                                  {% if c.contenu %}
+                                    <div class="az-text">{{ c.contenu|linebreaksbr }}</div>
+                                  {% else %}
+                                    <div class="muted">—</div>
+                                  {% endif %}
+                                </div>
+
+                                <div class="az-week-block">
+                                  <div class="az-week-block-head">
+                                    <span class="az-badge warn">Exercices</span>
+                                  </div>
+                                  {% if c.devoir %}
+                                    <div class="az-text">{{ c.devoir|linebreaksbr }}</div>
+                                  {% else %}
+                                    <div class="muted">Aucun exercice pour cette séance.</div>
+                                  {% endif %}
+                                </div>
+
+                                {% if c.piece_jointe %}
+                                  <div class="az-week-foot">
+                                    <a class="az-cta" href="{{ c.piece_jointe.url }}" target="_blank" rel="noopener">
+                                      <i class="fa-solid fa-paperclip"></i> Pièce jointe
+                                    </a>
+                                  </div>
+                                {% endif %}
+                              </div>
+                            </details>
+                          {% endfor %}
+                        </div>
+                      {% else %}
+                        <div class="az-week-empty muted">—</div>
+                      {% endif %}
+                    {% endif %}
+                  {% endfor %}
+                {% endif %}
+              </div>
+            </td>
+          {% endfor %}
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+</section>
+
+{% endblock %}

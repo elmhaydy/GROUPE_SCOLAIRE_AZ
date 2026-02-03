@@ -1,0 +1,243 @@
+{% extends "eleve/base.html" %}
+{% load static %}
+
+{% block title %}Bulletin | Portail Élève{% endblock %}
+{% block page_title %}Bulletin{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'eleve/css/bulletin.css' %}?v=1">
+{% endblock %}
+
+{% block content %}
+<div class="card bulletin-page">
+
+  <div class="bul-head">
+    <div class="bul-left">
+      <div class="bul-pill">
+        <i class="fa-solid fa-award"></i>
+        <span>Bulletin</span>
+        {% if periode_sel %}<span class="bul-pill-sep">•</span><span>{{ periode_sel.nom }}</span>{% endif %}
+      </div>
+
+      <h3 class="bul-title" style="margin:10px 0 6px;">Bulletin des résultats</h3>
+      <div class="muted">
+        {% if inscription %}{{ inscription.groupe.niveau.nom }} • {{ inscription.groupe.nom }}{% endif %}
+        {% if annee_active %} • {{ annee_active.nom }}{% endif %}
+      </div>
+    </div>
+
+    <div class="bul-right">
+      <form method="get" class="bul-controls">
+        <select name="periode" id="bulPeriode">
+          {% for p in periodes %}
+            <option value="{{ p.id }}" {% if periode_sel and p.id == periode_sel.id %}selected{% endif %}>
+              {{ p.nom }}
+            </option>
+          {% endfor %}
+        </select>
+
+
+      </form>
+
+      <div class="bul-kpis">
+        <div class="kpi">
+          <div class="kpi-label">Moyenne classe</div>
+          <div class="kpi-value">
+            {% if recap.moyenne_classe %}{{ recap.moyenne_classe|floatformat:2 }} / 20{% else %}—{% endif %}
+          </div>
+        </div>
+
+        <div class="kpi">
+          <div class="kpi-label">Moyenne générale</div>
+          <div class="kpi-value">
+            {% if recap.moyenne_generale %}{{ recap.moyenne_generale|floatformat:2 }} / 20{% else %}—{% endif %}
+          </div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Meilleure note</div>
+          <div class="kpi-value">
+            {% if recap.best %}{{ recap.best|floatformat:2 }} / 20{% else %}—{% endif %}
+          </div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Notes</div>
+          <div class="kpi-value">{{ recap.nb_notes|default:"0" }}</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Abs / Ret</div>
+          <div class="kpi-value">
+            {{ abs_stats.absences|default:"0" }} / {{ abs_stats.retards|default:"0" }}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% if error %}
+    <div class="bul-empty muted">{{ error }}</div>
+  {% elif not inscription %}
+    <div class="bul-empty muted">Aucune inscription active trouvée.</div>
+  {% elif not periode_sel %}
+    <div class="bul-empty muted">Aucune période disponible.</div>
+  {% elif rows %}
+    <div class="bul-toolbar">
+      <div class="bul-search">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input id="bulSearch" placeholder="Rechercher une matière..." />
+        <button type="button" class="bul-clear" id="bulClear" aria-label="Vider">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div class="bul-hint muted">
+        <i class="fa-regular fa-lightbulb"></i>
+        Clique sur une matière pour voir le détail des évaluations.
+      </div>
+    </div>
+
+    <!-- Desktop table -->
+    <div class="table-wrapper bul-table-wrap">
+      <table class="table bul-table" id="bulTable">
+        <thead>
+          <tr>
+            <th>Matière</th>
+            <th class="text-center">Coef</th>
+            <th class="text-center">Nb</th>
+            <th class="text-right">Moyenne</th>
+            <th class="text-right">Meilleure</th>
+            <th class="text-center">Détails</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in rows %}
+          <tr class="bul-row" data-matiere="{{ r.matiere }}">
+            <td class="bul-matiere">
+              <div class="cell-main">
+                <span class="dot"></span>
+                <div>
+                  <div class="cell-title">{{ r.matiere }}</div>
+                  <div class="cell-sub muted">Coef matière: {{ r.coef }}</div>
+                </div>
+              </div>
+            </td>
+            <td class="text-center"><span class="badge-soft">{{ r.coef }}</span></td>
+            <td class="text-center"><span class="badge-soft">{{ r.nb }}</span></td>
+            <td class="text-right">
+              <b>{% if r.moyenne20 %}{{ r.moyenne20|floatformat:2 }}{% else %}—{% endif %}</b>
+              <span class="muted">/20</span>
+              <div class="bar"><span class="fill" data-val="{% if r.moyenne20 %}{{ r.moyenne20 }}{% else %}0{% endif %}"></span></div>
+            </td>
+            <td class="text-right">
+              <b>{% if r.best20 %}{{ r.best20|floatformat:2 }}{% else %}—{% endif %}</b>
+              <span class="muted">/20</span>
+            </td>
+            <td class="text-center">
+              <button type="button" class="bul-toggle" data-target="bulDet{{ forloop.counter }}">
+                <i class="fa-solid fa-chevron-down"></i>
+              </button>
+            </td>
+          </tr>
+
+          <tr class="bul-detail" id="bulDet{{ forloop.counter }}">
+            <td colspan="6">
+              <div class="detail-box">
+                <div class="detail-head">
+                  <div class="detail-title">
+                    <i class="fa-solid fa-layer-group"></i>
+                    Détails — {{ r.matiere }}
+                  </div>
+                </div>
+
+                <div class="detail-list">
+                  {% for it in r.items %}
+                  <div class="detail-item">
+                    <div class="d-left">
+                      <div class="d-title">{{ it.titre }}</div>
+                      <div class="muted d-sub">
+                        {{ it.type }} • {{ it.date|date:"d/m/Y" }} • Coef eval: {{ it.coef }}
+                      </div>
+                      <div class="muted d-sub">Enseignant: {{ it.enseignant }}</div>
+                    </div>
+                    <div class="d-right">
+                      <div class="d-note">
+                        <b>{{ it.note }}</b><span class="muted">/ {{ it.note_max }}</span>
+                      </div>
+                      <div class="d-note20">
+                        <span class="badge-grade">≈ {{ it.note20|floatformat:2 }} /20</span>
+                      </div>
+                    </div>
+                  </div>
+                  {% endfor %}
+                </div>
+              </div>
+            </td>
+          </tr>
+
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Mobile cards -->
+    <div class="bul-mobile" id="bulMobile">
+      {% for r in rows %}
+      <div class="m-card" data-matiere="{{ r.matiere }}">
+        <div class="m-top">
+          <div class="m-title">
+            <span class="dot"></span>
+            <div>
+              <div class="cell-title">{{ r.matiere }}</div>
+              <div class="muted">Coef: {{ r.coef }} • {{ r.nb }} évaluations</div>
+            </div>
+          </div>
+
+          <button type="button" class="bul-toggle" data-target="mDet{{ forloop.counter }}">
+            <i class="fa-solid fa-chevron-down"></i>
+          </button>
+        </div>
+
+        <div class="m-stats">
+          <div class="m-stat">
+            <div class="muted">Moy</div>
+            <div><b>{% if r.moyenne20 %}{{ r.moyenne20|floatformat:2 }}{% else %}—{% endif %}</b> <span class="muted">/20</span></div>
+          </div>
+          <div class="m-stat">
+            <div class="muted">Best</div>
+            <div><b>{% if r.best20 %}{{ r.best20|floatformat:2 }}{% else %}—{% endif %}</b> <span class="muted">/20</span></div>
+          </div>
+        </div>
+
+        <div class="bar"><span class="fill" data-val="{% if r.moyenne20 %}{{ r.moyenne20 }}{% else %}0{% endif %}"></span></div>
+
+        <div class="m-detail" id="mDet{{ forloop.counter }}">
+          {% for it in r.items %}
+          <div class="m-item">
+            <div>
+              <div class="d-title">{{ it.titre }}</div>
+              <div class="muted d-sub">{{ it.type }} • {{ it.date|date:"d/m/Y" }} • Coef: {{ it.coef }}</div>
+            </div>
+            <div class="m-note">
+              <b>{{ it.note }}</b><span class="muted">/ {{ it.note_max }}</span>
+              <span class="badge-grade">≈ {{ it.note20|floatformat:2 }}/20</span>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <div class="bul-empty muted" id="bulEmpty" style="display:none;">
+      Aucun résultat ne correspond à ta recherche.
+    </div>
+
+  {% else %}
+    <div class="bul-empty muted">Aucune note pour cette période.</div>
+  {% endif %}
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script defer src="{% static 'eleve/js/bulletin.js' %}?v=1"></script>
+{% endblock %}

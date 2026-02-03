@@ -1,0 +1,203 @@
+{% extends "admin/base_admin.html" %}
+{% load static %}
+
+{% block title %}Dépenses | AZ{% endblock %}
+{% block page_title %}Dépenses{% endblock %}
+{% block current_page %}Finance / Dépenses{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'admin/css/depenses/list.css' %}?v=1">
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'admin/js/depenses/list.js' %}?v=1" defer></script>
+{% endblock %}
+
+{% block content %}
+
+<!-- ===== Page Head ===== -->
+<div class="az-page-head">
+  <div class="az-page-head-left">
+    <div class="az-pill">
+      <i class="fa-solid fa-circle-check"></i>
+      <span>Année active : <b>{{ annee_active.nom }}</b></span>
+    </div>
+    <div class="az-pill az-pill-total">
+      <i class="fa-solid fa-coins"></i>
+      <span>Total : <b>{{ total|floatformat:2 }} MAD</b></span>
+    </div>
+  </div>
+
+  <div class="az-page-head-right">
+    <a class="az-btn az-btn-ghost" href="{% url 'core:depense_categorie_list' %}">
+      <i class="fa-solid fa-tags"></i><span>Catégories</span>
+    </a>
+    <a class="az-btn az-btn-primary" href="{% url 'core:depense_create' %}">
+      <i class="fa-solid fa-plus"></i><span>Nouvelle dépense</span>
+    </a>
+  </div>
+</div>
+
+<!-- ===== Filter Bar ===== -->
+<div class="az-filter-bar">
+  <form method="get" class="az-filter-form" id="depenseFilterForm" novalidate>
+
+    <div class="az-filter-label">
+      <i class="fa-solid fa-filter"></i>
+      <span>Filtres</span>
+    </div>
+
+    <div class="az-field az-select-wide">
+      <div class="az-field-label">Année</div>
+      <select name="annee" class="az-select">
+        <option value="">— Année —</option>
+        {% for a in annees %}
+          <option value="{{ a.id }}" {% if f.annee == a.id|stringformat:"s" %}selected{% endif %}>{{ a.nom }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="az-field az-select-wide">
+      <div class="az-field-label">Catégorie</div>
+      <select name="cat" class="az-select">
+        <option value="">— Catégorie —</option>
+        {% for c in categories %}
+          <option value="{{ c.id }}" {% if f.cat == c.id|stringformat:"s" %}selected{% endif %}>{{ c.nom }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="az-field">
+      <div class="az-field-label">Mois</div>
+      <select name="mois" class="az-select">
+        <option value="">— Mois —</option>
+        <option value="1"  {% if f.mois == "1" %}selected{% endif %}>Janvier</option>
+        <option value="2"  {% if f.mois == "2" %}selected{% endif %}>Février</option>
+        <option value="3"  {% if f.mois == "3" %}selected{% endif %}>Mars</option>
+        <option value="4"  {% if f.mois == "4" %}selected{% endif %}>Avril</option>
+        <option value="5"  {% if f.mois == "5" %}selected{% endif %}>Mai</option>
+        <option value="6"  {% if f.mois == "6" %}selected{% endif %}>Juin</option>
+        <option value="7"  {% if f.mois == "7" %}selected{% endif %}>Juillet</option>
+        <option value="8"  {% if f.mois == "8" %}selected{% endif %}>Août</option>
+        <option value="9"  {% if f.mois == "9" %}selected{% endif %}>Septembre</option>
+        <option value="10" {% if f.mois == "10" %}selected{% endif %}>Octobre</option>
+        <option value="11" {% if f.mois == "11" %}selected{% endif %}>Novembre</option>
+        <option value="12" {% if f.mois == "12" %}selected{% endif %}>Décembre</option>
+      </select>
+    </div>
+
+    <!-- ✅ Date range -->
+    <div class="az-field az-date-range">
+      <div class="az-field-label">Date</div>
+      <div class="az-date-row">
+        <input type="date" name="date_de" class="az-input" value="{{ f.date_de }}" />
+        <span class="az-date-sep">→</span>
+        <input type="date" name="date_a" class="az-input" value="{{ f.date_a }}" />
+      </div>
+      <div class="az-date-hint az-muted">De … à …</div>
+    </div>
+
+    <div class="az-field az-search">
+      <div class="az-field-label">Recherche</div>
+      <input name="q" class="az-input" placeholder="Libellé / Description" value="{{ f.q }}" />
+    </div>
+
+    <!-- Actions -->
+    <div class="az-export">
+      <button class="az-btn az-btn-primary" type="submit">
+        <i class="fa-solid fa-magnifying-glass"></i><span>Appliquer</span>
+      </button>
+
+      <button class="az-btn az-btn-ghost" type="button" id="btnThisMonth">
+        <i class="fa-solid fa-calendar"></i><span>Ce mois</span>
+      </button>
+
+      <a class="az-btn az-btn-ghost" href="{% url 'core:depense_list' %}">
+        <i class="fa-solid fa-rotate-left"></i><span>Reset</span>
+      </a>
+    </div>
+
+  </form>
+</div>
+
+<!-- ===== Card ===== -->
+<div class="az-depense-card">
+  <div class="az-card-head">
+    <h3 class="az-card-title">
+      <i class="fa-solid fa-receipt"></i>
+      <span>Liste des dépenses</span>
+    </h3>
+    <div class="az-muted">Résultats : <b>{{ depenses|length }}</b></div>
+  </div>
+
+  <div class="az-table">
+
+    <div class="az-thead">
+      <div>Date</div>
+      <div>Catégorie</div>
+      <div>Libellé</div>
+      <div style="text-align:right;">Montant</div>
+      <div>Justificatif</div>
+      <div class="az-th-actions">Actions</div>
+    </div>
+
+    <div class="az-tbody">
+      {% for d in depenses %}
+      <div class="az-row">
+
+        <div class="az-cell">
+          <div class="az-strong">{{ d.date_depense|date:"Y-m-d" }}</div>
+        </div>
+
+        <div class="az-cell">
+          <span class="az-badge az-badge-muted">
+            <i class="fa-solid fa-tag"></i>{{ d.categorie.nom }}
+          </span>
+        </div>
+
+        <div class="az-cell">
+          <div class="az-strong">{{ d.libelle }}</div>
+          {% if d.description %}
+            <div class="az-muted">{{ d.description|truncatechars:90 }}</div>
+          {% endif %}
+        </div>
+
+        <div class="az-cell" style="text-align:right;">
+          <span class="az-badge az-badge-money">
+            <i class="fa-solid fa-coins"></i>
+            <b>{{ d.montant|floatformat:2 }}</b>&nbsp;MAD
+          </span>
+        </div>
+
+        <div class="az-cell">
+          {% if d.justificatif %}
+            <a class="az-link" href="{{ d.justificatif.url }}" target="_blank">
+              <i class="fa-solid fa-file-arrow-up-right"></i> Voir
+            </a>
+          {% else %}
+            <span class="az-muted">—</span>
+          {% endif %}
+        </div>
+
+        <div class="az-cell az-actions">
+          <a class="az-btn az-btn-ghost" href="{% url 'core:depense_edit' d.id %}" title="Modifier">
+            <i class="fa-solid fa-pen"></i>
+          </a>
+          <a class="az-btn az-btn-danger" href="{% url 'core:depense_delete' d.id %}" title="Supprimer">
+            <i class="fa-solid fa-trash"></i>
+          </a>
+        </div>
+
+      </div>
+      {% empty %}
+      <div class="az-empty">
+        <i class="fa-solid fa-circle-info"></i>
+        <span>Aucune dépense.</span>
+      </div>
+      {% endfor %}
+    </div>
+
+  </div>
+</div>
+
+{% endblock %}

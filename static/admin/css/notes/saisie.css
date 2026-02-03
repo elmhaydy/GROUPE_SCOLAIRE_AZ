@@ -1,0 +1,355 @@
+/* =========================================================
+   AZ — Notes Saisie PRATIQUE — AZ NEBULA (2026)
+   - Cards + recherche + sticky footer
+   ========================================================= */
+
+.az-muted{ color: var(--az-text-tertiary); }
+
+.az-notes-top{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap: var(--az-spacing-lg);
+  flex-wrap:wrap;
+  margin-bottom: var(--az-spacing-lg);
+}
+
+.az-notes-meta{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  align-items:center;
+}
+
+.az-badge-soft{
+  border: 1px solid var(--az-border);
+  background: linear-gradient(180deg, var(--az-bg-secondary), var(--az-bg-primary));
+}
+.az-badge-warn{
+  border: 1px solid rgba(245,158,11,.25);
+  background: rgba(245,158,11,.10);
+}
+.az-badge-warn i{ color:#f59e0b; }
+
+.az-msg-stack{
+  margin: 0 0 var(--az-spacing-lg);
+  display:flex;
+  flex-direction:column;
+  gap: 10px;
+}
+
+.az-notes-card{
+  border-radius: 16px;
+  background: var(--az-bg-primary);
+  border: 1px solid var(--az-border);
+  box-shadow: var(--az-shadow-sm);
+  overflow:hidden;
+  animation: az-fadeUp .55s ease both;
+}
+
+/* Toolbar */
+.az-notes-toolbar{
+  display:flex;
+  align-items:flex-end;
+  gap: var(--az-spacing-md);
+  flex-wrap:wrap;
+  padding: 16px;
+  border-bottom: 1px solid var(--az-border);
+  background: linear-gradient(180deg, var(--az-bg-secondary), var(--az-bg-primary));
+}
+
+.az-field{
+  display:flex;
+  flex-direction:column;
+  gap: 8px;
+  min-width: 240px;
+}
+.az-field-wide{ flex: 1; min-width: 320px; }
+
+.az-field-label{
+  font-size: .9rem;
+  font-weight: 900;
+  color: var(--az-text-secondary);
+}
+
+.az-notes-toolbar .az-input{
+  min-height: 46px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(148, 163, 184, .35);
+  background: var(--az-bg-primary);
+  color: var(--az-text-primary);
+  transition: var(--az-transition-fast);
+}
+
+html[data-theme="dark"] .az-notes-toolbar .az-input{
+  border-color: rgba(148,163,184,.22);
+  background: rgba(2,6,23,.18);
+}
+
+.az-notes-toolbar .az-input:focus{
+  outline:none;
+  border-color: rgba(99,102,241,.65);
+  box-shadow:
+    0 0 0 4px rgba(99,102,241,.18),
+    0 10px 22px rgba(99,102,241,.10);
+  transform: translateY(-1px);
+}
+
+.az-quick{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  margin-left:auto;
+}
+
+/* Grid cards */
+.az-notes-grid{
+  padding: 16px;
+  display:grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+@media (max-width: 1100px){
+  .az-notes-grid{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 720px){
+  .az-notes-grid{ grid-template-columns: 1fr; }
+}
+
+.az-note-card{
+  border-radius: 16px;
+  border: 1px solid var(--az-border);
+  background: var(--az-bg-primary);
+  box-shadow: var(--az-shadow-sm);
+  padding: 14px;
+  transition: var(--az-transition-fast);
+  position:relative;
+  overflow:hidden;
+}
+
+.az-note-card:hover{
+  background: var(--az-bg-secondary);
+  border-color: rgba(99,102,241,.40);
+  box-shadow: var(--az-shadow-md);
+  transform: translateY(-2px);
+}
+
+.az-note-card::before{
+  content:"";
+  position:absolute;
+  left:0; top:0; bottom:0;
+  width:3px;
+  background: linear-gradient(180deg, var(--az-primary), var(--az-primary-light));
+  opacity:0;
+  transition: var(--az-transition-fast);
+}
+.az-note-card:hover::before{ opacity:1; }
+
+.az-note-head{
+  display:flex;
+  justify-content:space-between;
+  gap: 10px;
+  align-items:flex-start;
+}
+
+.az-note-name{
+  font-weight: 950;
+  color: var(--az-text-primary);
+}
+
+.az-code{
+  display:inline-block;
+  margin-top: 6px;
+  font-weight: 900;
+  color: var(--az-primary);
+  background: rgba(99,102,241,.10);
+  border: 1px solid rgba(99,102,241,.20);
+  padding: 6px 10px;
+  border-radius: 999px;
+}
+
+.az-note-last{
+  text-align:right;
+  font-size: .9rem;
+}
+.az-last{ color: var(--az-text-primary); }
+
+/* Input row */
+.az-note-inputRow{
+  margin-top: 12px;
+  display:flex;
+  gap: 10px;
+  align-items:center;
+}
+
+.az-note{
+  flex:1;
+  min-height: 46px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(148,163,184,.35);
+  background: var(--az-bg-primary);
+  color: var(--az-text-primary);
+  font-weight: 950;
+  text-align:center;
+  transition: var(--az-transition-fast);
+}
+
+html[data-theme="dark"] .az-note{
+  border-color: rgba(148,163,184,.22);
+  background: rgba(2,6,23,.18);
+}
+
+.az-note:focus{
+  outline:none;
+  border-color: rgba(99,102,241,.65);
+  box-shadow:
+    0 0 0 4px rgba(99,102,241,.18),
+    0 10px 22px rgba(99,102,241,.10);
+  transform: translateY(-1px);
+}
+
+.az-miniBtns{
+  display:flex;
+  gap:8px;
+}
+
+.az-mini{
+  width: 40px;
+  height: 46px;
+  border-radius: 12px;
+  border: 1px solid var(--az-border);
+  background: rgba(148,163,184,.08);
+  color: var(--az-text-primary);
+  font-weight: 950;
+  cursor:pointer;
+  transition: var(--az-transition-fast);
+}
+
+html[data-theme="dark"] .az-mini{
+  background: rgba(255,255,255,.05);
+  border-color: rgba(148,163,184,.20);
+}
+
+.az-mini:hover{
+  border-color: rgba(99,102,241,.40);
+  transform: translateY(-1px);
+}
+
+/* Error */
+.az-note-error{
+  margin-top: 8px;
+  min-height: 18px;
+  font-size: .85rem;
+  font-weight: 900;
+  color: #ef4444;
+}
+
+/* Sticky footer */
+.az-notes-sticky{
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--az-border);
+  background: linear-gradient(180deg, rgba(255,255,255,.75), var(--az-bg-primary));
+  backdrop-filter: blur(10px);
+}
+
+html[data-theme="dark"] .az-notes-sticky{
+  background: linear-gradient(180deg, rgba(2,6,23,.35), rgba(15,23,42,.65));
+}
+
+.az-sticky-left{
+  display:flex;
+  align-items:center;
+  gap: 10px;
+  flex-wrap:wrap;
+}
+
+.az-sticky-right{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+}
+
+@media (max-width: 720px){
+  .az-notes-toolbar{ padding: 14px; }
+  .az-field-wide{ min-width: 100%; }
+  .az-quick{ margin-left:0; width:100%; }
+  .az-quick .az-btn{ width:100%; justify-content:center; }
+  .az-notes-sticky{
+    flex-direction:column;
+    align-items:stretch;
+  }
+  .az-sticky-right .az-btn{ width:100%; justify-content:center; }
+}
+
+/* Animation */
+@keyframes az-fadeUp{
+  from{ opacity:0; transform: translateY(10px); }
+  to{ opacity:1; transform: translateY(0); }
+}
+/* =========================================================
+   AZ — Notes Saisie : MODE LISTE (1 après l'autre)
+   Active via .az-notes-list sur #notesGrid
+   ========================================================= */
+
+.az-notes-list{
+  display:flex !important;
+  flex-direction:column !important;
+  gap: 12px !important;
+}
+
+/* chaque "card" devient une ligne */
+.az-notes-list .az-note-card{
+  display:grid;
+  grid-template-columns: 1.6fr 1fr;
+  gap: 14px;
+  align-items:center;
+  padding: 14px 14px;
+}
+
+/* bloc identité / dernière à gauche (en ligne) */
+.az-notes-list .az-note-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap: 12px;
+}
+
+/* input + mini boutons à droite, bien alignés */
+.az-notes-list .az-note-inputRow{
+  margin-top: 0 !important;
+  display:flex;
+  justify-content:flex-end;
+}
+
+/* input largeur fixe */
+.az-notes-list .az-note{
+  max-width: 240px;
+}
+
+/* mini boutons un peu plus petits */
+.az-notes-list .az-mini{
+  width: 42px;
+}
+
+/* Responsive : sur mobile on repasse en colonne */
+@media (max-width: 720px){
+  .az-notes-list .az-note-card{
+    grid-template-columns: 1fr;
+  }
+  .az-notes-list .az-note-inputRow{
+    justify-content:flex-start;
+  }
+  .az-notes-list .az-note{
+    max-width: 100%;
+  }
+}

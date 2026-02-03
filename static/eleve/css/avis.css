@@ -1,0 +1,224 @@
+/* =========================================================
+   AZ — Avis Élève (NEBULA) — FINAL MODERNE
+   - Cartes premium
+   - Recherche instantanée
+   - Grid responsive
+   ========================================================= */
+
+.az-avis{
+  padding: 14px;
+}
+
+/* =========================
+   HEADER
+   ========================= */
+.az-avis-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-end;
+  gap:12px;
+  margin-bottom: 14px;
+}
+
+.az-avis-title{
+  margin:0;
+  font-weight: 1100;
+}
+
+/* =========================
+   SEARCH
+   ========================= */
+.az-avis-tools{
+  display:flex;
+  gap:10px;
+}
+
+.az-avis-search{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding: 10px 12px;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--card), rgba(148,163,184,.10) 32%);
+  box-shadow:
+    0 1px 0 rgba(255,255,255,.05) inset,
+    0 10px 25px rgba(2,6,23,.12);
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+
+.az-avis-search i{
+  opacity:.7;
+}
+
+.az-avis-search input{
+  border:none;
+  outline:none;
+  background: transparent;
+  color: var(--text);
+  font-weight:900;
+  min-width: 220px;
+}
+
+.az-avis-search:focus-within{
+  border-color: color-mix(in srgb, var(--primary), #8b5cf6 55%);
+  box-shadow:
+    0 0 0 4px rgba(139,92,246,.18),
+    0 14px 35px rgba(2,6,23,.14);
+}
+
+.a-clear{
+  background:none;
+  border:none;
+  color: var(--text);
+  opacity:.6;
+  cursor:pointer;
+}
+.a-clear:hover{ opacity:1; }
+
+/* =========================
+   GRID
+   ========================= */
+.az-avis-grid{
+  display:grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap:14px;
+}
+
+/* =========================
+   CARD
+   ========================= */
+.a-card{
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--card), rgba(148,163,184,.10) 30%);
+  padding: 12px 12px;
+  position:relative;
+  overflow:hidden;
+  transition:
+    transform .15s ease,
+    box-shadow .15s ease,
+    border-color .15s ease;
+}
+
+/* Glow Nebula */
+.a-card::after{
+  content:"";
+  position:absolute;
+  inset:-2px;
+  background: var(--grad);
+  opacity:.06;
+  filter: blur(16px);
+  pointer-events:none;
+}
+
+.a-card:hover{
+  transform: translateY(-2px);
+  border-color: rgba(139,92,246,.30);
+  box-shadow: 0 20px 50px rgba(2,6,23,.16);
+}
+
+/* =========================
+   CARD TOP
+   ========================= */
+.a-top{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:10px;
+  margin-bottom: 8px;
+}
+
+.a-title{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  font-weight: 1000;
+}
+
+.a-title i{
+  color: #6366f1;
+}
+
+.a-date{
+  font-size:.8rem;
+  font-weight:900;
+  white-space:nowrap;
+}
+
+/* =========================
+   BODY
+   ========================= */
+.a-body{
+  margin: 8px 0 12px;
+}
+
+.a-preview{
+  line-height:1.65;
+  opacity:.95;
+}
+
+/* =========================
+   FOOT
+   ========================= */
+.a-foot{
+  display:flex;
+  justify-content:flex-end;
+}
+
+.a-btn{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding: 9px 12px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: rgba(148,163,184,.14);
+  color: var(--text);
+  font-weight:1000;
+  text-decoration:none;
+  transition:
+    transform .15s ease,
+    box-shadow .15s ease,
+    background .15s ease;
+}
+
+.a-btn:hover{
+  transform: translateY(-1px);
+  box-shadow: 0 12px 30px rgba(2,6,23,.14);
+  background: rgba(148,163,184,.18);
+}
+
+/* =========================
+   EMPTY STATE
+   ========================= */
+.a-empty{
+  margin-top: 40px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:14px;
+  opacity:.7;
+}
+
+.a-empty i{
+  font-size: 2rem;
+}
+
+.a-empty-title{
+  font-weight: 1000;
+}
+
+/* =========================
+   RESPONSIVE
+   ========================= */
+@media (max-width: 720px){
+  .az-avis-head{
+    flex-direction:column;
+    align-items:flex-start;
+  }
+
+  .az-avis-search input{
+    min-width: 160px;
+  }
+}

@@ -1,0 +1,371 @@
+{% load static %}
+<!doctype html>
+<html lang="fr" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>{% block title %}Portail Élève | AZ{% endblock %}</title>
+
+  <!-- Fonts + Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <!-- Base CSS -->
+  <link rel="stylesheet" href="{% static 'eleve/css/base.css' %}?v=2">
+  {% block extra_css %}{% endblock %}
+
+  <!-- Base JS -->
+  <script defer src="{% static 'eleve/js/base.js' %}?v=2"></script>
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" sizes="32x32" href="{% static 'img/favicon.png' %}">
+  <link rel="icon" type="image/png" sizes="16x16" href="{% static 'img/favicon.png' %}">
+  <link rel="apple-touch-icon" href="{% static 'img/favicon.png' %}">
+</head>
+
+<body class="dashboard-container az-eleve">
+
+  <!-- Overlay mobile -->
+  <div class="az-overlay" id="azOverlay" aria-hidden="true"></div>
+
+  <!-- ╔════════ SIDEBAR (Drawer) ════════╗ -->
+<aside class="modern-sidebar azs-sidebar" id="sidebar" aria-label="Navigation élève">
+
+  <div class="sidebar-header-centered azs-head">
+    <div class="sidebar-logo-wrapper">
+      <img class="sidebar-logo-img" src="{% static 'img/logoAZ.png' %}" alt="AZ">
+    </div>
+
+    <div class="sidebar-brand-text">
+      <div class="brand-name">AZ</div>
+      <div class="brand-role">Portail Élève</div>
+    </div>
+  </div>
+
+  <!-- mini profil (optionnel, si tu veux garder) -->
+  <div class="user-profile azs-user">
+    <div class="avatar"><i class="fa-solid fa-user"></i></div>
+    <div class="user-info">
+      <div class="user-name">{{ request.user.get_full_name|default:request.user.username }}</div>
+      <div class="user-role">Élève</div>
+    </div>
+
+    <!-- bouton close (mobile drawer) -->
+    <button class="sidebar-toggle azs-close" id="sidebarClose" type="button" aria-label="Fermer">
+      <i class="fa-solid fa-xmark"></i>
+    </button>
+  </div>
+
+  <nav class="sidebar-nav azs-nav">
+
+    <div class="nav-section">
+      <div class="section-label">Espace Élève</div>
+
+      <a href="{% url 'eleve:dashboard' %}"
+         class="nav-item {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+        <span class="nav-icon"><i class="fa-solid fa-house"></i></span>
+        <span class="nav-text">Accueil</span>
+        <span class="nav-badge dot"></span>
+      </a>
+
+      <a href="{% url 'eleve:edt' %}"
+         class="nav-item {% if request.resolver_match.url_name == 'edt' %}active{% endif %}">
+        <span class="nav-icon"><i class="fa-solid fa-calendar-days"></i></span>
+        <span class="nav-text">Emploi du temps</span>
+        <span class="nav-badge pill" data-badge="edt">LIVE</span>
+      </a>
+
+      <a href="{% url 'eleve:notes' %}"
+         class="nav-item {% if request.resolver_match.url_name == 'notes' %}active{% endif %}">
+        <span class="nav-icon"><i class="fa-solid fa-clipboard-check"></i></span>
+        <span class="nav-text">Notes</span>
+        <span class="nav-badge pill" data-badge="notes">—</span>
+      </a>
+
+      <a href="{% url 'eleve:bulletin' %}"
+         class="nav-item {% if request.resolver_match.url_name == 'bulletin' %}active{% endif %}">
+        <span class="nav-icon"><i class="fa-solid fa-award"></i></span>
+        <span class="nav-text">Bulletin</span>
+        <span class="nav-badge dot"></span>
+      </a>
+
+      <a href="{% url 'eleve:absences' %}"
+         class="nav-item {% if request.resolver_match.url_name == 'absences' %}active{% endif %}">
+        <span class="nav-icon"><i class="fa-solid fa-user-clock"></i></span>
+        <span class="nav-text">Absences</span>
+        <span class="nav-badge pill" data-badge="abs">—</span>
+      </a>
+
+      <a href="{% url 'eleve:avis' %}"
+         class="nav-item {% if request.resolver_match.url_name == 'avis' %}active{% endif %}">
+        <span class="nav-icon"><i class="fa-solid fa-bullhorn"></i></span>
+        <span class="nav-text">Avis</span>
+        <span class="nav-badge pill hot" data-badge="avis">—</span>
+      </a>
+      <a href="{% url 'eleve:cahier' %}"
+        class="nav-item {% if request.resolver_match.url_name == 'cahier' %}active{% endif %}">
+        <span class="nav-icon"><i class="fa-solid fa-book-open"></i></span>
+        <span class="nav-text">Cahier</span>
+        <span class="nav-badge dot"></span>
+      </a>
+
+      <a href="{% url 'eleve:resumes' %}"
+        class="nav-item {% if request.resolver_match.url_name == 'resumes' %}active{% endif %}">
+        <span class="nav-icon"><i class="fa-solid fa-file-pdf"></i></span>
+        <span class="nav-text">Résumés PDF</span>
+        <span class="nav-badge pill" data-badge="pdf">NEW</span>
+      </a>
+
+      <a href="{% url 'eleve:paiements' %}"
+         class="nav-item {% if request.resolver_match.url_name == 'paiements' %}active{% endif %}">
+        <span class="nav-icon"><i class="fa-solid fa-credit-card"></i></span>
+        <span class="nav-text">Paiements</span>
+        <span class="nav-badge dot"></span>
+      </a>
+    </div>
+
+    <div class="nav-section">
+      <div class="section-label">Compte</div>
+
+      <a href="{% url 'eleve:profil' %}"
+         class="nav-item {% if request.resolver_match.url_name == 'profil' %}active{% endif %}">
+        <span class="nav-icon"><i class="fa-solid fa-id-badge"></i></span>
+        <span class="nav-text">Profil</span>
+        <span class="nav-badge dot"></span>
+      </a>
+
+
+    </div>
+
+  </nav>
+
+  <div class="sidebar-footer azs-foot">
+    <form method="post" action="{% url 'accounts:logout' %}" class="logout-form">
+      {% csrf_token %}
+      <button class="logout-btn" type="submit">
+        <span class="logout-icon"><i class="fa-solid fa-power-off"></i></span>
+        <span>Déconnexion</span>
+      </button>
+    </form>
+    <div class="version">AZ • v1 • Portail Élève</div>
+  </div>
+
+</aside>
+
+
+  <!-- ╔════════ CONTENT ════════╗ -->
+  <main class="modern-content" role="main">
+
+    <!-- Topbar mobile -->
+    <header class="topbar-mobile">
+      <button class="icon-btn" id="sidebarToggle" type="button" aria-expanded="false" aria-controls="sidebar">
+        <i class="fa-solid fa-bars"></i>
+      </button>
+
+      <div class="topbar-title">
+        <div class="topbar-title-main">{% block current_page %}Accueil{% endblock %}</div>
+      </div>
+
+      <button class="icon-btn theme-btn" type="button" id="themeToggle" aria-label="Changer thème">
+        <i class="fa-solid fa-moon"></i>
+      </button>
+    </header>
+
+    <!-- Header desktop -->
+    <div class="top-navbar">
+      <div class="navbar-left">
+        <h1 class="page-title">{% block page_title %}Tableau de bord{% endblock %}</h1>
+        <div class="breadcrumb">
+          <span>Portail Élève</span>
+          <i class="fa-solid fa-chevron-right"></i>
+          <span class="current-page">{% block breadcrumb_current %}Accueil{% endblock %}</span>
+        </div>
+      </div>
+      
+<div class="navbar-right azn-navright">
+
+  <!-- Quick links (desktop) -->
+  <div class="azn-quicklinks" aria-label="Accès rapides">
+    <a class="azn-qbtn {% if request.resolver_match.url_name == 'edt' %}is-active{% endif %}"
+       href="{% url 'eleve:edt' %}" title="Emploi du temps">
+      <i class="fa-solid fa-calendar-days"></i>
+      <span>EDT</span>
+    </a>
+
+    <a class="azn-qbtn {% if request.resolver_match.url_name == 'notes' %}is-active{% endif %}"
+       href="{% url 'eleve:notes' %}" title="Notes">
+      <i class="fa-solid fa-pen-to-square"></i>
+      <span>Notes</span>
+    </a>
+
+    <a class="azn-qbtn {% if request.resolver_match.url_name == 'bulletin' %}is-active{% endif %}"
+       href="{% url 'eleve:bulletin' %}" title="Bulletin">
+      <i class="fa-solid fa-award"></i>
+      <span>Bulletin</span>
+    </a>
+  </div>
+
+  <!-- Date/heure -->
+  <div class="date-display azn-date" id="currentDateTime">
+    <i class="fa-regular fa-clock"></i>
+    <span>—</span>
+  </div>
+
+
+  <!-- Theme (icon only) -->
+  <button class="azn-iconbtn azn-theme" type="button" id="themeToggleDesk" aria-label="Changer le thème">
+    <i class="fa-solid fa-moon"></i>
+  </button>
+
+  <!-- User menu -->
+  <div class="user-avatar-wrapper azn-user" id="userMenuWrapper">
+    <button class="user-avatar-btn azn-userbtn" type="button" id="userMenuToggle" aria-expanded="false">
+      <div class="azn-avatar">
+        <div class="azn-avatar-ring"></div>
+        <div class="azn-avatar-inner">
+          <i class="fa-solid fa-user"></i>
+        </div>
+      </div>
+      <div class="azn-usermeta">
+        <div class="azn-username">{{ request.user.get_full_name|default:request.user.username }}</div>
+        <div class="azn-userrole">Élève</div>
+      </div>
+      <i class="fa-solid fa-chevron-down azn-chev"></i>
+    </button>
+
+    <div class="user-dropdown azn-dropdown" id="userMenu" aria-hidden="true">
+      <div class="azn-dd-head">
+        <div class="azn-dd-title">
+          <div class="azn-dd-name">{{ request.user.get_full_name|default:request.user.username }}</div>
+          <div class="azn-dd-role muted">Élève • Portail</div>
+        </div>
+
+        {% if request.user.email %}
+          <div class="azn-dd-mail">{{ request.user.email }}</div>
+        {% endif %}
+      </div>
+
+      <div class="azn-dd-links">
+        <a class="ud-link azn-dd-link" href="{% url 'eleve:profil' %}">
+          <i class="fa-solid fa-id-badge"></i> Mon profil
+        </a>
+
+        <a class="ud-link azn-dd-link" href="{% url 'eleve:absences' %}">
+          <i class="fa-solid fa-user-clock"></i> Mes absences
+        </a>
+
+        <a class="ud-link azn-dd-link" href="{% url 'eleve:paiements' %}">
+          <i class="fa-solid fa-receipt"></i> Paiements
+        </a>
+
+<button class="ud-link" type="button" data-open-password-modal>
+  <i class="fa-solid fa-key"></i> Mot de passe
+</button>
+
+        <div class="azn-dd-sep"></div>
+
+        <form method="post" action="{% url 'accounts:logout' %}">
+          {% csrf_token %}
+          <button class="ud-link azn-dd-link azn-danger" type="submit">
+            <i class="fa-solid fa-right-from-bracket"></i> Déconnexion
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+    </div>
+
+    <!-- Wrapper content -->
+    <div class="content-wrapper">
+
+      {% if messages %}
+        <div class="messages-container">
+          {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">
+              <i class="fa-solid
+                {% if message.tags == 'success' %}fa-circle-check
+                {% elif message.tags == 'error' or message.tags == 'danger' %}fa-triangle-exclamation
+                {% else %}fa-circle-info{% endif %}"></i>
+              <span>{{ message }}</span>
+              <button class="close-alert" type="button" aria-label="Fermer">&times;</button>
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      <section class="content-card">
+        {% block content %}{% endblock %}
+      </section>
+
+      <footer class="main-footer">
+        <div class="footer-content">
+          <span>© {% now "Y" %} AZ • Portail Élève</span>
+          <div class="footer-links">
+            <a href="#"><i class="fa-solid fa-shield"></i> Confidentialité</a>
+            <a href="#"><i class="fa-solid fa-circle-info"></i> Aide</a>
+          </div>
+        </div>
+      </footer>
+
+    </div>
+  </main>
+
+  {% block extra_js %}{% endblock %}
+
+
+<!-- ✅ MODAL: Changer mot de passe -->
+<div class="az-modal" id="pwdModal" aria-hidden="true">
+  <div class="az-modal__backdrop" data-modal-close></div>
+
+  <div class="az-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="pwdModalTitle">
+    <div class="az-modal__head">
+      <div class="az-modal__titlewrap">
+        <div class="az-modal__ic"><i class="fa-solid fa-lock"></i></div>
+        <div>
+          <div class="az-modal__title" id="pwdModalTitle">Changer le mot de passe</div>
+          <div class="az-modal__sub muted">Sécurise ton compte élève</div>
+        </div>
+      </div>
+
+      <button class="az-modal__x" type="button" data-modal-close aria-label="Fermer">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+
+    <div class="az-modal__body">
+      <form method="post" action="{% url 'accounts:eleve_password_change' %}" class="pwd-form">
+        {% csrf_token %}
+
+        <div class="pwd-field">
+          <label class="pwd-label">Mot de passe actuel</label>
+          <input class="pwd-input" type="password" name="current_password" placeholder="••••••••" required>
+        </div>
+
+        <div class="pwd-field">
+          <label class="pwd-label">Nouveau mot de passe</label>
+          <input class="pwd-input" type="password" name="password1" placeholder="Min. 8 caractères" required minlength="8">
+          <div class="pwd-hint muted">Astuce : mélange lettres + chiffres.</div>
+        </div>
+
+        <div class="pwd-field">
+          <label class="pwd-label">Confirmer le nouveau mot de passe</label>
+          <input class="pwd-input" type="password" name="password2" placeholder="Retape le mot de passe" required minlength="8">
+        </div>
+
+        <div class="pwd-actions">
+          <button class="az-btn az-btn-ghost" type="button" data-modal-close>Annuler</button>
+          <button class="az-btn az-btn-primary" type="submit">
+            ✅ Mettre à jour
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+</body>
+</html>

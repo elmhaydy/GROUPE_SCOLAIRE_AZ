@@ -1,0 +1,163 @@
+{% extends "admin/base_admin.html" %}
+{% load static %}
+
+{% block title %}Nouvelle évaluation | AZ{% endblock %}
+{% block page_title %}Nouvelle évaluation{% endblock %}
+{% block breadcrumb %}Pédagogie / Évaluations{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css">
+<link rel="stylesheet" href="{% static 'admin/css/evaluations/form.css' %}?v=2">
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
+<script>
+  window.AZ_EVAL = {
+    URL_GROUPES: "{% url 'core:ajax_groupes' %}",
+    URL_MAT: "{% url 'core:ajax_matieres' %}",
+    URL_ENS: "{% url 'core:ajax_enseignants' %}",
+    ANNEE_ID: "{{ annee_active.id|default:'' }}",
+  };
+</script>
+<script src="{% static 'admin/js/evaluations/form.js' %}?v=3"></script>
+{% endblock %}
+
+{% block content %}
+
+<div class="az-eval-card">
+
+  <div class="az-eval-head">
+    <div>
+      <h3 class="az-eval-title">Créer une évaluation</h3>
+      <p class="az-eval-sub">Formulaire moderne avec sélection intelligente (Niveau → Groupe → Matière / Enseignant).</p>
+    </div>
+
+    <span class="az-badge">
+      <i class="fas fa-clipboard-check"></i>
+      Création
+    </span>
+  </div>
+
+  <form method="post" class="az-eval-form">
+    {% csrf_token %}
+
+    {% if form.non_field_errors %}
+      <div class="az-msg az-msg--error">
+        {{ form.non_field_errors }}
+      </div>
+    {% endif %}
+
+    <div class="az-section">
+      <div class="az-section-head">
+        <div>
+          <h4 class="az-section-title">
+            <i class="fas fa-circle-info"></i>
+            Informations
+          </h4>
+          <p class="az-section-sub">Renseigne les détails de l’évaluation.</p>
+        </div>
+      </div>
+
+      <div class="az-grid-2">
+
+        <!-- Niveau UI -->
+        <div class="az-field">
+          <label for="id_niveau_ui">Niveau</label>
+          <select id="id_niveau_ui" name="niveau_ui" data-az="ts">
+            <option value="">— Sélectionner un niveau —</option>
+            {% for n in niveaux %}
+              <option value="{{ n.id }}" {% if n.id|stringformat:"s" == niveau_ui_selected %}selected{% endif %}>
+                {{ n.degre.nom }} — {{ n.nom }}
+              </option>
+            {% endfor %}
+          </select>
+          <div class="az-help">Le niveau filtre la liste des groupes.</div>
+        </div>
+
+        <div class="az-field">
+          <label for="{{ form.periode.id_for_label }}">Période</label>
+          {{ form.periode }}
+        </div>
+
+        <div class="az-field">
+          <label for="{{ form.titre.id_for_label }}">Titre</label>
+          {{ form.titre }}
+        </div>
+
+        <div class="az-field">
+          <label for="{{ form.type.id_for_label }}">Type</label>
+          {{ form.type }}
+        </div>
+
+        <div class="az-field">
+          <label for="{{ form.groupe.id_for_label }}">Groupe</label>
+          {{ form.groupe }}
+          <div class="az-help">Le groupe pilote la liste des matières et des enseignants.</div>
+        </div>
+
+        <div class="az-field">
+          <label for="{{ form.matiere.id_for_label }}">Matière</label>
+          {{ form.matiere }}
+          <div class="az-help">La liste des matières dépend du groupe.</div>
+        </div>
+
+        <div class="az-field">
+          <label for="{{ form.enseignant.id_for_label }}">Enseignant</label>
+          {{ form.enseignant }}
+          <div class="az-help">La liste des enseignants dépend du groupe.</div>
+        </div>
+
+        <div class="az-field">
+          <label for="{{ form.date.id_for_label }}">Date</label>
+          {{ form.date }}
+        </div>
+
+        <div class="az-field">
+          <label for="{{ form.note_max.id_for_label }}">Note max</label>
+          {{ form.note_max }}
+        </div>
+
+        <div class="az-field">
+          <label for="{{ form.coefficient.id_for_label }}">Coefficient</label>
+          {{ form.coefficient }}
+        </div>
+
+      </div>
+    </div>
+
+    {% if form.errors %}
+      <div class="az-msg az-msg--error" style="margin-top:12px;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <i class="fas fa-triangle-exclamation"></i>
+          <b>Erreurs</b>
+        </div>
+        <div style="margin-top:8px;">{{ form.errors }}</div>
+      </div>
+    {% endif %}
+
+    <div class="az-eval-actions az-eval-actions--sticky">
+      <div class="az-actions-left">
+        <button class="az-btn az-btn-gradient" type="submit">
+          <i class="fas fa-arrow-right"></i>
+          Continuer
+        </button>
+
+        <a class="az-btn az-btn-soft" href="{% url 'core:evaluation_list' %}">
+          <i class="fas fa-arrow-left"></i>
+          Retour
+        </a>
+      </div>
+
+      <div class="az-actions-right">
+        <span class="az-hint">
+          <i class="fas fa-magnifying-glass"></i>
+          Recherche active sur les listes
+        </span>
+      </div>
+    </div>
+
+  </form>
+</div>
+
+{% endblock %}

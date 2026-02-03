@@ -1,0 +1,121 @@
+{% extends "admin/base_admin.html" %}
+{% load static %}
+
+{% block title %}Feuille de présence | AZ{% endblock %}
+{% block page_title %}Feuille de présence{% endblock %}
+{% block breadcrumb %}Pédagogie / Absences / Feuille{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'admin/css/absences/feuille.css' %}?v=3">
+{% endblock %}
+
+{% block content %}
+
+<div class="az-presence">
+  <div class="az-card az-presence-card">
+
+    <!-- Header -->
+    <div class="az-presence-head">
+      <div class="az-presence-info">
+        <h3 class="az-presence-title">
+          <i class="fa-solid fa-calendar-check"></i>
+          Séance de cours
+        </h3>
+
+        <div id="seance_info" class="az-sub az-presence-seance">
+          <span class="az-loading">Chargement des informations...</span>
+        </div>
+
+        <!-- Counters -->
+        <div id="counters" class="az-counters">
+          <div class="az-counter" id="c_total">
+            <span><i class="fa-solid fa-users"></i> Total</span><b>0</b>
+          </div>
+          <div class="az-counter az-counter--ok" id="c_present">
+            <span><i class="fa-solid fa-circle-check"></i> Présents</span><b>0</b>
+          </div>
+          <div class="az-counter az-counter--danger" id="c_absent">
+            <span><i class="fa-solid fa-circle-xmark"></i> Absents</span><b>0</b>
+          </div>
+          <div class="az-counter az-counter--warn" id="c_retard">
+            <span><i class="fa-solid fa-clock"></i> Retards</span><b>0</b>
+          </div>
+        </div>
+      </div>
+
+      <div class="az-presence-head-actions">
+        <a class="az-btn az-btn-soft" href="{% url 'core:absences_pratique' %}">
+          <i class="fa-solid fa-arrow-left"></i> Retour
+        </a>
+        <button type="button" class="az-btn az-btn-ghost" id="btn_print">
+          <i class="fa-solid fa-print"></i> Imprimer
+        </button>
+      </div>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="az-presence-toolbar">
+      <div class="az-bulk">
+        <button type="button" class="az-btn az-btn-soft" id="btn_all_present">
+          <i class="fa-solid fa-check"></i> Tout présent
+        </button>
+        <button type="button" class="az-btn az-btn-soft" id="btn_all_absent">
+          <i class="fa-solid fa-xmark"></i> Tout absent
+        </button>
+        <button type="button" class="az-btn az-btn-soft" id="btn_all_retard">
+          <i class="fa-solid fa-clock"></i> Tout retard
+        </button>
+      </div>
+
+      <div class="az-search">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input type="text" id="search" class="az-input" placeholder="Rechercher un élève (nom, matricule...)">
+      </div>
+
+      <button type="button" class="az-btn az-btn-gradient" id="btn_save">
+        <i class="fa-solid fa-floppy-disk"></i> Enregistrer
+      </button>
+    </div>
+
+    <!-- Message -->
+    <div id="msg" class="az-msg-area"></div>
+
+    <!-- Table -->
+    <div class="az-tablewrap">
+      <table class="az-table az-table-presence">
+        <thead>
+          <tr>
+            <th style="width:160px;">Matricule</th>
+            <th>Élève</th>
+            <th style="width:360px;">Statut</th>
+          </tr>
+        </thead>
+        <tbody id="tbody">
+          <tr>
+            <td colspan="3" class="az-loading-row">
+              <div class="az-spinner"></div>
+              <span>Chargement de la liste des élèves...</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  window.PRESENCE_CONFIG = {
+    seanceId: "{{ seance_id }}",
+    dateStr: "{{ date_selected }}",
+    apiUrl: "{% url 'core:api_feuille_presence' %}",
+    saveUrl: "{% url 'core:api_feuille_presence_save' %}",
+    csrfToken: "{{ csrf_token }}"
+  };
+</script>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'admin/js/absences/feuille.js' %}?v=4"></script>
+{% endblock %}

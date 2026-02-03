@@ -1,0 +1,14 @@
+{% extends "admin/base_admin.html" %}
+{% block page_title %}🗑️ Supprimer avis{% endblock %}
+{% block content %}
+
+<div class="az-card">
+  <p>Confirmer la suppression de : <b>{{ obj.titre }}</b> ?</p>
+  <form method="post">
+    {% csrf_token %}
+    <button class="az-btn az-btn-danger" type="submit">Oui, supprimer</button>
+    <a class="az-btn az-btn-ghost" href="{% url 'core:avis_list' %}">Annuler</a>
+  </form>
+</div>
+
+{% endblock %}

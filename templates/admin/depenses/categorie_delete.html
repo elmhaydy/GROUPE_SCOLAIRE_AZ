@@ -1,0 +1,75 @@
+{% extends "admin/base_admin.html" %}
+{% load static %}
+
+{% block title %}Supprimer catégorie | AZ{% endblock %}
+{% block page_title %}Supprimer catégorie{% endblock %}
+{% block current_page %}Finance / Dépenses / Catégories{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'admin/css/depenses/categories_delete.css' %}?v=1">
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'admin/js/depenses/categories_delete.js' %}?v=1" defer></script>
+{% endblock %}
+
+{% block content %}
+
+<div class="az-del">
+
+  <div class="az-page-head">
+    <div class="az-page-head-left">
+      <div class="az-pill az-pill-total">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        <span>Action sensible • Suppression</span>
+      </div>
+    </div>
+    <div class="az-page-head-right">
+      <a class="az-btn az-btn-ghost" href="{% url 'core:depense_categorie_list' %}">
+        <i class="fa-solid fa-arrow-left"></i><span>Retour</span>
+      </a>
+    </div>
+  </div>
+
+  <div class="az-card az-del-card">
+    <div class="az-del-top">
+      <div class="az-del-icon">
+        <i class="fa-solid fa-trash"></i>
+      </div>
+
+      <div class="az-del-head">
+        <h2 class="az-del-title">Confirmer la suppression</h2>
+        <p class="az-del-sub">
+          Cette action est <b>irréversible</b>. Vérifie avant de continuer.
+        </p>
+      </div>
+    </div>
+
+    <div class="az-del-body">
+      <p class="az-del-text">
+        Tu vas supprimer la catégorie :
+        <span class="az-del-name">{{ cat.nom }}</span>
+      </p>
+
+      <div class="az-del-hint">
+        <i class="fa-solid fa-circle-info"></i>
+        <span>Si cette catégorie est utilisée par des dépenses, la suppression peut échouer (PROTECT).</span>
+      </div>
+    </div>
+
+    <form method="post" class="az-del-actions" id="azDeleteForm">
+      {% csrf_token %}
+
+      <button class="az-btn az-btn-danger" type="submit" id="azDeleteBtn">
+        <i class="fa-solid fa-trash"></i><span>Supprimer</span>
+      </button>
+
+      <a class="az-btn az-btn-ghost" href="{% url 'core:depense_categorie_list' %}">
+        <i class="fa-solid fa-arrow-left"></i><span>Annuler</span>
+      </a>
+    </form>
+  </div>
+
+</div>
+
+{% endblock %}

@@ -1,0 +1,441 @@
+/* =========================================================
+   AZ — Parents (FORM) — THEME OFFICIEL (celui du début)
+   - Repose sur : --az-bg-primary/secondary/tertiary + --az-text-primary/secondary/tertiary
+   - Dark/Light auto (via ton :root + html[data-theme="dark"])
+   - Cards / sections / inputs / select / sticky actions : même style AZ Admin
+   - Tom Select skin AZ inclus (optionnel)
+   ========================================================= */
+
+/* =========================
+   WRAPPER / CARD
+   ========================= */
+.az-parent-card{
+  grid-column: span 12;
+  max-width: 980px;
+  margin: 0 auto;
+  padding: var(--az-spacing-xl);
+  border-radius: 18px;
+  background: var(--az-bg-primary);
+  border: 1px solid var(--az-border);
+  box-shadow: var(--az-shadow-md);
+  transition: var(--az-transition);
+  animation: az-fadeUp .45s ease both;
+}
+
+.az-parent-card:hover{
+  box-shadow: var(--az-shadow-lg);
+  border-color: rgba(99,102,241,.35);
+}
+
+@keyframes az-fadeUp{
+  from{ opacity:0; transform: translateY(10px); }
+  to{ opacity:1; transform: translateY(0); }
+}
+
+/* =========================
+   HEADER
+   ========================= */
+.az-parent-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap: var(--az-spacing-lg);
+  margin-bottom: var(--az-spacing-lg);
+}
+
+.az-parent-title{
+  margin:0;
+  color: var(--az-text-primary);
+  font-size: 1.1rem;
+  font-weight: 800;
+  letter-spacing: -.2px;
+}
+
+.az-parent-sub{
+  margin-top: 6px;
+  color: var(--az-text-secondary);
+  font-size: .9rem;
+  line-height: 1.45;
+}
+
+/* Badge (optionnel dans header) */
+.az-parent-badge{
+  display:inline-flex;
+  align-items:center;
+  gap:10px;
+  padding: 10px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--az-border);
+  background: var(--az-bg-secondary);
+  color: var(--az-text-secondary);
+  font-weight: 700;
+  font-size: .85rem;
+  white-space: nowrap;
+}
+.az-parent-badge i{ color: var(--az-primary); }
+
+/* =========================
+   SECTIONS
+   ========================= */
+.az-section{
+  margin-top: var(--az-spacing-lg);
+  padding: var(--az-spacing-lg);
+  border-radius: 16px;
+  border: 1px solid var(--az-border);
+  background: var(--az-bg-secondary);
+  box-shadow: var(--az-shadow-sm);
+  transition: var(--az-transition);
+}
+
+.az-section:hover{
+  border-color: rgba(99,102,241,.25);
+  box-shadow: var(--az-shadow-md);
+}
+
+.az-section-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap: var(--az-spacing-md);
+  margin-bottom: var(--az-spacing-md);
+}
+.az-section-head--row{ align-items:center; }
+
+.az-section-title{
+  margin:0;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  color: var(--az-text-primary);
+  font-size: .95rem;
+  font-weight: 800;
+}
+
+.az-section-title i{
+  color: var(--az-primary);
+}
+
+.az-section-sub{
+  margin-top: 6px;
+  color: var(--az-text-secondary);
+  font-size: .85rem;
+}
+
+/* =========================
+   GRID / FIELDS
+   ========================= */
+.az-grid-2{
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--az-spacing-lg);
+}
+
+.az-field{
+  display:flex;
+  flex-direction:column;
+  gap: 8px;
+}
+
+.az-field label{
+  font-size: .85rem;
+  font-weight: 700;
+  color: var(--az-text-secondary);
+}
+
+.az-help{
+  font-size: .82rem;
+  color: var(--az-text-tertiary);
+}
+
+/* =========================
+   INPUTS / TEXTAREA / SELECT
+   ========================= */
+.az-parent-form input[type="text"],
+.az-parent-form input[type="email"],
+.az-parent-form input[type="tel"],
+.az-parent-form input[type="number"],
+.az-parent-form input[type="date"],
+.az-parent-form textarea,
+.az-parent-form select{
+  width:100%;
+  min-height: 46px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, .35);
+  background: var(--az-bg-primary);
+  color: var(--az-text-primary);
+  font-family: inherit;
+  font-size: .95rem;
+  transition: var(--az-transition-fast);
+  outline: none;
+}
+
+html[data-theme="dark"] .az-parent-form input[type="text"],
+html[data-theme="dark"] .az-parent-form input[type="email"],
+html[data-theme="dark"] .az-parent-form input[type="tel"],
+html[data-theme="dark"] .az-parent-form input[type="number"],
+html[data-theme="dark"] .az-parent-form input[type="date"],
+html[data-theme="dark"] .az-parent-form textarea,
+html[data-theme="dark"] .az-parent-form select{
+  border-color: rgba(148,163,184,.22);
+  background: rgba(2,6,23,.18);
+}
+
+/* Focus glow EXACT du thème */
+.az-parent-form input:focus,
+.az-parent-form textarea:focus,
+.az-parent-form select:focus{
+  border-color: rgba(99,102,241,.65);
+  box-shadow: 0 0 0 4px rgba(99,102,241,.18);
+  transform: translateY(-1px);
+}
+
+html[data-theme="dark"] .az-parent-form input:focus,
+html[data-theme="dark"] .az-parent-form textarea:focus,
+html[data-theme="dark"] .az-parent-form select:focus{
+  border-color: rgba(129,140,248,.75);
+  box-shadow: 0 0 0 4px rgba(129,140,248,.22);
+}
+
+/* Textarea */
+.az-parent-form textarea{
+  min-height: 120px;
+  resize: vertical;
+}
+
+/* =========================
+   SELECT — flèche custom + FIX dropdown dark
+   ========================= */
+.az-parent-form select{
+  appearance:none;
+  -webkit-appearance:none;
+  -moz-appearance:none;
+  padding-right: 44px;
+
+  background-image:
+    linear-gradient(45deg, transparent 50%, rgba(148,163,184,.95) 50%),
+    linear-gradient(135deg, rgba(148,163,184,.95) 50%, transparent 50%),
+    linear-gradient(to right, transparent, transparent);
+  background-position:
+    calc(100% - 18px) 50%,
+    calc(100% - 12px) 50%,
+    0 0;
+  background-size: 6px 6px, 6px 6px, 100% 100%;
+  background-repeat:no-repeat;
+}
+
+html:not([data-theme="dark"]) .az-parent-form select{
+  background-image:
+    linear-gradient(45deg, transparent 50%, rgba(15,23,42,.75) 50%),
+    linear-gradient(135deg, rgba(15,23,42,.75) 50%, transparent 50%),
+    linear-gradient(to right, transparent, transparent);
+}
+
+/* Fix Windows/Chrome dropdown */
+html[data-theme="dark"] .az-parent-form select{ color-scheme: dark; }
+html[data-theme="dark"] .az-parent-form select option,
+html[data-theme="dark"] .az-parent-form select optgroup{
+  background-color: #0b1220 !important;
+  color: rgba(241,245,249,.95) !important;
+}
+html[data-theme="dark"] .az-parent-form select option:checked{
+  background-color: #2563eb !important;
+  color:#fff !important;
+}
+
+/* =========================
+   SWITCH PILL
+   ========================= */
+.az-switch--pill{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding: 10px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--az-border);
+  background: var(--az-bg-tertiary);
+  margin-top: var(--az-spacing-md);
+}
+
+.az-switch--pill input[type="checkbox"]{
+  width:18px;height:18px;
+  accent-color: var(--az-primary);
+}
+
+.az-switch--pill span{
+  color: var(--az-text-primary);
+  font-weight: 700;
+  font-size: .95rem;
+}
+
+/* =========================
+   ROWS FORMSET
+   ========================= */
+.az-rows{
+  display:flex;
+  flex-direction:column;
+  gap: var(--az-spacing-md);
+  margin-top: var(--az-spacing-md);
+}
+
+.az-row-item{
+  padding: var(--az-spacing-md);
+  border-radius: 16px;
+  border: 1px solid var(--az-border);
+  background: var(--az-bg-primary);
+  box-shadow: var(--az-shadow-sm);
+}
+
+.az-row-grid{
+  display:grid;
+  grid-template-columns: 2fr 1fr 160px;
+  gap: var(--az-spacing-lg);
+  align-items:end;
+}
+
+.az-delete-inline{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px dashed rgba(148,163,184,.30);
+  color: var(--az-text-secondary);
+  background: rgba(148,163,184,.06);
+}
+
+.az-delete-text{
+  font-size: .85rem;
+  font-weight: 800;
+}
+
+.az-empty{
+  padding: 14px;
+  border-radius: 16px;
+  border: 1px dashed rgba(148,163,184,.30);
+  color: var(--az-text-secondary);
+  background: rgba(148,163,184,.06);
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+
+/* =========================
+   BOUTONS — utilise TON SYSTEM (.az-btn-*)
+   ========================= */
+/* Rien à réinventer : tes .az-btn / .az-btn-primary / etc. viennent du thème global.
+   On force juste le comportement dans la card si base_admin override. */
+.az-parent-card .az-btn{
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  gap: 10px !important;
+  border-radius: 12px !important;
+}
+
+/* =========================
+   STICKY ACTIONS — GLASS PREMIUM
+   ========================= */
+.az-parent-actions{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap: var(--az-spacing-md);
+}
+
+.az-parent-actions--sticky{
+  position: sticky;
+  bottom: 14px;
+  z-index: 50;
+
+  padding: 12px;
+  margin-top: var(--az-spacing-lg);
+
+  border-radius: 16px;
+  border: 1px solid rgba(148,163,184,.20);
+  background: rgba(255,255,255,.72);
+  backdrop-filter: blur(12px);
+  box-shadow: var(--az-shadow-lg);
+}
+
+html[data-theme="dark"] .az-parent-actions--sticky{
+  background: rgba(15,23,42,.35);
+  border-color: rgba(255,255,255,.10);
+}
+
+/* =========================
+   RESPONSIVE
+   ========================= */
+@media (max-width: 900px){
+  .az-grid-2{ grid-template-columns: 1fr; }
+  .az-row-grid{ grid-template-columns: 1fr; }
+
+  .az-parent-actions{
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .az-parent-actions .az-btn{
+    width: 100% !important;
+  }
+}
+
+/* =========================
+   TOM SELECT — AZ SKIN (optionnel)
+   ========================= */
+.ts-wrapper{ width:100%; }
+
+.ts-control{
+  min-height: 46px !important;
+  padding: 10px 12px !important;
+  border-radius: 12px !important;
+  background: var(--az-bg-primary) !important;
+  border: 1px solid rgba(148, 163, 184, .35) !important;
+  color: var(--az-text-primary) !important;
+  box-shadow: none !important;
+}
+
+html[data-theme="dark"] .ts-control{
+  background: rgba(2,6,23,.18) !important;
+  border-color: rgba(148,163,184,.22) !important;
+}
+
+.ts-wrapper.focus .ts-control{
+  border-color: rgba(99,102,241,.65) !important;
+  box-shadow: 0 0 0 4px rgba(99,102,241,.18) !important;
+}
+
+html[data-theme="dark"] .ts-wrapper.focus .ts-control{
+  border-color: rgba(129,140,248,.75) !important;
+  box-shadow: 0 0 0 4px rgba(129,140,248,.22) !important;
+}
+
+.ts-dropdown{
+  border-radius: 16px !important;
+  border: 1px solid var(--az-border) !important;
+  background: var(--az-bg-primary) !important;
+  color: var(--az-text-primary) !important;
+  overflow: hidden !important;
+  box-shadow: var(--az-shadow-xl) !important;
+  z-index: 9999 !important;
+}
+
+html[data-theme="dark"] .ts-dropdown{
+  background: #0b1220 !important;
+}
+
+.ts-dropdown .option{
+  padding: 12px 12px !important;
+  font-size: 13px !important;
+  border-bottom: 1px solid rgba(148,163,184,.18) !important;
+}
+
+html[data-theme="dark"] .ts-dropdown .option{
+  border-bottom: 1px solid rgba(255,255,255,.06) !important;
+}
+
+.ts-dropdown .option.active{ background: rgba(99,102,241,.18) !important; }
+.ts-dropdown .option.selected{ background: rgba(99,102,241,.26) !important; }
+
+/* stacking context safety */
+.az-parent-card,
+.az-section{ position: relative; }

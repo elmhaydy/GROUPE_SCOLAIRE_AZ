@@ -1,0 +1,248 @@
+/* =========================================================
+   AZ NEBULA — Prix Niveau (Inscription + Mensuel)
+   Dark/Light via html[data-theme]
+   Focus glow violet + card premium + responsive
+   ========================================================= */
+
+/* =========================
+   TOKENS (LIGHT default)
+   ========================= */
+:root{
+  color-scheme: light;
+
+  --az-bg-page: #f8fafc;
+  --az-bg-card: #ffffff;
+  --az-bg-section: #f1f5f9;
+
+  --az-text-main: #0f172a;
+  --az-text-sub: #64748b;
+
+  --az-border: rgba(15, 23, 42, 0.10);
+  --az-input-bg: #ffffff;
+
+  --az-primary: #6366f1;
+  --az-primary-2: #ec4899;
+  --az-primary-dark: #4f46e5;
+
+  --az-soft: rgba(99, 102, 241, 0.14); /* violet glow base */
+
+  --az-shadow: 0 18px 40px rgba(2,6,23,.08);
+  --az-radius-lg: 22px;
+  --az-radius-md: 16px;
+  --az-transition: all .25s cubic-bezier(.4,0,.2,1);
+}
+
+/* =========================
+   DARK (force)
+   ========================= */
+html[data-theme="dark"]{
+  color-scheme: dark;
+
+  --az-bg-page: #0b1220;
+  --az-bg-card: #111c2f;
+  --az-bg-section: rgba(2,6,23,.35);
+
+  --az-text-main: #f1f5f9;
+  --az-text-sub: #94a3b8;
+
+  --az-border: rgba(255,255,255,.10);
+  --az-input-bg: rgba(2,6,23,.28);
+
+  --az-soft: rgba(99, 102, 241, 0.18);
+  --az-shadow: 0 22px 55px rgba(0,0,0,.45);
+}
+
+/* Fallback system (si pas de data-theme) */
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+
+    --az-bg-page: #0b1220;
+    --az-bg-card: #111c2f;
+    --az-bg-section: rgba(2,6,23,.35);
+
+    --az-text-main: #f1f5f9;
+    --az-text-sub: #94a3b8;
+
+    --az-border: rgba(255,255,255,.10);
+    --az-input-bg: rgba(2,6,23,.28);
+
+    --az-soft: rgba(99, 102, 241, 0.18);
+    --az-shadow: 0 22px 55px rgba(0,0,0,.45);
+  }
+}
+
+/* =========================
+   PAGE BASE
+   ========================= */
+body{
+  background: var(--az-bg-page);
+  color: var(--az-text-main);
+}
+
+/* =========================
+   CARD
+   ========================= */
+.az-prix-card{
+  max-width: 980px;
+  margin: 22px auto;
+  background: var(--az-bg-card);
+  border: 1px solid var(--az-border);
+  border-radius: var(--az-radius-lg);
+  box-shadow: var(--az-shadow);
+  padding: 20px;
+  overflow: hidden;
+  animation: azFadeUp .35s ease both;
+}
+
+@keyframes azFadeUp{
+  from{ opacity:0; transform: translateY(10px); }
+  to{ opacity:1; transform: translateY(0); }
+}
+
+/* header */
+.az-prix-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap: 14px;
+  padding-bottom: 14px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--az-border);
+  flex-wrap: wrap;
+}
+
+.az-prix-title{
+  margin: 0;
+  font-weight: 950;
+  letter-spacing: -.02em;
+  font-size: 1.25rem;
+}
+
+.az-prix-sub{
+  margin: 0;
+  color: var(--az-text-sub);
+  font-weight: 700;
+}
+
+/* =========================
+   FORM LAYOUT
+   ========================= */
+.az-prix-form{
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+@media (max-width: 860px){
+  .az-prix-form{ grid-template-columns: 1fr; }
+}
+
+/* =========================
+   FIELD
+   ========================= */
+.az-field{
+  background: var(--az-bg-section);
+  border: 1px solid var(--az-border);
+  border-radius: var(--az-radius-md);
+  padding: 14px;
+}
+
+.az-field label{
+  display:block;
+  font-weight: 900;
+  font-size: .92rem;
+  margin-bottom: 8px;
+  color: var(--az-text-main);
+}
+
+.az-field input{
+  width: 100%;
+  padding: .9rem 1rem;
+  border-radius: 12px;
+  border: 1px solid rgba(148,163,184,.35);
+  background: var(--az-input-bg);
+  color: var(--az-text-main);
+  font-size: 1rem;
+  transition: var(--az-transition);
+}
+
+html[data-theme="dark"] .az-field input{
+  border-color: rgba(148,163,184,.22);
+  background: rgba(2,6,23,.22);
+  color: rgba(241,245,249,.95);
+}
+
+/* Focus glow violet (Nebula) */
+.az-field input:focus{
+  outline: none;
+  border-color: rgba(99,102,241,.70);
+  box-shadow:
+    0 0 0 4px var(--az-soft),
+    0 14px 30px rgba(99,102,241,.14);
+  transform: translateY(-1px);
+}
+
+.az-help{
+  margin-top: 8px;
+  font-size: .85rem;
+  color: var(--az-text-sub);
+}
+
+/* Optional error box (si tu l’utilises) */
+.az-error{
+  margin-top: 10px;
+  font-weight: 800;
+  color: #ef4444;
+}
+
+/* =========================
+   ACTIONS
+   ========================= */
+.az-prix-actions{
+  grid-column: 1 / -1;
+  display:flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 14px;
+  border-top: 1px solid var(--az-border);
+  margin-top: 4px;
+  flex-wrap: wrap;
+}
+
+.az-btn{
+  padding: .9rem 1.25rem;
+  border-radius: 12px;
+  font-weight: 950;
+  text-decoration:none;
+  display:inline-flex;
+  align-items:center;
+  gap: .6rem;
+  transition: var(--az-transition);
+  border: 1px solid var(--az-border);
+  background: var(--az-bg-card);
+  color: var(--az-text-main);
+  cursor:pointer;
+}
+
+.az-btn:hover{
+  transform: translateY(-1px);
+  background: var(--az-bg-section);
+}
+
+.az-btn-gradient{
+  border: none;
+  color: #fff;
+  background: linear-gradient(135deg, var(--az-primary), var(--az-primary-2));
+  box-shadow: 0 16px 30px rgba(99,102,241,.18);
+}
+
+.az-btn-gradient:hover{
+  transform: translateY(-2px);
+  box-shadow: 0 20px 44px rgba(99,102,241,.26);
+}
+
+/* =========================
+   SMALL polish
+   ========================= */
+.az-prix-card b{ font-weight: 950; }

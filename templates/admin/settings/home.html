@@ -1,0 +1,97 @@
+{% extends "admin/base_admin.html" %}
+{% load static %}
+
+{% block title %}Paramètres | AZ{% endblock %}
+{% block page_title %}Paramètres{% endblock %}
+{% block breadcrumb %}Administration / Paramètres{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'admin/css/settings/home.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="settings-container">
+    <!-- Header Section -->
+    <header class="settings-header">
+        <div class="header-content">
+            <h3>Paramètres Système</h3>
+            <p>Configurez la structure de votre établissement et gérez la sécurité.</p>
+        </div>
+
+        <div class="filter-chips">
+            <button class="chip is-active" type="button" data-settings-filter="all">Tout</button>
+            <button class="chip" type="button" data-settings-filter="structure">Structure</button>
+            <button class="chip" type="button" data-settings-filter="security">Sécurité</button>
+        </div>
+    </header>
+
+    <!-- Settings Grid -->
+    <div class="settings-grid" id="settingsGrid">
+        
+        <!-- Années Scolaires -->
+        {% if request.user.is_superuser or perms.core.view_anneescolaire %}
+        <a class="settings-card" data-kind="structure" href="{% url 'core:annee_list' %}">
+            <div class="card-icon">
+                <i class="fas fa-calendar-check"></i>
+            </div>
+            <div class="card-body">
+                <h4>Années scolaires</h4>
+                <p>Gérez les périodes académiques et définissez l'année de référence active.</p>
+                <span class="card-tag">Structure</span>
+            </div>
+            <div class="card-arrow"><i class="fas fa-chevron-right"></i></div>
+        </a>
+        {% endif %}
+
+        <!-- Degrés -->
+        {% if request.user.is_superuser or perms.core.view_degre %}
+        <a class="settings-card" data-kind="structure" href="{% url 'core:degre_list' %}">
+            <div class="card-icon">
+                <i class="fas fa-graduation-cap"></i>
+            </div>
+            <div class="card-body">
+                <h4>Degrés</h4>
+                <p>Configurez les cycles d'enseignement (Primaire, Secondaire, Supérieur).</p>
+                <span class="card-tag">Structure</span>
+            </div>
+            <div class="card-arrow"><i class="fas fa-chevron-right"></i></div>
+        </a>
+        {% endif %}
+
+        <!-- Niveaux -->
+        {% if request.user.is_superuser or perms.core.view_niveau %}
+        <a class="settings-card" data-kind="structure" href="{% url 'core:niveau_list' %}">
+            <div class="card-icon">
+                <i class="fas fa-layer-group"></i>
+            </div>
+            <div class="card-body">
+                <h4>Niveaux</h4>
+                <p>Définissez les classes et niveaux rattachés à chaque cycle d'étude.</p>
+                <span class="card-tag">Structure</span>
+            </div>
+            <div class="card-arrow"><i class="fas fa-chevron-right"></i></div>
+        </a>
+        {% endif %}
+
+        <!-- Rôles & Permissions -->
+        {% if request.user.is_superuser %}
+        <a class="settings-card" data-kind="security" href="{% url 'core:role_list' %}">
+            <div class="card-icon">
+                <i class="fas fa-user-shield"></i>
+            </div>
+            <div class="card-body">
+                <h4>Rôles & Permissions</h4>
+                <p>Contrôlez finement les accès et les droits de chaque groupe d'utilisateurs.</p>
+                <span class="card-tag">Sécurité</span>
+            </div>
+            <div class="card-arrow"><i class="fas fa-chevron-right"></i></div>
+        </a>
+        {% endif %}
+
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'admin/js/settings/home.js' %}"></script>
+{% endblock %}

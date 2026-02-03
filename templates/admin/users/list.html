@@ -1,0 +1,181 @@
+{% extends "admin/base_admin.html" %}
+{% load static %}
+
+{% block title %}Utilisateurs | AZ{% endblock %}
+{% block page_title %}Utilisateurs{% endblock %}
+{% block current_page %}Admin / Utilisateurs{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'admin/css/users/list.css' %}?v=1">
+{% endblock %}
+
+{% block content %}
+
+<div class="az-page-head">
+  <div class="az-page-head-left">
+    <div class="az-pill">
+      <i class="fa-solid fa-users"></i>
+      <span>Gestion intelligente des accès scolaires</span>
+    </div>
+  </div>
+
+  <div class="az-page-head-right">
+    <a class="az-btn az-btn-soft" href="{% url 'core:users_reset_passwords_export_csv' %}?q={{ q|urlencode }}&group={{ group_filter|urlencode }}">
+      <i class="fa-solid fa-key"></i> Reset+CSV
+    </a>
+
+    <a class="az-btn az-btn-outline" href="{% url 'core:users_export_csv' %}?q={{ q|urlencode }}&group={{ group_filter|urlencode }}">
+      <i class="fa-solid fa-download"></i> Export
+    </a>
+
+    <a class="az-btn az-btn-primary" href="{% url 'core:users_create' %}">
+      <i class="fa-solid fa-plus"></i> Nouveau
+    </a>
+  </div>
+</div>
+
+<div class="az-filter-bar">
+  <form method="get" class="az-filter-form" id="usersFilterForm">
+
+    <div class="az-filter-label">
+      <i class="fa-solid fa-filter"></i>
+      <span>Filtres</span>
+    </div>
+
+    <div class="az-field">
+      <label class="az-field-label">Recherche</label>
+      <input class="az-input" type="text" name="q" id="usersQ" value="{{ q }}" placeholder="Matricule, nom, email..." autocomplete="off">
+    </div>
+
+    <div class="az-field az-select-wide">
+      <label class="az-field-label">Rôle</label>
+      <select class="az-select" name="group" id="usersRole">
+        <option value="">Tous les rôles</option>
+        {% for g in groups %}
+          <option value="{{ g.name }}" {% if group_filter == g.name %}selected{% endif %}>{{ g.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="az-filter-actions">
+      <button class="az-btn az-btn-soft" type="submit">
+        <i class="fa-solid fa-magnifying-glass"></i> Filtrer
+      </button>
+
+      <a class="az-btn az-btn-ghost" href="{% url 'core:users_list' %}" title="Reset">
+        <i class="fa-solid fa-rotate-right"></i> Reset
+      </a>
+    </div>
+
+  </form>
+</div>
+
+<div class="az-card az-users-card">
+  <div class="az-card-head">
+    <h3 class="az-card-title">
+      <i class="fa-solid fa-user-shield"></i>
+      Liste des utilisateurs
+    </h3>
+
+    <div class="az-card-meta">
+      <span class="az-badge az-badge-info">
+        <i class="fa-solid fa-list"></i>
+        Total : <b>{{ users|length }}</b>
+      </span>
+    </div>
+  </div>
+
+  <div class="az-table">
+    <div class="az-thead">
+      <div>Utilisateur</div>
+      <div>Matricule</div>
+      <div>Rôle</div>
+      <div>Statut</div>
+      <div class="az-th-actions">Actions</div>
+    </div>
+
+    <div class="az-tbody">
+      {% for u in users %}
+        {% with roles=u.groups.all %}
+        <div class="az-row">
+
+          <div class="az-cell" data-label="Utilisateur">
+            <div class="az-user">
+              <div class="az-avatar">
+                {{ u.last_name|default:u.username|slice:":1"|upper }}
+              </div>
+              <div class="az-user-meta">
+                <div class="az-user-name">
+                  {% if u.last_name or u.first_name %}
+                    {{ u.last_name }} {{ u.first_name }}
+                  {% else %}
+                    {{ u.username }}
+                  {% endif %}
+                </div>
+                <div class="az-user-email">{{ u.email|default:"Aucun email" }}</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="az-cell" data-label="Matricule">
+            <span class="az-code">{{ u.username }}</span>
+          </div>
+
+          <div class="az-cell" data-label="Rôle">
+            <span class="az-badge az-badge-muted">
+              <i class="fa-solid fa-shield-halved"></i>
+              {{ roles.0.name|default:"Sans rôle" }}
+            </span>
+          </div>
+
+          <div class="az-cell" data-label="Statut">
+            {% if u.is_active %}
+              <span class="az-badge az-badge-success">
+                <i class="fa-solid fa-circle-check"></i> Actif
+              </span>
+            {% else %}
+              <span class="az-badge az-badge-danger">
+                <i class="fa-solid fa-circle-xmark"></i> Inactif
+              </span>
+            {% endif %}
+          </div>
+
+          <div class="az-cell az-actions" data-label="Actions">
+            <a class="az-btn az-btn-sm az-btn-ghost" href="{% url 'core:users_detail' u.id %}" title="Détails">
+              <i class="fa-solid fa-arrow-right-to-bracket"></i>
+              <span class="az-hide-sm">Détails</span>
+            </a>
+
+            <a class="az-btn az-btn-sm az-btn-outline" href="{% url 'core:users_update' u.id %}" title="Modifier">
+              <i class="fa-solid fa-pen"></i>
+              <span class="az-hide-sm">Modifier</span>
+            </a>
+            <a class="az-btn az-btn-sm az-btn-danger-soft"
+              href="{% url 'core:users_delete' u.id %}"
+              title="Supprimer">
+              <i class="fa-solid fa-trash"></i>
+              <span class="az-hide-sm">Supprimer</span>
+            </a>
+
+          </div>
+
+        </div>
+        {% endwith %}
+      {% empty %}
+        <div class="az-empty">
+          <i class="fa-solid fa-ghost"></i>
+          <div>
+            <b>Aucun résultat</b>
+            <div class="az-sub">La recherche n'a retourné aucun utilisateur.</div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'admin/js/users/list.js' %}?v=1"></script>
+{% endblock %}

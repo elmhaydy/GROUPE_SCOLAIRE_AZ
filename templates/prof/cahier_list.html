@@ -1,0 +1,130 @@
+{% extends "prof/base_prof.html" %}
+{% load static %}
+
+{% block title %}Cahier de texte | Prof{% endblock %}
+{% block page_title %}Cahier de texte{% endblock %}
+{% block breadcrumb %}Cahier de texte{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'prof/css/cahier.css' %}?v=3">
+{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'prof:cahier_create' %}" class="azp-btn primary">
+  <i class="fa-solid fa-plus"></i> Ajouter
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="azp">
+
+  <form method="get" class="azp-card azp-filters">
+    <div class="azp-filters-row">
+
+      <div class="azp-field">
+        <label>Groupe</label>
+        <select name="groupe" id="id_groupe" class="az-field">
+          <option value="">— Groupe —</option>
+          {% for g in groupes %}
+            <option value="{{ g.id }}" {% if g.id|stringformat:"s" == groupe_selected %}selected{% endif %}>
+              {{ g.niveau.degre.nom }} • {{ g.niveau.nom }} • {{ g.nom }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="azp-field">
+        <label>Matière</label>
+        <select name="matiere" id="id_matiere" class="az-field" disabled>
+          <option value="">— Matière —</option>
+          {# rempli en JS selon le groupe #}
+        </select>
+        <span class="muted" id="matiere_hint">Choisis d’abord un groupe.</span>
+      </div>
+
+      <div class="azp-field">
+        <label>Date</label>
+        <input type="date" name="date" value="{{ date_selected }}" class="az-field">
+      </div>
+
+      <div class="azp-field azp-actions-inline">
+        <label class="muted">Actions</label>
+        <div class="row">
+          <button class="azp-btn" type="submit">
+            <i class="fa-solid fa-filter"></i> Filtrer
+          </button>
+          <a class="azp-btn" href="{% url 'prof:cahier_list' %}">
+            <i class="fa-solid fa-rotate-left"></i> Reset
+          </a>
+        </div>
+      </div>
+
+    </div>
+  </form>
+
+  {% if items %}
+  <div class="azp-card">
+    <div class="azp-table-top">
+      <div class="azp-table-title">
+        <i class="fa-solid fa-book"></i>
+        <span>Entrées</span>
+        <span class="muted">• {{ items|length }}</span>
+      </div>
+      <div class="muted">Clique sur “éditer” pour modifier.</div>
+    </div>
+
+    <div class="azp-table-wrap">
+      <table class="azp-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Groupe</th>
+            <th>Matière</th>
+            <th>Titre</th>
+            <th class="right">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in items %}
+          <tr>
+            <td>{{ c.date|date:"d/m/Y" }}</td>
+            <td>{{ c.groupe.niveau.degre.nom }} • {{ c.groupe.niveau.nom }} • {{ c.groupe.nom }}</td>
+            <td>
+              {% if c.matiere %}
+                <span class="badge">{{ c.matiere.nom }}</span>
+              {% else %}
+                <span class="muted">—</span>
+              {% endif %}
+            </td>
+            <td><strong>{{ c.titre }}</strong></td>
+            <td class="right">
+              <a href="{% url 'prof:cahier_update' c.id %}" class="azp-btn sm">
+                <i class="fa-solid fa-pen"></i> Éditer
+              </a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% else %}
+  <div class="azp-card" style="padding:18px;text-align:center">
+    <div class="muted" style="font-size:40px;margin-bottom:6px"><i class="fa-solid fa-book-open"></i></div>
+    <div style="font-weight:800;font-size:18px">Aucun contenu</div>
+    <div class="muted">Aucun cahier de texte trouvé.</div>
+  </div>
+  {% endif %}
+
+</div>
+
+<script>
+  window.AZ_API = { matieres: "{% url 'prof:ajax_matieres' %}" };
+  window.AZ_SELECTED = {
+    groupe: "{{ groupe_selected|default:'' }}",
+    matiere: "{{ matiere_selected|default:'' }}",
+  };
+</script>
+<script src="{% static 'prof/js/cahier_list.js' %}?v=1" defer></script>
+
+{% endblock %}

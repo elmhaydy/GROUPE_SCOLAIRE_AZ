@@ -1,0 +1,17 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}Supprimer | AZ{% endblock %}
+{% block page_title %}Supprimer un parent{% endblock %}
+{% block breadcrumb %}Scolaire / Parents{% endblock %}
+
+{% block content %}
+<div class="az-card" style="grid-column:span 12;max-width:720px;">
+  <h3>Confirmation</h3>
+  <p class="az-sub">Supprimer <b>{{ p.nom }} {{ p.prenom }}</b> ?</p>
+
+  <form method="post" style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap;">
+    {% csrf_token %}
+    <button class="az-btn" type="submit" style="border-color:rgba(255,80,80,.35);">🗑️ Oui, supprimer</button>
+    <a class="az-btn az-btn-gradient" href="{% url 'core:parent_list' %}">Annuler</a>
+  </form>
+</div>
+{% endblock %}

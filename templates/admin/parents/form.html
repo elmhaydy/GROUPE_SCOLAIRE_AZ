@@ -1,0 +1,189 @@
+{% extends "admin/base_admin.html" %}
+{% load static %}
+
+{% block title %}Parent | AZ{% endblock %}
+{% block page_title %}{% if mode == "create" %}Ajouter{% else %}Modifier{% endif %} un parent{% endblock %}
+{% block breadcrumb %}Scolaire / Parents{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'admin/css/parents/form.css' %}?v=99">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css">
+{% endblock %}
+
+{% block content %}
+
+<div class="az-parent-card az-parent-card--modern">
+
+  <!-- HEADER -->
+  <div class="az-parent-head az-parent-head--modern">
+    <div class="az-parent-head-left">
+      <h3 class="az-parent-title">
+        {% if mode == "create" %}Nouveau parent{% else %}Modifier le parent{% endif %}
+      </h3>
+      <p class="az-parent-sub">
+        Informations du parent + liens avec les élèves.
+      </p>
+    </div>
+
+    <div class="az-parent-head-right">
+      <span class="az-badge az-badge-soft">
+        <i class="fas fa-users"></i> Parent / Tuteur
+      </span>
+    </div>
+  </div>
+
+  <form method="post" class="az-parent-form" novalidate>
+    {% csrf_token %}
+
+    <!-- SECTION: Infos parent -->
+    <div class="az-section">
+      <div class="az-section-head">
+        <h4 class="az-section-title"><i class="fas fa-id-card"></i> Informations</h4>
+        <p class="az-section-sub">Coordonnées principales du parent.</p>
+      </div>
+
+      <div class="az-grid-2">
+        <div class="az-field">
+          <label for="{{ form.nom.id_for_label }}">Nom</label>
+          {{ form.nom }}
+        </div>
+
+        <div class="az-field">
+          <label for="{{ form.prenom.id_for_label }}">Prénom</label>
+          {{ form.prenom }}
+        </div>
+      </div>
+
+      <div class="az-grid-2">
+        <div class="az-field">
+          <label for="{{ form.telephone.id_for_label }}">Téléphone</label>
+          {{ form.telephone }}
+        </div>
+
+        <div class="az-field">
+          <label for="{{ form.email.id_for_label }}">Email</label>
+          {{ form.email }}
+        </div>
+      </div>
+
+      <div class="az-field">
+        <label for="{{ form.adresse.id_for_label }}">Adresse</label>
+        {{ form.adresse }}
+      </div>
+
+      <div class="az-switch az-switch--pill">
+        {{ form.is_active }}
+        <span>Parent actif</span>
+      </div>
+    </div>
+
+    <!-- SECTION: Liens Parent ↔ Élèves -->
+    <div class="az-section">
+      <div class="az-section-head az-section-head--row">
+        <div>
+          <h4 class="az-section-title"><i class="fas fa-link"></i> Liens Parent ↔ Élèves</h4>
+          <p class="az-section-sub">Associer un ou plusieurs élèves avec le type de lien.</p>
+        </div>
+
+        <button class="az-btn az-btn-outline" type="button" id="addRowBtn">
+          <i class="fas fa-plus"></i> Ajouter ligne
+        </button>
+      </div>
+
+      {{ formset.management_form }}
+
+      {% if formset.non_form_errors %}
+        <div class="az-formset-errors">
+          {% for err in formset.non_form_errors %}
+            <div class="az-msg az-msg-danger">{{ err }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      <div id="rows" class="az-rows">
+        {% for f in formset %}
+          <div class="az-row-item">
+            <div class="az-row-grid">
+
+              <div class="az-field">
+                <label for="{{ f.eleve.id_for_label }}">Élève</label>
+                {{ f.eleve }}
+                <div class="az-help">Recherche par nom/prénom (Tom Select).</div>
+              </div>
+
+              <div class="az-field">
+                <label for="{{ f.lien.id_for_label }}">Lien</label>
+                {{ f.lien }}
+              </div>
+
+              <div class="az-field az-delete-box">
+                <label for="{{ f.DELETE.id_for_label }}">Suppr.</label>
+                <div class="az-delete-inline">
+                  {{ f.DELETE }}
+                  <span class="az-delete-text">Supprimer</span>
+                </div>
+              </div>
+
+            </div>
+
+            {{ f.id }}
+          </div>
+        {% empty %}
+          <div class="az-empty">
+            <i class="fas fa-circle-info"></i>
+            Aucun lien. Clique sur “Ajouter ligne”.
+          </div>
+        {% endfor %}
+      </div>
+
+      <!-- TEMPLATE empty_form -->
+      <template id="emptyFormTpl">
+        <div class="az-row-item">
+          <div class="az-row-grid">
+
+            <div class="az-field">
+              <label>Élève</label>
+              {{ formset.empty_form.eleve }}
+              <div class="az-help">Recherche par nom/prénom (Tom Select).</div>
+            </div>
+
+            <div class="az-field">
+              <label>Lien</label>
+              {{ formset.empty_form.lien }}
+            </div>
+
+            <div class="az-field az-delete-box">
+              <label>Suppr.</label>
+              <div class="az-delete-inline">
+                {{ formset.empty_form.DELETE }}
+                <span class="az-delete-text">Supprimer</span>
+              </div>
+            </div>
+
+          </div>
+
+          {{ formset.empty_form.id }}
+        </div>
+      </template>
+    </div>
+
+    <!-- ACTIONS sticky -->
+    <div class="az-parent-actions az-parent-actions--sticky">
+      <a class="az-btn" href="{% url 'core:parent_list' %}">
+        <i class="fas fa-arrow-left"></i> Retour
+      </a>
+
+      <button class="az-btn az-btn-gradient" type="submit" id="saveBtn">
+        <i class="fas fa-save"></i> Enregistrer
+      </button>
+    </div>
+
+  </form>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
+<script src="{% static 'admin/js/parents/form.js' %}?v=99"></script>
+{% endblock %}

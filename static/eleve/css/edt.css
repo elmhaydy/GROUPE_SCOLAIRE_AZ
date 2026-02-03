@@ -1,0 +1,381 @@
+/* =========================================================
+   AZ — Portail Élève — EDT (Ultra Moderne)
+   Desktop: table grid premium + sticky head/col
+   Mobile: cards
+   ========================================================= */
+
+/* Wrapper page */
+.edt-page{
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+}
+
+/* Card base (si ta base a déjà .card, ça s’aligne) */
+.card{
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+}
+
+/* Header EDT */
+.edt-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+  padding: 16px 16px 10px;
+}
+
+.edt-head h3{
+  font-size: 1.05rem;
+  font-weight: 900;
+  letter-spacing:.01em;
+}
+
+.muted{ color: var(--muted); }
+
+/* Barre actions (search + btn) */
+.edt-actions{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+
+.edt-search{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding: 10px 12px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--card), #ffffff 5%);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-soft);
+  min-width: 260px;
+}
+
+.edt-search i{ opacity:.75; }
+
+.edt-search input{
+  border: none;
+  outline: none;
+  background: transparent;
+  width: 100%;
+  color: var(--text);
+  font-weight: 700;
+  font-size: .9rem;
+}
+
+.edt-btn{
+  border:none;
+  cursor:pointer;
+  border-radius: 999px;
+  padding: 10px 12px;
+  font-weight: 900;
+  color:#fff;
+  background: var(--grad);
+  box-shadow: 0 10px 22px rgba(99,102,241,.25);
+  transition: transform .12s ease, filter .12s ease;
+}
+.edt-btn:hover{ transform: translateY(-1px); filter: brightness(1.03); }
+.edt-btn:active{ transform: translateY(0); }
+
+/* Desktop grid wrapper */
+.edt-wrap{
+  padding: 12px 14px 16px;
+}
+
+.edt-wrap{
+  overflow:auto;
+  border-top: 1px solid var(--border);
+  border-radius: 0 0 16px 16px;
+}
+
+/* Table */
+.edt-grid{
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 10px;
+  min-width: 900px; /* desktop confort */
+}
+
+/* sticky header */
+.edt-grid thead th{
+  position: sticky;
+  top: 0;
+  z-index: 6;
+  text-align: left;
+  font-size: .78rem;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--muted), var(--text) 30%);
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--card), #ffffff 6%);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-soft);
+  backdrop-filter: blur(6px);
+}
+
+/* sticky first column (Heure) */
+.edt-hour,
+.edt-hour-cell{
+  position: sticky;
+  left: 0;
+  z-index: 7;
+}
+
+.edt-hour{ z-index: 8; } /* coin top-left au-dessus */
+
+/* Hour cell */
+.edt-hour-cell{
+  background: color-mix(in srgb, var(--card), #ffffff 6%);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 12px;
+  box-shadow: var(--shadow-soft);
+  width: 170px;
+  min-width: 170px;
+}
+
+.edt-time{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  font-weight: 900;
+  color: var(--text);
+  font-size: .92rem;
+}
+.edt-time::before{
+  content:"";
+  width:10px;
+  height:10px;
+  border-radius:999px;
+  background: color-mix(in srgb, #22c55e, var(--text) 15%);
+  box-shadow: 0 8px 18px rgba(34,197,94,.25);
+}
+
+/* Cells */
+.edt-cell{
+  vertical-align: top;
+  padding: 0; /* carte gère padding */
+}
+
+/* Empty */
+.edt-empty{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  height: 92px;
+  border-radius: 16px;
+  border: 1px dashed color-mix(in srgb, var(--border), transparent 30%);
+  color: color-mix(in srgb, var(--muted), var(--text) 15%);
+  background: color-mix(in srgb, var(--card), transparent 20%);
+}
+
+/* Event card */
+.edt-event{
+  height: 92px;
+  border-radius: 16px;
+  border: 1px solid color-mix(in srgb, var(--border), transparent 10%);
+  background: color-mix(in srgb, var(--card), #ffffff 4%);
+  box-shadow: var(--shadow-soft);
+  padding: 10px 12px;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  position:relative;
+  overflow:hidden;
+  transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease;
+}
+
+.edt-event::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  background: radial-gradient(circle at 20% 10%, rgba(99,102,241,.18), transparent 55%),
+              radial-gradient(circle at 80% 80%, rgba(236,72,153,.14), transparent 60%);
+  pointer-events:none;
+}
+
+.edt-event:hover{
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, #6366f1, var(--border) 55%);
+  box-shadow: 0 18px 45px rgba(15,23,42,.12);
+}
+
+.edt-event-top{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:10px;
+}
+
+.edt-subject{
+  font-weight: 950;
+  color: var(--text);
+  line-height: 1.15;
+  font-size: .95rem;
+}
+
+.edt-room{
+  font-size: .78rem;
+  font-weight: 900;
+  color: #fff;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, rgba(15,23,42,.85), rgba(2,6,23,.65));
+  border: 1px solid rgba(255,255,255,.10);
+  white-space: nowrap;
+}
+
+.edt-teacher{
+  font-size: .82rem;
+  font-weight: 800;
+  opacity: .95;
+}
+
+/* Badge "Suite" rendu plus propre */
+.edt-event .muted[style*="Suite"]{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  font-size:.75rem !important;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  padding: 6px 10px;
+  border-radius: 999px;
+  width: fit-content;
+  background: rgba(250,204,21,.14);
+  border: 1px solid rgba(250,204,21,.25);
+  color: color-mix(in srgb, #facc15, var(--text) 15%) !important;
+}
+
+/* Now highlight (JS ajoute .is-now) */
+.edt-hour-cell.is-now .edt-time::before{
+  background: #f59e0b;
+  box-shadow: 0 10px 22px rgba(245,158,11,.35);
+}
+
+.edt-cell.is-now .edt-event{
+  border-color: rgba(245,158,11,.45);
+  box-shadow: 0 18px 55px rgba(245,158,11,.16);
+}
+.edt-cell.is-now .edt-event::after{
+  content:"EN COURS";
+  position:absolute;
+  top:10px;
+  right:10px;
+  font-size:.68rem;
+  font-weight: 950;
+  letter-spacing:.14em;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(245,158,11,.18);
+  border: 1px solid rgba(245,158,11,.35);
+  color: color-mix(in srgb, #f59e0b, var(--text) 20%);
+}
+
+/* Aide filtre */
+.edt-hidden{ display:none !important; }
+
+/* Mobile mode */
+.edt-mobile{
+  display:none;
+  padding: 14px;
+  border-top: 1px solid var(--border);
+}
+
+.edt-day{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--card), #ffffff 5%);
+  box-shadow: var(--shadow-soft);
+  margin-bottom: 12px;
+}
+
+.edt-day-title{
+  font-weight: 950;
+  letter-spacing:.02em;
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+.edt-day-title::before{
+  content:"";
+  width:10px;
+  height:10px;
+  border-radius:999px;
+  background: var(--grad);
+}
+
+.edt-day-list{ display:flex; flex-direction:column; gap:10px; }
+
+.edt-m-card{
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  box-shadow: var(--shadow-soft);
+  padding: 12px;
+  display:flex;
+  gap:12px;
+}
+
+.edt-m-time{
+  min-width: 94px;
+  font-weight: 950;
+  font-size: .88rem;
+  color: var(--text);
+  opacity: .95;
+}
+
+.edt-m-body{ display:flex; flex-direction:column; gap:6px; min-width:0; }
+.edt-m-subject{
+  font-weight: 950;
+  font-size: .95rem;
+  color: var(--text);
+  line-height: 1.2;
+  word-break: break-word;
+}
+
+/* Responsive switch */
+@media (max-width: 1024px){
+  .edt-grid{ min-width: 760px; }
+  .edt-search{ min-width: 220px; }
+}
+
+@media (max-width: 820px){
+  .edt-wrap{ display:none; }
+  .edt-mobile{ display:block; }
+  .edt-actions{ width:100%; }
+  .edt-search{ flex:1; min-width: 0; }
+}
+
+/* Accessibilité focus */
+.edt-search:focus-within{
+  box-shadow: var(--shadow-soft), var(--ring);
+}
+.edt-m-card.is-now{
+  border-color: rgba(245,158,11,.45);
+  box-shadow: 0 18px 55px rgba(245,158,11,.16);
+  position: relative;
+}
+.edt-m-card.is-now::after{
+  content:"EN COURS";
+  position:absolute;
+  top:10px;
+  right:10px;
+  font-size:.68rem;
+  font-weight: 950;
+  letter-spacing:.14em;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(245,158,11,.18);
+  border: 1px solid rgba(245,158,11,.35);
+  color: color-mix(in srgb, #f59e0b, var(--text) 20%);
+}

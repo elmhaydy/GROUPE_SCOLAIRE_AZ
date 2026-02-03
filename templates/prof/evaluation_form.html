@@ -1,0 +1,123 @@
+{% extends "prof/base_prof.html" %}
+{% load static %}
+
+{% block title %}Nouvelle évaluation | Prof{% endblock %}
+{% block page_title %}Créer une évaluation{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'prof/css/evaluation_form.css' %}?v=2">
+{% endblock %}
+
+{% block content %}
+<div class="azp">
+
+  <div class="azp-head">
+    <div>
+      <div class="azp-pill">
+        <i class="fa-solid fa-plus"></i>
+        <span>Prof</span>
+        <span class="sep">•</span>
+        <span>Nouvelle évaluation</span>
+      </div>
+      <h1 class="azp-title">Créer une évaluation</h1>
+      <p class="azp-sub">Après création, tu seras redirigé vers la saisie des notes.</p>
+    </div>
+
+    <div class="azp-actions">
+      <a class="azp-btn" href="{% url 'prof:evaluations' %}">
+        <i class="fa-solid fa-arrow-left"></i>
+        <span>Retour</span>
+      </a>
+    </div>
+  </div>
+
+  <form method="post" class="azp-card azp-form" novalidate>
+    {% csrf_token %}
+
+    {% if form.errors %}
+      <div class="alert danger">
+        <strong>Erreurs :</strong>
+        <div class="muted" style="margin-top:6px">Vérifie les champs ci-dessous (les erreurs sont affichées sous chaque champ).</div>
+        {% if form.non_field_errors %}
+          <div style="margin-top:10px">{{ form.non_field_errors }}</div>
+        {% endif %}
+      </div>
+    {% endif %}
+
+    <div class="grid">
+
+      <div class="field">
+        <label>Titre</label>
+        {{ form.titre }}
+        <small class="muted">Ex: “Contrôle 1”, “Devoir chapitre 2”…</small>
+        {% if form.titre.errors %}<div class="err">{{ form.titre.errors }}</div>{% endif %}
+      </div>
+
+      <div class="field">
+        <label>Type</label>
+        {{ form.type }}
+        {% if form.type.errors %}<div class="err">{{ form.type.errors }}</div>{% endif %}
+      </div>
+
+      <div class="field">
+        <label>Groupe</label>
+        {{ form.groupe }}
+        {% if form.groupe.errors %}<div class="err">{{ form.groupe.errors }}</div>{% endif %}
+      </div>
+
+      <div class="field">
+        <label>Matière</label>
+        {{ form.matiere }}
+        <small class="muted" id="matiereHelp">Choisis un groupe d’abord.</small>
+        {% if form.matiere.errors %}<div class="err">{{ form.matiere.errors }}</div>{% endif %}
+      </div>
+
+      <div class="field">
+        <label>Période</label>
+        {{ form.periode }}
+        <small class="muted" id="periodeHelp">Choisis un groupe d’abord.</small>
+        {% if form.periode.errors %}<div class="err">{{ form.periode.errors }}</div>{% endif %}
+      </div>
+
+      <div class="field">
+        <label>Date</label>
+        {{ form.date }}
+        {% if form.date.errors %}<div class="err">{{ form.date.errors }}</div>{% endif %}
+      </div>
+
+      <div class="field">
+        <label>Note max</label>
+        {{ form.note_max }}
+        <small class="muted">Ex: 20</small>
+        {% if form.note_max.errors %}<div class="err">{{ form.note_max.errors }}</div>{% endif %}
+      </div>
+
+      <div class="field">
+        <label>Coefficient</label>
+        {{ form.coefficient }}
+        <small class="muted">Par défaut: 1</small>
+        {% if form.coefficient.errors %}<div class="err">{{ form.coefficient.errors }}</div>{% endif %}
+      </div>
+
+    </div>
+
+    <div class="form-actions">
+      <button class="azp-btn primary" type="submit">
+        <i class="fa-solid fa-check"></i>
+        <span>Créer & continuer</span>
+      </button>
+      <a class="azp-btn" href="{% url 'prof:evaluations' %}">Annuler</a>
+    </div>
+  </form>
+
+</div>
+
+<script>
+  window.AZ_EVAL = {
+    URL_MATIERES: "{% url 'prof:ajax_matieres' %}",
+    URL_PERIODES: "{% url 'prof:ajax_periodes' %}"
+  };
+</script>
+
+<script src="{% static 'prof/js/evaluation_form.js' %}?v=4" defer></script>
+{% endblock %}

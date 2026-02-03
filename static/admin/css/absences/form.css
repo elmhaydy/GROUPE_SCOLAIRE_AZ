@@ -1,0 +1,234 @@
+/* admin/css/absences/form.css
+   AZ — Absences (Form) — Premium + Responsive
+   Dépend de ton thème global (variables + .az-btn/.az-card)
+*/
+
+.az-absence-form-page{
+  display:block;
+  padding: 4px 0;
+}
+
+.az-absence-form-card{
+  max-width: 980px;
+  margin: 0 auto;
+  border: 1px solid var(--az-border);
+  border-radius: 18px;
+  background: var(--az-bg-primary);
+  box-shadow: var(--az-shadow-sm);
+  padding: var(--az-spacing-xl);
+  position: relative;
+  overflow: visible; /* important pour dropdown tom-select */
+  animation: az-fadeUp .45s ease both;
+}
+
+.az-absence-form-card::before{
+  content:"";
+  position:absolute;
+  left:0; top:0; right:0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--az-primary), var(--az-primary-light));
+  opacity: .95;
+  border-radius: 18px 18px 0 0;
+}
+
+/* Head */
+.az-absence-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap: 16px;
+  padding-bottom: var(--az-spacing-lg);
+  margin-bottom: var(--az-spacing-xl);
+  border-bottom: 1px solid var(--az-border);
+}
+
+.az-absence-title{
+  margin:0;
+  font-size: 1.35rem;
+  font-weight: 900;
+  letter-spacing: -0.3px;
+  display:flex;
+  gap: 10px;
+  align-items:center;
+}
+
+.az-absence-title i{
+  color: var(--az-primary);
+}
+
+.az-absence-head-actions{
+  display:flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* Msg zone */
+.az-msg-area{
+  margin: 0 0 var(--az-spacing-lg);
+  display:grid;
+  gap: 10px;
+}
+.az-msg{
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.04);
+}
+.az-msg.bad{
+  border-color: rgba(239,68,68,.35);
+  background: rgba(239,68,68,.10);
+  color: var(--az-danger);
+  font-weight: 800;
+}
+
+/* Grid */
+.az-grid-2{
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--az-spacing-lg);
+}
+
+/* Fields */
+.az-absence-form{
+  display:grid;
+  gap: var(--az-spacing-lg);
+  max-width: 860px;
+}
+
+.az-field{
+  display:flex;
+  flex-direction:column;
+  gap: 8px;
+  position: relative;
+}
+
+.az-field label{
+  font-weight: 900;
+  font-size: .92rem;
+  color: var(--az-text-primary);
+}
+
+/* Force AZ inputs (Django widgets) */
+.az-field input,
+.az-field select,
+.az-field textarea{
+  width:100%;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--az-border);
+  background: var(--az-bg-primary);
+  color: var(--az-text-primary);
+  font-family: inherit;
+  font-size: .95rem;
+  transition: var(--az-transition-fast);
+}
+
+.az-field textarea{ min-height: 120px; resize: vertical; }
+
+.az-field input:focus,
+.az-field select:focus,
+.az-field textarea:focus{
+  outline:none;
+  border-color: var(--az-primary);
+  box-shadow: 0 0 0 4px rgba(99,102,241,.12);
+}
+
+/* Help & errors */
+.az-help{
+  font-size: .85rem;
+  color: var(--az-text-tertiary);
+  opacity: .9;
+  line-height: 1.35;
+}
+.az-err{
+  font-size: .85rem;
+  font-weight: 800;
+  color: var(--az-danger);
+}
+
+/* Toggle */
+.az-toggle{
+  display:flex;
+  align-items:center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--az-border);
+  background: rgba(255,255,255,.03);
+  cursor: pointer;
+  user-select: none;
+}
+
+.az-toggle input[type="checkbox"]{
+  position:absolute;
+  opacity:0;
+  width:1px;height:1px;
+}
+
+.az-toggle-ui{
+  width: 46px;
+  height: 28px;
+  border-radius: 999px;
+  background: rgba(148,163,184,.25);
+  border: 1px solid var(--az-border);
+  position: relative;
+  transition: var(--az-transition-fast);
+  flex: 0 0 auto;
+}
+
+.az-toggle-ui::after{
+  content:"";
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  position:absolute;
+  top: 50%;
+  left: 4px;
+  transform: translateY(-50%);
+  background: rgba(255,255,255,.75);
+  transition: var(--az-transition-fast);
+}
+
+.az-toggle-text{
+  font-weight: 800;
+  color: var(--az-text-primary);
+  opacity: .9;
+}
+
+.az-toggle input:checked + .az-toggle-ui{
+  background: rgba(99,102,241,.25);
+  border-color: rgba(99,102,241,.45);
+  box-shadow: 0 0 0 4px rgba(99,102,241,.12);
+}
+.az-toggle input:checked + .az-toggle-ui::after{
+  left: 20px;
+  background: #fff;
+}
+
+/* Actions */
+.az-form-actions{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap: var(--az-spacing-md);
+  padding-top: var(--az-spacing-lg);
+  border-top: 1px solid var(--az-border);
+  margin-top: 2px;
+  flex-wrap: wrap;
+}
+
+/* Anim */
+@keyframes az-fadeUp{
+  from{ opacity:0; transform: translateY(10px); }
+  to{ opacity:1; transform: translateY(0); }
+}
+
+/* Responsive */
+@media (max-width: 900px){
+  .az-absence-form-card{ padding: var(--az-spacing-lg); }
+  .az-grid-2{ grid-template-columns: 1fr; }
+  .az-absence-head{ flex-direction: column; }
+  .az-absence-head-actions .az-btn{ width: 100%; }
+  .az-form-actions{ justify-content: stretch; }
+  .az-form-actions .az-btn{ width: 100%; }
+}

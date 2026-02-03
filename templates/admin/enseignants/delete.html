@@ -1,0 +1,75 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}Supprimer séance{% endblock %}
+{% block page_title %}Supprimer une séance{% endblock %}
+{% block breadcrumb %}Pédagogie / Emploi du temps / Supprimer{% endblock %}
+
+{% block content %}
+<div class="az-card" style="grid-column:span 12;">
+
+  <h3>Confirmation</h3>
+  <p class="az-sub">
+    Supprimer la séance :
+    <b>{{ s.annee.nom }}</b> —
+    {{ s.groupe.niveau.degre.nom }}/{{ s.groupe.niveau.nom }}/{{ s.groupe.nom }} —
+    <b>{{ s.jour }} {{ s.heure_debut }}-{{ s.heure_fin }}</b>
+    — {{ s.enseignant.nom }} {{ s.enseignant.prenom }}
+    {% if s.matiere %} — {{ s.matiere }}{% endif %}
+    {% if s.salle %} (Salle {{ s.salle }}){% endif %}
+    ?
+  </p>
+
+  {% if absences_bloquantes %}
+    <div class="az-alert az-alert-danger" style="margin-top:14px;">
+      <b>❌ Suppression impossible</b><br>
+      Cette séance est liée à <b>{{ absences_bloquantes|length }}</b> absence(s).
+      Supprime ces absences (ou mets les élèves en PRESENT via la feuille de présence),
+      puis réessaie.
+    </div>
+
+    <div style="margin-top:14px;">
+      <h4 style="margin:0 0 10px 0;">Absences liées</h4>
+
+      <ul style="padding-left:18px;margin:0;">
+        {% for a in absences_bloquantes %}
+          <li style="margin-bottom:8px;">
+            <b>{{ a.date }}</b> —
+            {{ a.eleve.matricule }} — {{ a.eleve.nom }} {{ a.eleve.prenom }}
+            — <b>{{ a.get_type_display }}</b>
+            {% if a.justifie %} ✅ Justifiée{% endif %}
+            {% if a.motif %} — {{ a.motif }}{% endif %}
+
+            <div style="margin-top:6px;display:flex;gap:8px;flex-wrap:wrap;">
+              <a class="az-btn az-btn-soft" href="{% url 'core:absence_update' a.id %}">
+                Modifier l’absence
+              </a>
+              <a class="az-btn az-btn-soft" href="{% url 'core:absence_delete' a.id %}">
+                Supprimer l’absence
+              </a>
+            </div>
+          </li>
+        {% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+
+  <form method="post" style="margin-top:18px;display:flex;gap:10px;flex-wrap:wrap;">
+    {% csrf_token %}
+
+    {% if absences_bloquantes %}
+      <button class="az-btn" type="button" disabled
+              style="opacity:.5;cursor:not-allowed;border-color:rgba(255,80,80,.35);">
+        🗑️ Suppression bloquée
+      </button>
+    {% else %}
+      <button class="az-btn" type="submit" style="border-color:rgba(255,80,80,.35);">
+        🗑️ Oui, supprimer
+      </button>
+    {% endif %}
+
+    <a class="az-btn az-btn-gradient" href="{% url 'core:seance_list' %}">
+      Annuler
+    </a>
+  </form>
+
+</div>
+{% endblock %}

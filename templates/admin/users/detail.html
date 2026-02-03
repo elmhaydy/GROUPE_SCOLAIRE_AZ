@@ -1,0 +1,139 @@
+{% extends "admin/base_admin.html" %}
+{% load static %}
+
+{% block title %}Détails utilisateur | AZ{% endblock %}
+{% block page_title %}Détails Utilisateur{% endblock %}
+{% block breadcrumb %}Administration / Utilisateurs / Détails{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'admin/css/users/detail.css' %}?v=1">
+{% endblock %}
+
+{% block content %}
+<div class="details-container">
+    <div class="modern-card">
+        <!-- Header Section -->
+        <div class="details-header">
+            <div class="header-title">
+                <h3>Détails Utilisateur</h3>
+                <p>
+                    <code style="color: var(--primary); background: var(--primary-soft); padding: 0.2rem 0.5rem; border-radius: 6px;">{{ u.username }}</code>
+                    • {{ u.email|default:"Pas d'email" }}
+                </p>
+            </div>
+
+            <div class="header-actions">
+                <a class="btn-modern btn-outline-modern" href="{% url 'core:users_list' %}">
+                    <i class="fas fa-arrow-left"></i> Retour
+                </a>
+                <a class="btn-modern btn-primary-modern" href="{% url 'core:users_update' u.id %}">
+                    <i class="fas fa-user-pen"></i> Modifier
+                </a>
+                <a class="btn-modern btn-outline-modern" href="{% url 'core:users_password' u.id %}">
+                    <i class="fas fa-lock"></i> MDP
+                </a>
+            </div>
+        </div>
+
+        <!-- Hero Section -->
+        <div class="user-hero-modern">
+            <div class="avatar-xl">
+                {{ u.first_name|default:u.username|slice:":1"|upper }}
+            </div>
+
+            <div class="hero-info">
+                <h3>{{ u.last_name }} {{ u.first_name }}</h3>
+
+                <div class="hero-badges">
+                    <span class="pill-modern {% if u.is_active %}pill-ok{% else %}pill-bad{% endif %}">
+                        {% if u.is_active %}
+                            <i class="fas fa-check-circle"></i> Actif
+                        {% else %}
+                            <i class="fas fa-times-circle"></i> Inactif
+                        {% endif %}
+                    </span>
+
+                    <span class="pill-modern {% if u.is_superuser %}pill-ok{% else %}pill-neutral{% endif %}">
+                        <i class="fas fa-shield-halved"></i>
+                        Admin : {% if u.is_superuser %}Oui{% else %}Non{% endif %}
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Grid Infos -->
+        <div class="info-grid-modern">
+            <!-- Informations Générales -->
+            <div class="info-box-modern">
+                <div class="box-label"><i class="fas fa-circle-info"></i> Informations Générales</div>
+
+                <div class="kv-row-modern">
+                    <span>Username</span>
+                    <b style="font-family: monospace; color: var(--primary);">{{ u.username }}</b>
+                </div>
+
+                <div class="kv-row-modern">
+                    <span>Email</span>
+                    <b>{{ u.email|default:"—" }}</b>
+                </div>
+
+                <div class="kv-row-modern">
+                    <span>Dernière connexion</span>
+                    <b>{{ u.last_login|date:"d/m/Y H:i"|default:"Jamais" }}</b>
+                </div>
+
+                <div class="kv-row-modern">
+                    <span>Membre depuis</span>
+                    <b>{{ u.date_joined|date:"d/m/Y" }}</b>
+                </div>
+            </div>
+
+            <!-- Rôles & Sécurité -->
+            <div class="info-box-modern">
+                <div class="box-label"><i class="fas fa-users-gear"></i> Rôles & Sécurité</div>
+
+                <div class="tag-cloud" style="margin-bottom: 1.5rem;">
+                    {% if roles %}
+                        {% for r in roles %}
+                            <span class="tag-modern">{{ r }}</span>
+                        {% endfor %}
+                    {% else %}
+                        <span style="color: var(--text-muted); font-size: 0.85rem; font-style: italic;">
+                            Aucun rôle assigné
+                        </span>
+                    {% endif %}
+                </div>
+
+                <div class="box-label" style="margin-top: 1rem;"><i class="fas fa-key"></i> Mot de passe temporaire</div>
+
+                {% if temp %}
+                    <div class="temp-pwd-box">
+                        <div class="pwd-text">{{ temp.password }}</div>
+                        <div style="font-size: 0.75rem; color: #94a3b8; margin-top: 0.5rem;">
+                            Généré le : {{ temp.updated_at|date:"d/m/Y H:i" }}
+                        </div>
+                    </div>
+                {% else %}
+                    <div style="color: var(--text-muted); font-size: 0.85rem; font-style: italic; padding: 1rem; background: rgba(0,0,0,0.02); border-radius: 12px; text-align: center;">
+                        Aucun mot de passe temporaire actif
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Footer Actions -->
+        <div style="margin-top: 3rem; padding-top: 2rem; border-top: 1px solid var(--glass-border); display: flex; justify-content: flex-end;">
+            <form method="post" action="{% url 'core:users_delete' u.id %}" style="margin:0;">
+                {% csrf_token %}
+                <button class="btn-modern btn-danger-modern" type="submit">
+                    <i class="fas fa-trash-can"></i> Supprimer l'utilisateur
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'admin/js/users/detail.js' %}"></script>
+{% endblock %}

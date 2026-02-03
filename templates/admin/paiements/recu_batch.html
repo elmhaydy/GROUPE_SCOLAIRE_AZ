@@ -1,0 +1,88 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}Reçu batch | {{ first.inscription.eleve.matricule }}{% endblock %}
+{% block page_title %}Reçu — Paiement multi-mois{% endblock %}
+{% block breadcrumb %}Finance / Paiements / Reçu multi{% endblock %}
+
+{% block content %}
+<div class="az-card" style="grid-column:span 12;max-width:920px;">
+  <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap;">
+    <div>
+      <h3 style="margin:0;">🧾 Reçu officiel — Paiement multi-mois</h3>
+      <div class="az-sub" style="margin-top:6px;">
+        Batch :
+        <span class="az-badge az-badge-muted" style="font-weight:900;">
+          {{ batch_token }}
+        </span>
+      </div>
+    </div>
+
+    <div style="text-align:right;">
+      <div class="az-sub">Total batch</div>
+      <div style="font-weight:900;font-size:18px;">
+        <span class="az-badge az-badge-money">
+          <i class="fa-solid fa-coins"></i> {{ total }} MAD
+        </span>
+      </div>
+      <div class="az-sub" style="margin-top:6px;">Mode : <b>{{ first.get_mode_display }}</b></div>
+    </div>
+  </div>
+
+  <hr style="border:none;border-top:1px solid rgba(255,255,255,.12);margin:14px 0;">
+
+  <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+    <div>
+      <div style="opacity:.8;font-size:12px;">Élève</div>
+      <div style="font-weight:900;font-size:16px;">
+        {{ first.inscription.eleve.matricule }} — {{ first.inscription.eleve.nom }} {{ first.inscription.eleve.prenom }}
+      </div>
+      <div class="az-sub">Année : <b>{{ first.inscription.annee.nom }}</b></div>
+      <div class="az-sub">Groupe : <b>{{ first.inscription.groupe.nom }}</b></div>
+    </div>
+
+    <div style="text-align:right;">
+      <div style="opacity:.8;font-size:12px;">Paiements</div>
+      <div class="az-sub">Nombre : <b>{{ paiements|length }}</b></div>
+      <div class="az-sub">Dernière date : <b>{{ first.date_paiement }}</b></div>
+    </div>
+  </div>
+
+  <hr style="border:none;border-top:1px solid rgba(255,255,255,.12);margin:14px 0;">
+
+  <div class="az-table-wrap">
+    <table class="az-table">
+      <thead>
+        <tr>
+          <th>Mois</th>
+          <th>Nature</th>
+          <th>Montant</th>
+          <th>Date</th>
+          <th>Mode</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in paiements %}
+          <tr>
+            <td>{% if p.echeance %}{{ p.echeance.mois_nom }}{% else %}—{% endif %}</td>
+            <td>{{ p.get_nature_display }}</td>
+            <td><b>{{ p.montant }} MAD</b></td>
+            <td>{{ p.date_paiement }}</td>
+            <td>{{ p.get_mode_display }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap;">
+    <a class="az-btn" href="{% url 'core:paiement_list' %}">↩️ Retour paiements</a>
+
+  <a class="az-btn az-btn-outline"
+    href="{% url 'core:paiement_recu_batch_pdf' batch_token %}">
+    ⬇️ PDF (batch)
+  </a>
+
+
+    <a class="az-btn az-btn-gradient" href="#" onclick="window.print();return false;">🖨️ Imprimer</a>
+  </div>
+</div>
+{% endblock %}

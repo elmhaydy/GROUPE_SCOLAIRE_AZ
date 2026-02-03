@@ -1,0 +1,214 @@
+{% extends "eleve/base.html" %}
+{% load static %}
+
+{% block title %}Notes | Portail Élève{% endblock %}
+{% block page_title %}Notes{% endblock %}
+{% block breadcrumb_current %}Notes{% endblock %}
+{% block current_page %}Notes{% endblock %}
+
+{% block extra_css %}
+{# si tu as déjà un fichier global, garde-le et ajoute celui-ci #}
+<link rel="stylesheet" href="{% static 'eleve/css/notes.css' %}?v=1">
+{% endblock %}
+
+{% block content %}
+<div class="card notes-page">
+
+  <!-- Header -->
+  <div class="notes-head">
+    <div class="notes-head-left">
+      <div class="notes-pill">
+        <i class="fa-solid fa-clipboard-check"></i>
+        <span>Mes notes</span>
+      </div>
+      <h3 class="notes-title">Notes & évaluations</h3>
+      <div class="muted notes-sub">
+        Consulte tes résultats par matière, période et type d’évaluation.
+      </div>
+    </div>
+
+    <div class="notes-head-right">
+      <div class="notes-stats" id="notesStats">
+        <div class="stat">
+          <div class="stat-label">Moyenne</div>
+          <div class="stat-value" id="statAvg">—</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Meilleure</div>
+          <div class="stat-value" id="statBest">—</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Nb notes</div>
+          <div class="stat-value" id="statCount">—</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toolbar -->
+  <div class="notes-toolbar">
+    <div class="notes-search">
+      <i class="fa-solid fa-magnifying-glass"></i>
+      <input id="notesSearch" type="text" placeholder="Rechercher matière, titre, période...">
+      <button type="button" class="notes-clear" id="notesClear" aria-label="Vider">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+
+    <div class="notes-filters">
+      <select id="notesPeriod">
+        <option value="">Toutes les périodes</option>
+      </select>
+
+      <select id="notesSubject">
+        <option value="">Toutes les matières</option>
+      </select>
+
+      <select id="notesType">
+        <option value="">Tous les types</option>
+        <option value="DS">DS</option>
+        <option value="EXAM">Examen</option>
+        <option value="QUIZ">Quiz</option>
+        <option value="ORAL">Orale</option>
+        <option value="TP">TP</option>
+        {# si tes types sont différents, ce filtre reste optionnel #}
+      </select>
+
+
+    </div>
+  </div>
+
+  {% if notes %}
+    <!-- Table (desktop) -->
+    <div class="table-wrapper notes-table-wrap">
+      <table class="table notes-table" id="notesTable">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Matière</th>
+            <th>Évaluation</th>
+            <th>Période</th>
+            <th class="text-right">Note</th>
+            <th class="text-center">Statut</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {% for n in notes %}
+          <tr class="notes-row"
+              data-date="{{ n.evaluation.date|date:'Y-m-d' }}"
+              data-matiere="{{ n.evaluation.matiere.nom }}"
+              data-titre="{{ n.evaluation.titre }}"
+              data-periode="{{ n.evaluation.periode.nom }}"
+              data-type="{{ n.evaluation.get_type_display }}"
+              data-note="{{ n.valeur }}"
+              data-max="{{ n.evaluation.note_max }}">
+
+            <td class="notes-date">
+              <span class="chip-date">
+                <i class="fa-regular fa-calendar"></i>
+                {{ n.evaluation.date|date:"d/m/Y" }}
+              </span>
+            </td>
+
+            <td class="notes-matiere">
+              <div class="cell-main">
+                <span class="dot-subject"></span>
+                <div class="cell-text">
+                  <div class="cell-title">{{ n.evaluation.matiere.nom }}</div>
+                  <div class="cell-subtitle muted">{{ n.evaluation.get_type_display }}</div>
+                </div>
+              </div>
+            </td>
+
+            <td class="notes-eval">
+              <div class="eval-title">{{ n.evaluation.titre }}</div>
+              <div class="muted eval-meta">
+                {{ n.evaluation.get_type_display }}
+              </div>
+            </td>
+
+            <td class="notes-periode">
+              <span class="badge badge-soft">{{ n.evaluation.periode.nom }}</span>
+            </td>
+
+            <td class="notes-score text-right">
+              <div class="score-wrap">
+                <div class="score-main">
+                  <b class="score-val">{{ n.valeur }}</b>
+                  <span class="muted">/ {{ n.evaluation.note_max }}</span>
+                </div>
+                <div class="score-bar" aria-hidden="true">
+                  <span class="score-fill"></span>
+                </div>
+              </div>
+            </td>
+
+            <td class="notes-status text-center">
+              <span class="badge badge-grade">—</span>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Mobile cards -->
+    <div class="notes-mobile" id="notesMobile">
+      {% for n in notes %}
+      <div class="note-card"
+           data-date="{{ n.evaluation.date|date:'Y-m-d' }}"
+           data-matiere="{{ n.evaluation.matiere.nom }}"
+           data-titre="{{ n.evaluation.titre }}"
+           data-periode="{{ n.evaluation.periode.nom }}"
+           data-type="{{ n.evaluation.get_type_display }}"
+           data-note="{{ n.valeur }}"
+           data-max="{{ n.evaluation.note_max }}">
+        <div class="note-card-top">
+          <div class="note-subject">
+            <span class="dot-subject"></span>
+            <div>
+              <div class="note-subject-name">{{ n.evaluation.matiere.nom }}</div>
+              <div class="muted">{{ n.evaluation.get_type_display }} • {{ n.evaluation.periode.nom }}</div>
+            </div>
+          </div>
+
+          <div class="note-score">
+            <div class="note-score-main">
+              <b class="score-val">{{ n.valeur }}</b><span class="muted">/ {{ n.evaluation.note_max }}</span>
+            </div>
+            <span class="badge badge-grade">—</span>
+          </div>
+        </div>
+
+        <div class="note-card-mid">
+          <div class="note-eval-title">{{ n.evaluation.titre }}</div>
+          <div class="chip-date">
+            <i class="fa-regular fa-calendar"></i>
+            {{ n.evaluation.date|date:"d/m/Y" }}
+          </div>
+        </div>
+
+        <div class="score-bar">
+          <span class="score-fill"></span>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <div class="notes-empty muted" id="notesEmpty" style="display:none;">
+      Aucun résultat ne correspond à ta recherche.
+    </div>
+
+  {% else %}
+    <div class="notes-empty muted">
+      Aucune note enregistrée.
+    </div>
+  {% endif %}
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script defer src="{% static 'eleve/js/notes.js' %}?v=1"></script>
+{% endblock %}

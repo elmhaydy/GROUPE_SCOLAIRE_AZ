@@ -1,0 +1,101 @@
+{% extends "prof/base_prof.html" %}
+{% load static %}
+
+{% block title %}Ajouter un résumé PDF | Prof{% endblock %}
+{% block page_title %}Ajouter un résumé PDF{% endblock %}
+{% block breadcrumb %}PDF / Ajouter{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'prof/css/cahier.css' %}?v=3">
+{% endblock %}
+
+{% block content %}
+<div class="azp">
+
+  <div class="azp-head">
+    <div>
+      <div class="azp-pill">
+        <i class="fa-solid fa-file-pdf"></i>
+        <span>Prof</span>
+        <span class="sep">•</span>
+        <span>Ajouter PDF</span>
+      </div>
+      <h1 class="azp-title">Ajouter un résumé PDF</h1>
+      <p class="azp-sub">PDF uniquement • max 10MB.</p>
+    </div>
+
+    <div class="azp-actions">
+      <a class="azp-btn" href="{% url 'prof:resumes_list' %}">
+        <i class="fa-solid fa-arrow-left"></i> Retour
+      </a>
+    </div>
+  </div>
+
+  {% if form.non_field_errors %}
+    <div class="alert danger">
+      {% for e in form.non_field_errors %}<div>{{ e }}</div>{% endfor %}
+    </div>
+  {% endif %}
+
+  <form method="post" enctype="multipart/form-data" class="azp-card azp-form" novalidate>
+    {% csrf_token %}
+
+    <div class="grid">
+
+      <div class="field">
+        <label for="{{ form.titre.id_for_label }}">Titre</label>
+        {{ form.titre }}
+        {% if form.titre.errors %}<div class="err">{% for e in form.titre.errors %}<div>{{ e }}</div>{% endfor %}</div>{% endif %}
+      </div>
+
+      <div class="field">
+        <label for="{{ form.date.id_for_label }}">Date</label>
+        {{ form.date }}
+        {% if form.date.errors %}<div class="err">{% for e in form.date.errors %}<div>{{ e }}</div>{% endfor %}</div>{% endif %}
+      </div>
+
+      <div class="field">
+        <label for="{{ form.groupe.id_for_label }}">Groupe</label>
+        {{ form.groupe }}
+        {% if form.groupe.errors %}<div class="err">{% for e in form.groupe.errors %}<div>{{ e }}</div>{% endfor %}</div>{% endif %}
+      </div>
+
+      <div class="field">
+        <label for="{{ form.matiere.id_for_label }}">Matière</label>
+        {{ form.matiere }}
+        <span class="muted" id="matiere_hint_form">Choisis d’abord un groupe.</span>
+        {% if form.matiere.errors %}<div class="err">{% for e in form.matiere.errors %}<div>{{ e }}</div>{% endfor %}</div>{% endif %}
+      </div>
+
+      <div class="field" style="grid-column:1/-1">
+        <label for="{{ form.fichier.id_for_label }}">Fichier PDF</label>
+        {{ form.fichier }}
+        <span class="muted">Seuls les fichiers .pdf sont acceptés.</span>
+        {% if form.fichier.errors %}<div class="err">{% for e in form.fichier.errors %}<div>{{ e }}</div>{% endfor %}</div>{% endif %}
+      </div>
+
+      <div class="field" style="grid-column:1/-1">
+        <label class="chk">
+          {{ form.is_published }}
+          <span>Publier</span>
+        </label>
+        {% if form.is_published.errors %}<div class="err">{% for e in form.is_published.errors %}<div>{{ e }}</div>{% endfor %}</div>{% endif %}
+      </div>
+
+    </div>
+
+    <div class="form-actions">
+      <button class="azp-btn primary" type="submit">
+        <i class="fa-solid fa-cloud-arrow-up"></i> Enregistrer
+      </button>
+    </div>
+
+  </form>
+</div>
+
+<script>
+  window.AZ_API = { matieres: "{% url 'prof:ajax_matieres' %}" };
+</script>
+<script src="{% static 'prof/js/resumes_form.js' %}?v=1" defer></script>
+
+{% endblock %}

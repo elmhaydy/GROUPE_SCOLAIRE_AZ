@@ -1,0 +1,21 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}Import paiements | AZ{% endblock %}
+{% block page_title %}Import Excel — Paiements{% endblock %}
+{% block breadcrumb %}Finance / Paiements / Import{% endblock %}
+
+{% block content %}
+<div class="az-card" style="grid-column:span 12;max-width:860px;">
+  <h3>Importer un fichier Excel</h3>
+  <p class="az-sub">
+    Colonnes attendues : <b>eleve_matricule | annee_nom | date_paiement | montant | mode | reference</b><br>
+    date_paiement : <b>YYYY-MM-DD</b>
+  </p>
+
+  <form method="post" enctype="multipart/form-data" style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap;">
+    {% csrf_token %}
+    <input type="file" name="file" accept=".xlsx" required>
+    <button class="az-btn az-btn-gradient" type="submit">⬆️ Importer</button>
+    <a class="az-btn" href="{% url 'core:paiements_excel_export' %}">⬇️ Télécharger modèle</a>
+  </form>
+</div>
+{% endblock %}

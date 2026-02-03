@@ -1,0 +1,160 @@
+{% extends "admin/base_admin.html" %}
+{% load static %}
+
+{% block title %}Élève | AZ{% endblock %}
+{% block page_title %}{% if mode == "create" %}Ajouter{% else %}Modifier{% endif %} un élève{% endblock %}
+{% block breadcrumb %}Scolaire / Élèves{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'admin/css/eleves/form.css' %}?v=5">
+{% endblock %}
+
+{% block content %}
+
+<div class="az-eleve-card az-eleve-card--modern">
+
+  <!-- HEADER -->
+  <div class="az-eleve-head az-eleve-head--modern">
+    <div class="az-eleve-head-left">
+      <h3 class="az-eleve-title">
+        {% if mode == "create" %}Nouvel élève{% else %}Modifier l’élève{% endif %}
+      </h3>
+      <p class="az-eleve-sub">
+        Renseigne les informations de base, puis valide l’enregistrement.
+      </p>
+    </div>
+
+    <div class="az-eleve-head-right">
+      <span class="az-badge az-badge-soft">
+        <i class="fas fa-user-graduate"></i> Profil élève
+      </span>
+    </div>
+  </div>
+
+  <form method="post"
+        enctype="multipart/form-data"
+        class="az-eleve-form az-eleve-form--modern"
+        novalidate>
+    {% csrf_token %}
+
+    <!-- SECTION : Photo -->
+    <div class="az-section">
+      <div class="az-section-head">
+        <h4 class="az-section-title"><i class="fas fa-camera"></i> Photo</h4>
+        <p class="az-section-sub">Optionnelle, mais recommandée.</p>
+      </div>
+
+      <div class="az-photo-box az-photo-box--modern">
+        <div class="az-photo-preview">
+          {% if eleve and eleve.photo %}
+            <img src="{{ eleve.photo.url }}" alt="Photo élève" id="photoPreview">
+          {% else %}
+            <div class="az-photo-placeholder" id="photoPreview">👤</div>
+          {% endif %}
+        </div>
+
+        <div class="az-photo-field">
+          <label for="{{ form.photo.id_for_label }}">Photo élève</label>
+          {{ form.photo }}
+          <div class="az-help">JPG/PNG recommandé — taille légère.</div>
+
+          {% if eleve and eleve.photo %}
+            <div class="az-help" style="opacity:.9;">Photo actuelle enregistrée.</div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION : Identité -->
+    <div class="az-section">
+      <div class="az-section-head">
+        <h4 class="az-section-title"><i class="fas fa-id-card"></i> Identité</h4>
+        <p class="az-section-sub">Nom, prénom et informations personnelles.</p>
+      </div>
+
+      <div class="az-grid-2">
+        <div class="az-field">
+          <label for="{{ form.nom.id_for_label }}">Nom</label>
+          {{ form.nom }}
+        </div>
+
+        <div class="az-field">
+          <label for="{{ form.prenom.id_for_label }}">Prénom</label>
+          {{ form.prenom }}
+        </div>
+      </div>
+
+      <div class="az-grid-2">
+        <div class="az-field">
+          <label for="{{ form.sexe.id_for_label }}">Sexe</label>
+          {{ form.sexe }}
+        </div>
+
+        <div class="az-field">
+          <label for="{{ form.date_naissance.id_for_label }}">Date de naissance</label>
+          {{ form.date_naissance }}
+        </div>
+      </div>
+
+      <div class="az-grid-2">
+        <div class="az-field">
+          <label for="{{ form.lieu_naissance.id_for_label }}">Lieu de naissance</label>
+          {{ form.lieu_naissance }}
+        </div>
+
+        <div class="az-field">
+          <label for="{{ form.telephone.id_for_label }}">Téléphone</label>
+          {{ form.telephone }}
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION : Adresse -->
+    <div class="az-section">
+      <div class="az-section-head">
+        <h4 class="az-section-title"><i class="fas fa-location-dot"></i> Adresse</h4>
+        <p class="az-section-sub">Adresse complète de l’élève.</p>
+      </div>
+
+      <div class="az-field">
+        <label for="{{ form.adresse.id_for_label }}">Adresse</label>
+        {{ form.adresse }}
+      </div>
+    </div>
+
+    <!-- SECTION : Statut -->
+    <div class="az-section">
+      <div class="az-section-head">
+        <h4 class="az-section-title"><i class="fas fa-toggle-on"></i> Statut</h4>
+        <p class="az-section-sub">Activer/désactiver l’élève dans le système.</p>
+      </div>
+
+      <div class="az-switch az-switch--pill">
+        {{ form.is_active }}
+        <span>Élève actif</span>
+      </div>
+    </div>
+
+    <!-- ACTIONS (sticky modern) -->
+    <div class="az-eleve-actions az-eleve-actions--sticky">
+      <div class="az-eleve-actions-left">
+        <a class="az-btn" href="{% url 'core:eleve_list' %}">
+          <i class="fas fa-arrow-left"></i> Retour
+        </a>
+      </div>
+
+      <div class="az-eleve-actions-right">
+        <button class="az-btn az-btn-gradient" type="submit" id="saveBtn">
+          <i class="fas fa-save"></i> Enregistrer
+        </button>
+      </div>
+    </div>
+
+  </form>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'admin/js/eleves/form.js' %}?v=3"></script>
+{% endblock %}

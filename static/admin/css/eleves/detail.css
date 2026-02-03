@@ -1,0 +1,819 @@
+/* =========================================================
+   AZ — Eleves / Detail — FINAL (AZ NEBULA / FLEX MOBILE)
+   Compatible template v4 (az-table-wrap)
+   ========================================================= */
+
+/* =========================
+   VARIABLES (LIGHT)
+   ========================= */
+:root{
+  color-scheme: light;
+
+  --az-primary:#4f46e5;
+  --az-primary-dark:#4338ca;
+  --az-primary-light:#eef2ff;
+
+  --az-success:#10b981;
+  --az-danger:#ef4444;
+  --az-warning:#f59e0b;
+
+  --az-bg:#f8fafc;
+  --az-card-bg:#ffffff;
+
+  --az-text-main:#0f172a;
+  --az-text-muted:#64748b;
+
+  --az-border:#e2e8f0;
+
+  --az-radius-lg:18px;
+  --az-radius-md:14px;
+
+  --az-shadow: 0 10px 22px rgba(2,6,23,.08);
+  --az-shadow-hover: 0 18px 36px rgba(2,6,23,.12);
+
+  --az-transition: all .22s cubic-bezier(.2,.7,.2,1);
+
+  --az-focus-ring: 0 0 0 4px rgba(99,102,241,.18), 0 10px 22px rgba(99,102,241,.10);
+
+  --az-gap: 12px;
+  --az-pad: 14px;
+}
+
+/* =========================
+   DARK
+   ========================= */
+html[data-theme="dark"]{
+  color-scheme: dark;
+
+  --az-bg:#0b1220;
+  --az-card-bg: rgba(15,23,42,.72);
+
+  --az-text-main:#f1f5f9;
+  --az-text-muted: rgba(226,232,240,.72);
+
+  --az-border: rgba(148,163,184,.18);
+
+  --az-shadow: 0 18px 42px rgba(0,0,0,.45);
+  --az-shadow-hover: 0 28px 80px rgba(0,0,0,.60);
+
+  --az-focus-ring: 0 0 0 4px rgba(129,140,248,.22), 0 14px 28px rgba(99,102,241,.12);
+}
+
+/* =========================
+   BASE
+   ========================= */
+body{ background: var(--az-bg); }
+
+.az-detail-container{
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 12px;
+  animation: azFadeUp .45s ease both;
+}
+
+@keyframes azFadeUp{
+  from{ opacity:0; transform: translateY(10px); }
+  to{ opacity:1; transform: translateY(0); }
+}
+
+@media (min-width: 768px){
+  :root{ --az-gap: 16px; --az-pad: 16px; }
+  .az-detail-container{ padding: 16px; }
+}
+@media (min-width: 1200px){
+  :root{ --az-gap: 18px; --az-pad: 18px; }
+}
+
+/* =========================
+   ACTION BAR
+   ========================= */
+.az-action-bar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.az-action-group{
+  display:flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* Mobile: boutons full width */
+@media (max-width: 520px){
+  .az-action-group{ width:100%; }
+}
+
+/* =========================
+   BUTTONS
+   ========================= */
+.az-btn{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap: .55rem;
+  padding: .68rem 1.05rem;
+  border-radius: 14px;
+  font-weight: 850;
+  font-size: .92rem;
+  text-decoration:none;
+  transition: var(--az-transition);
+  cursor:pointer;
+  border: 1px solid transparent;
+  user-select:none;
+  white-space: nowrap;
+}
+
+.az-btn:hover{ transform: translateY(-1px); }
+.az-btn:focus-visible{ outline:none; box-shadow: var(--az-focus-ring); }
+
+.az-btn-outline{
+  background: rgba(255,255,255,.85);
+  border-color: var(--az-border);
+  color: var(--az-text-main);
+}
+html[data-theme="dark"] .az-btn-outline{
+  background: rgba(255,255,255,.06);
+  border-color: var(--az-border);
+  color: var(--az-text-main);
+}
+.az-btn-outline:hover{
+  background: rgba(148,163,184,.10);
+  border-color: rgba(148,163,184,.35);
+}
+
+.az-btn-edit{
+  background: rgba(79,70,229,.10);
+  color: var(--az-primary);
+  border-color: rgba(79,70,229,.22);
+}
+.az-btn-edit:hover{ background: rgba(79,70,229,.16); }
+
+.az-btn-delete{
+  background: rgba(239,68,68,.10);
+  color: var(--az-danger);
+  border-color: rgba(239,68,68,.22);
+}
+.az-btn-delete:hover{ background: rgba(239,68,68,.16); }
+
+.az-btn-gradient{
+  background: linear-gradient(135deg, var(--az-primary), var(--az-primary-dark));
+  color:#fff;
+  box-shadow: 0 10px 22px rgba(79,70,229,.22);
+}
+.az-btn-gradient:hover{
+  transform: translateY(-2px);
+  box-shadow: 0 16px 30px rgba(79,70,229,.28);
+}
+.az-btn-lg{ padding: .82rem 1.6rem; font-size: 1rem; }
+
+@media (max-width: 520px){
+  .az-btn{ width:100%; }
+}
+
+/* =========================
+   CARDS
+   ========================= */
+.az-card{
+  background: var(--az-card-bg);
+  border-radius: var(--az-radius-lg);
+  border: 1px solid var(--az-border);
+  box-shadow: var(--az-shadow);
+  padding: var(--az-pad);
+  transition: var(--az-transition);
+  backdrop-filter: blur(10px);
+  min-width: 0;
+}
+
+.az-card:hover{
+  box-shadow: var(--az-shadow-hover);
+  border-color: rgba(99,102,241,.35);
+}
+
+.az-card-header{
+  display:flex;
+  align-items:center;
+  gap: .65rem;
+  margin-bottom: 12px;
+  color: var(--az-primary);
+}
+.az-card-header i{ font-size: 1.15rem; }
+.az-card-header h3{
+  margin:0;
+  font-size: .98rem;
+  font-weight: 950;
+  color: var(--az-text-main);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+
+.az-card-body{ min-width:0; }
+
+/* =========================
+   MAIN LAYOUT (FLEX)
+   ========================= */
+.az-main-grid{
+  display:flex;
+  flex-wrap: wrap;
+  gap: var(--az-gap);
+}
+
+/* Mobile: stack */
+.az-main-grid > .az-card{ width: 100%; }
+
+/* Tablette: 2 colonnes */
+@media (min-width: 768px){
+  .az-main-grid > .az-card{ width: calc(50% - (var(--az-gap) / 2)); }
+  .az-card-contact{ width: 100%; }
+}
+
+/* Desktop ratios */
+@media (min-width: 992px){
+  .az-card-identity{ width: calc((100% - var(--az-gap)) * 7/12); }
+  .az-card-birth{ width: calc((100% - var(--az-gap)) * 5/12); }
+  .az-card-contact{ width: 100%; }
+  .az-card-school{ width: calc((100% - var(--az-gap)) * 4/12); }
+  .az-card-parents{ width: calc((100% - var(--az-gap)) * 8/12); }
+}
+
+/* Mobile: priorité Scolarité puis Parents */
+@media (max-width: 767px){
+  .az-card-school{ order: 1; }
+  .az-card-parents{ order: 2; }
+}
+
+/* =========================
+   IDENTITY
+   ========================= */
+.az-identity-content{
+  display:flex;
+  align-items:center;
+  gap: 14px;
+  min-width: 0;
+}
+
+@media (max-width: 640px){
+  .az-identity-content{ flex-direction:column; text-align:center; }
+}
+
+.az-avatar-wrapper{ position:relative; flex:0 0 auto; transition: transform .25s ease; }
+.az-avatar-wrapper.is-hover{ transform: scale(1.03); }
+
+.az-avatar,
+.az-avatar-placeholder{
+  width: 92px;
+  height: 92px;
+  border-radius: 22px;
+  object-fit: cover;
+  border: 4px solid rgba(255,255,255,.95);
+  box-shadow: 0 10px 22px rgba(0,0,0,.12);
+}
+html[data-theme="dark"] .az-avatar,
+html[data-theme="dark"] .az-avatar-placeholder{
+  border-color: rgba(255,255,255,.10);
+  box-shadow: 0 18px 40px rgba(0,0,0,.45);
+}
+
+@media (max-width: 420px){
+  .az-avatar,
+  .az-avatar-placeholder{ width: 84px; height: 84px; border-radius: 20px; }
+}
+
+.az-avatar-placeholder{
+  background: rgba(99,102,241,.14);
+  color: var(--az-primary);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size: 2.2rem;
+  font-weight: 950;
+}
+
+.az-status-badge{
+  position:absolute;
+  bottom: 6px;
+  right: 6px;
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  border: 3px solid rgba(255,255,255,.95);
+}
+html[data-theme="dark"] .az-status-badge{ border-color: rgba(255,255,255,.10); }
+.az-status-badge.active{ background: var(--az-success); }
+.az-status-badge.inactive{ background: var(--az-danger); }
+
+.az-name{
+  margin: 0 0 .45rem 0;
+  font-size: clamp(1.25rem, 3.8vw, 1.75rem);
+  font-weight: 950;
+  color: var(--az-text-main);
+  line-height: 1.15;
+  word-break: break-word;
+}
+
+/* =========================
+   INFO / GRID
+   ========================= */
+.az-grid-2{
+  display:grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+@media (min-width: 700px){
+  .az-grid-2{ grid-template-columns: 1fr 1fr; }
+}
+
+.az-info-row,
+.az-info-item{
+  display:flex;
+  flex-direction:column;
+  gap: .25rem;
+  margin-bottom: .6rem;
+  min-width:0;
+}
+
+.az-info-item.full-width{ grid-column: 1 / -1; }
+
+.label{
+  font-size: .78rem;
+  font-weight: 900;
+  color: var(--az-text-muted);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+
+.value{
+  font-size: .98rem;
+  font-weight: 650;
+  color: var(--az-text-main);
+  min-width:0;
+  word-break: break-word;
+}
+.value.highlight{
+  color: var(--az-primary);
+  font-weight: 950;
+}
+.value.highlight.is-copied{
+  transform: translateY(-1px);
+  filter: drop-shadow(0 10px 18px rgba(99,102,241,.25));
+}
+
+/* =========================
+   PILLS
+   ========================= */
+.az-pill{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding: .28rem .8rem;
+  border-radius: 999px;
+  font-size: .85rem;
+  font-weight: 850;
+  border: 1px solid transparent;
+}
+.pill-success{ background: rgba(16,185,129,.14); color: #10b981; border-color: rgba(16,185,129,.25); }
+.pill-danger{ background: rgba(239,68,68,.14); color: #ef4444; border-color: rgba(239,68,68,.25); }
+.pill-warning{ background: rgba(245,158,11,.14); color: #f59e0b; border-color: rgba(245,158,11,.25); }
+
+/* =========================
+   SCHOOL CARD (Glow)
+   ========================= */
+.az-card-school{
+  min-height: 240px;
+  position: relative;
+  overflow: hidden;
+}
+
+.az-card-school::before{
+  content:"";
+  position:absolute;
+  inset:-1px;
+  border-radius: inherit;
+  pointer-events:none;
+  background:
+    radial-gradient(560px 220px at 10% 10%, rgba(99,102,241,.18), transparent 55%),
+    radial-gradient(520px 260px at 90% 20%, rgba(99,102,241,.10), transparent 60%);
+  opacity: .95;
+}
+html[data-theme="dark"] .az-card-school::before{
+  background:
+    radial-gradient(650px 260px at 10% 10%, rgba(129,140,248,.18), transparent 55%),
+    radial-gradient(520px 260px at 90% 20%, rgba(99,102,241,.10), transparent 60%);
+  opacity: 1;
+}
+
+.az-card-school .az-card-body{
+  position: relative;
+  z-index: 1;
+  display:flex;
+  flex-direction:column;
+  gap: 12px;
+  padding-top: 2px;
+}
+
+.az-card-school .az-info-item{
+  margin: 0;
+  padding: .72rem .86rem;
+  border-radius: 14px;
+  border: 1px solid var(--az-border);
+  background: rgba(148,163,184,.08);
+}
+html[data-theme="dark"] .az-card-school .az-info-item{
+  background: rgba(255,255,255,.05);
+  border-color: rgba(148,163,184,.20);
+}
+
+.az-card-school .label{
+  font-size: .72rem;
+  letter-spacing: .08em;
+}
+.az-card-school .value{
+  font-size: 1.02rem;
+  font-weight: 950;
+}
+
+.az-card-school .value.highlight{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  color:#fff;
+  padding: .35rem .75rem;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--az-primary), var(--az-primary-dark));
+  box-shadow: 0 10px 22px rgba(79,70,229,.22);
+}
+html[data-theme="dark"] .az-card-school .value.highlight{
+  box-shadow: 0 16px 34px rgba(0,0,0,.35);
+}
+
+/* =========================
+   PARENTS LIST
+   ========================= */
+.az-parents-list{
+  display:grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+@media (min-width: 720px){
+  .az-parents-list{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+.az-parent-item{
+  display:flex;
+  align-items:center;
+  gap: 12px;
+  padding: 12px;
+  background: rgba(148,163,184,.08);
+  border-radius: var(--az-radius-md);
+  border: 1px solid var(--az-border);
+  transition: var(--az-transition);
+  min-width:0;
+}
+html[data-theme="dark"] .az-parent-item{ background: rgba(255,255,255,.05); }
+
+.az-parent-item:hover{
+  border-color: rgba(99,102,241,.45);
+  background: rgba(99,102,241,.06);
+}
+
+.az-parent-icon{
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color: var(--az-primary);
+  background: rgba(255,255,255,.85);
+  box-shadow: 0 6px 16px rgba(0,0,0,.08);
+  flex: 0 0 auto;
+}
+html[data-theme="dark"] .az-parent-icon{
+  background: rgba(255,255,255,.06);
+  box-shadow: 0 14px 28px rgba(0,0,0,.35);
+}
+
+.az-parent-details{ display:flex; flex-direction:column; min-width:0; }
+.parent-name{
+  font-weight: 950;
+  color: var(--az-text-main);
+  line-height: 1.15;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.parent-relation{
+  font-size: .86rem;
+  color: var(--az-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Empty blocks */
+.az-empty-state{
+  text-align:center;
+  padding: 16px;
+  color: var(--az-text-muted);
+}
+
+/* =========================
+   SECTIONS
+   ========================= */
+.az-section{ margin-top: 14px; }
+
+.az-section-title{
+  display:flex;
+  align-items:center;
+  gap: .6rem;
+  margin: 0 0 10px 0;
+  font-size: 1rem;
+  font-weight: 950;
+  color: var(--az-text-main);
+}
+.az-section-title i{ color: var(--az-primary); }
+
+/* KPI responsive */
+.az-kpi-grid{
+  display:grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+@media (min-width: 720px){
+  .az-kpi-grid{ grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+.az-kpi-card{
+  background: rgba(148,163,184,.08);
+  border: 1px solid var(--az-border);
+  border-radius: 16px;
+  padding: 12px 14px;
+  box-shadow: var(--az-shadow);
+  transition: var(--az-transition);
+  min-width: 0;
+}
+html[data-theme="dark"] .az-kpi-card{ background: rgba(255,255,255,.05); }
+
+.az-kpi-card:hover{
+  border-color: rgba(99,102,241,.35);
+  transform: translateY(-1px);
+}
+
+.az-kpi-card span{
+  display:block;
+  font-size: .78rem;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  font-weight: 900;
+  color: var(--az-text-muted);
+  margin-bottom: .35rem;
+}
+.az-kpi-card b{
+  font-size: 1.15rem;
+  font-weight: 950;
+  color: var(--az-text-main);
+}
+.az-kpi-card.danger{
+  border-color: rgba(239,68,68,.25);
+  background: rgba(239,68,68,.08);
+}
+html[data-theme="dark"] .az-kpi-card.danger{ background: rgba(239,68,68,.10); }
+
+/* =========================
+   TABLES (SAFE MOBILE)
+   ========================= */
+.az-table-wrap{
+  width:100%;
+  overflow-x:auto;
+  border-radius: 16px;
+  border: 1px solid var(--az-border);
+}
+
+/* bonne UX: titre au dessus de la table, pas collé */
+.az-table-wrap h4{
+  margin: 0;
+  padding: 12px 14px 0 14px;
+  font-size: .98rem;
+  font-weight: 950;
+  color: var(--az-text-main);
+}
+
+.az-table{
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  min-width: 720px; /* scroll mobile propre */
+}
+
+.az-table thead th{
+  text-align:left;
+  font-size: .78rem;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--az-text-muted);
+  padding: .9rem 1rem;
+  background: rgba(148,163,184,.08);
+}
+html[data-theme="dark"] .az-table thead th{ background: rgba(255,255,255,.05); }
+
+.az-table tbody td{
+  padding: .9rem 1rem;
+  border-top: 1px solid var(--az-border);
+  color: var(--az-text-main);
+  font-weight: 650;
+}
+
+.az-table tbody tr:hover td{ background: rgba(99,102,241,.06); }
+html[data-theme="dark"] .az-table tbody tr:hover td{ background: rgba(99,102,241,.08); }
+
+.az-table .az-empty{
+  text-align:center;
+  padding: 18px !important;
+  color: var(--az-text-muted);
+  font-weight: 850;
+}
+
+/* =========================
+   FOOTER CTA
+   ========================= */
+.az-footer-actions{
+  margin-top: 16px;
+  display:flex;
+  justify-content:center;
+}
+
+/* =========================
+   REVEAL ANIMATION (JS)
+   ========================= */
+.az-reveal{
+  opacity: 0;
+  transform: translateY(10px);
+  transition: all .45s cubic-bezier(.2,.7,.2,1);
+}
+.az-reveal.is-in{
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* =========================
+   TOAST
+   ========================= */
+.az-toast{
+  position: fixed;
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%) translateY(12px);
+  background: rgba(15,23,42,.92);
+  color: rgba(255,255,255,.95);
+  border: 1px solid rgba(148,163,184,.22);
+  border-radius: 999px;
+  padding: 10px 14px;
+  font-weight: 850;
+  font-size: 13px;
+  box-shadow: 0 16px 40px rgba(0,0,0,.35);
+  opacity: 0;
+  pointer-events: none;
+  transition: all .22s cubic-bezier(.2,.7,.2,1);
+  z-index: 9999;
+}
+.az-toast.is-show{
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+html[data-theme="dark"] .az-toast{
+  background: rgba(2,6,23,.75);
+  border-color: rgba(148,163,184,.18);
+}
+/* =========================================================
+   PATCH MOBILE — Action Bar + Layout (AZ NEBULA)
+   Corrige: gros espace, boutons trop larges, overflow mobile
+   ========================================================= */
+
+/* Evite les débordements horizontaux */
+.az-detail-container,
+.az-main-grid,
+.az-card,
+.az-table-wrap {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+/* =========================
+   ACTION BAR — BASE
+   ========================= */
+.az-action-bar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+/* Groupe boutons */
+.az-action-group{
+  display:flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+/* Boutons compacts (desktop + mobile) */
+.az-btn{
+  min-height: 42px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  font-size: .92rem;
+  line-height: 1;
+}
+
+/* =========================
+   MOBILE OPTIMISÉ
+   ========================= */
+@media (max-width: 640px){
+
+  /* Conteneur: moins de padding pour gagner de la place */
+  .az-detail-container{
+    padding: 12px;
+  }
+
+  /* Action bar devient 2 lignes propres */
+  .az-action-bar{
+    display:grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+    align-items: stretch;
+  }
+
+  /* Retour en haut, full width mais compact */
+  .az-action-bar > .az-btn-outline{
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Les 3 actions en grille (2 colonnes) */
+  .az-action-group{
+    width: 100%;
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  /* Le bouton “Inscrire” (gradient) prend toute la largeur (ligne 2) */
+  .az-action-group .az-btn-gradient{
+    grid-column: 1 / -1;
+  }
+
+  /* Tous les boutons: centrés, plus compacts */
+  .az-action-group .az-btn{
+    width: 100%;
+    justify-content: center;
+    min-height: 42px;
+    padding: 10px 12px;
+    font-size: .9rem;
+  }
+
+  /* Option: si tu veux uniquement icône + texte court */
+  .az-btn i{
+    font-size: 0.95rem;
+  }
+
+  /* Réduit les gaps entre cards en mobile */
+  .az-main-grid{
+    gap: 12px;
+  }
+
+  /* Avatar et identité : empêche “trop d’espace” */
+  .az-identity-content{
+    gap: 14px;
+  }
+
+  /* Parents grid: 1 colonne sur mobile */
+  .az-parents-list{
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Tables: évite les coupures */
+  .az-table-wrap{
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .az-table{
+    min-width: 680px; /* donne de l’air aux colonnes */
+  }
+}
+
+/* Ultra petit écran */
+@media (max-width: 380px){
+  .az-action-group{
+    grid-template-columns: 1fr; /* tout en 1 colonne */
+  }
+  .az-action-group .az-btn-gradient{
+    grid-column: auto;
+  }
+}

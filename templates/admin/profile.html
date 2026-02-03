@@ -1,0 +1,150 @@
+{% extends "admin/base_admin.html" %}
+{% load static %}
+
+{% block title %}Mon profil | AZ{% endblock %}
+{% block page_title %}Mon profil{% endblock %}
+{% block breadcrumb %}Compte / Mon profil{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'admin/css/profile.css' %}?v=1">
+{% endblock %}
+
+{% block content %}
+
+<div class="az-profile">
+
+  <!-- HERO -->
+  <div class="az-profile-hero">
+    <div class="az-profile-avatar" aria-hidden="true">
+      <i class="fa-solid fa-user"></i>
+    </div>
+
+    <div class="az-profile-hero-info">
+      <div class="az-profile-name">
+        {% if u.first_name or u.last_name %}
+          {{ u.last_name|default_if_none:"" }} {{ u.first_name|default_if_none:"" }}
+        {% else %}
+          {{ u.username }}
+        {% endif %}
+      </div>
+
+      <div class="az-profile-sub">
+        <span class="az-badge">{{ role_main }}</span>
+        <span class="az-dot">•</span>
+        <span class="az-muted">Matricule : <b>{{ u.username }}</b></span>
+        <span class="az-dot">•</span>
+        <span class="az-muted">
+          Statut :
+          {% if u.is_active %}
+            <b class="az-ok">Actif</b>
+          {% else %}
+            <b class="az-no">Désactivé</b>
+          {% endif %}
+        </span>
+      </div>
+    </div>
+
+    <div class="az-profile-hero-actions">
+      <a class="az-btn az-btn-primary" href="{% url 'accounts:password_change' %}">
+        <i class="fa-solid fa-key"></i> Changer mon mot de passe
+      </a>
+      <a class="az-btn" href="{% url 'accounts:logout' %}">
+        <i class="fa-solid fa-arrow-right-from-bracket"></i> Déconnexion
+      </a>
+    </div>
+  </div>
+
+  <!-- GRID -->
+  <div class="az-profile-grid">
+
+    <!-- IDENTITÉ -->
+    <div class="az-card az-profile-card">
+      <div class="az-card-head">
+        <h3><i class="fa-solid fa-id-card"></i> Identité</h3>
+        <p class="az-sub">Informations principales du compte.</p>
+      </div>
+
+      <div class="az-profile-rows">
+        <div class="az-rowline">
+          <span class="az-label">Nom complet</span>
+          <span class="az-value">
+            {% if u.first_name or u.last_name %}
+              {{ u.last_name|default_if_none:"" }} {{ u.first_name|default_if_none:"" }}
+            {% else %}
+              —
+            {% endif %}
+          </span>
+        </div>
+
+        <div class="az-rowline">
+          <span class="az-label">Matricule (username)</span>
+          <span class="az-value"><b>{{ u.username }}</b></span>
+        </div>
+
+        <div class="az-rowline">
+          <span class="az-label">Email</span>
+          <span class="az-value">{{ u.email|default:"—" }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ROLES -->
+    <div class="az-card az-profile-card">
+      <div class="az-card-head">
+        <h3><i class="fa-solid fa-shield-halved"></i> Rôles</h3>
+        <p class="az-sub">Groupes attribués à ton compte.</p>
+      </div>
+
+      <div class="az-chips">
+        {% if roles %}
+          {% for r in roles %}
+            <span class="az-chip">{{ r }}</span>
+          {% endfor %}
+        {% else %}
+          <span class="az-muted">Aucun rôle</span>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- COMPTE -->
+    <div class="az-card az-profile-card az-profile-card-wide">
+      <div class="az-card-head">
+        <h3><i class="fa-solid fa-user-gear"></i> Compte</h3>
+        <p class="az-sub">Historique et statut du compte.</p>
+      </div>
+
+      <div class="az-profile-rows az-profile-rows-2">
+        <div class="az-rowline">
+          <span class="az-label">Dernière connexion</span>
+          <span class="az-value">
+            {% if u.last_login %}{{ u.last_login|date:"d/m/Y H:i" }}{% else %}—{% endif %}
+          </span>
+        </div>
+
+        <div class="az-rowline">
+          <span class="az-label">Créé le</span>
+          <span class="az-value">
+            {% if u.date_joined %}{{ u.date_joined|date:"d/m/Y H:i" }}{% else %}—{% endif %}
+          </span>
+        </div>
+
+        <div class="az-rowline">
+          <span class="az-label">Superuser</span>
+          <span class="az-value">
+            {% if u.is_superuser %}<b class="az-ok">Oui</b>{% else %}<span class="az-muted">Non</span>{% endif %}
+          </span>
+        </div>
+
+        <div class="az-rowline">
+          <span class="az-label">Staff</span>
+          <span class="az-value">
+            {% if u.is_staff %}<b class="az-ok">Oui</b>{% else %}<span class="az-muted">Non</span>{% endif %}
+          </span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+{% endblock %}

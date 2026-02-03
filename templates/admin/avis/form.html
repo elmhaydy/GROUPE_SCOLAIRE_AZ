@@ -1,0 +1,247 @@
+{% extends "admin/base_admin.html" %}
+{% load static %}
+
+{% block title %}{% if mode == "edit" %}Modifier avis{% else %}Nouvel avis{% endif %} | AZ{% endblock %}
+{% block page_title %}{% if mode == "edit" %}Modifier avis{% else %}Nouvel avis{% endif %}{% endblock %}
+{% block current_page %}Communication / Avis{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'admin/css/avis/form.css' %}?v=21">
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  window.AZ_AVIS = {
+    urlNiveaux: "{% url 'core:ajax_niveaux' %}",
+    urlGroupes: "{% url 'core:ajax_groupes' %}",   // ?niveau=...
+    urlEleves:  "{% url 'core:ajax_eleves_par_groupe' %}" // ?groupe_id=...
+  };
+</script>
+<script src="{% static 'admin/js/avis/form.js' %}?v=22"></script>
+{% endblock %}
+
+{% block content %}
+
+<div class="azavis">
+
+  <!-- HEAD -->
+  <div class="azavis-head">
+    <div class="azavis-head-left">
+      <div class="azavis-pill">
+        <i class="fa-solid fa-bullhorn"></i>
+        <span>Communication</span>
+        <span class="sep">•</span>
+        <span>{% if mode == "edit" %}Modifier{% else %}Créer{% endif %} un avis</span>
+      </div>
+
+      <h1 class="azavis-title">
+        {% if mode == "edit" %}Modifier avis{% else %}Nouvel avis{% endif %}
+      </h1>
+
+      <p class="azavis-sub">
+        Publie une annonce ciblée avec aperçu instantané. (Tous / Degré / Niveau / Groupe / Élève)
+      </p>
+    </div>
+
+    <div class="azavis-head-right">
+      <a class="azavis-btn ghost" href="{% url 'core:avis_list' %}">
+        <i class="fa-solid fa-arrow-left"></i> Retour
+      </a>
+    </div>
+  </div>
+
+  <form method="post" class="azavis-grid">
+    {% csrf_token %}
+
+    <!-- LEFT -->
+    <section class="azavis-card azavis-left">
+      <div class="azavis-card-head">
+        <div class="azavis-card-title">
+          <i class="fa-solid fa-pen-to-square"></i>
+          <div>
+            <div class="t1">Rédaction</div>
+            <div class="t2">Écris ton avis puis choisis le ciblage.</div>
+          </div>
+        </div>
+
+        <div class="azavis-stepper" id="azAvisStepper">
+          <div class="st is-on" data-step="1"><span>1</span><b>Contenu</b></div>
+          <div class="st" data-step="2"><span>2</span><b>Cible</b></div>
+          <div class="st" data-step="3"><span>3</span><b>Résumé</b></div>
+        </div>
+      </div>
+
+      {% if form.non_field_errors %}
+        <div class="azavis-alert err">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+          <div class="txt">{{ form.non_field_errors }}</div>
+        </div>
+      {% endif %}
+
+      <!-- STEP 1 -->
+      <div class="azavis-block" data-block="1">
+        <div class="azavis-field">
+          <label class="azavis-label">Titre</label>
+          {{ form.titre }}
+          {% if form.titre.errors %}<div class="azavis-err">{{ form.titre.errors }}</div>{% endif %}
+        </div>
+
+        <div class="azavis-field">
+          <label class="azavis-label">Contenu</label>
+          {{ form.contenu }}
+          <div class="azavis-hint">
+            <i class="fa-regular fa-lightbulb"></i>
+            Astuce : ajoute des infos utiles (date, lieu, consignes). L’aperçu se met à jour à droite.
+          </div>
+          {% if form.contenu.errors %}<div class="azavis-err">{{ form.contenu.errors }}</div>{% endif %}
+        </div>
+
+        <div class="azavis-actions">
+          <button type="button" class="azavis-btn primary" data-next>
+            Continuer <i class="fa-solid fa-arrow-right"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- STEP 2 -->
+      <div class="azavis-block is-hidden" data-block="2">
+        <div class="azavis-field">
+          <label class="azavis-label">Type de cible</label>
+          {{ form.cible_type }}
+          {% if form.cible_type.errors %}<div class="azavis-err">{{ form.cible_type.errors }}</div>{% endif %}
+        </div>
+
+        <!-- DEGRE -->
+        <div class="azavis-cible" data-cible="DEGRE">
+          <div class="azavis-field">
+            <label class="azavis-label">Degré</label>
+            {{ form.degre }}
+            {% if form.degre.errors %}<div class="azavis-err">{{ form.degre.errors }}</div>{% endif %}
+          </div>
+        </div>
+
+        <!-- NIVEAU (NIVEAU + GROUPE + ELEVE) -->
+        <div class="azavis-cible" data-cible="NIVEAU GROUPE ELEVE">
+          <div class="azavis-field">
+            <label class="azavis-label">Niveau</label>
+            {{ form.niveau }}
+            {% if form.niveau.errors %}<div class="azavis-err">{{ form.niveau.errors }}</div>{% endif %}
+          </div>
+        </div>
+
+        <!-- GROUPE (GROUPE + ELEVE) -->
+        <div class="azavis-cible" data-cible="GROUPE ELEVE">
+          <div class="azavis-field">
+            <label class="azavis-label">
+              Groupe
+              <span class="azavis-mini" id="azGroupMini">—</span>
+            </label>
+            <div class="azavis-selectwrap" id="azGroupWrap">
+              {{ form.groupe }}
+              <span class="azavis-loader" id="azGroupLoader" aria-hidden="true"></span>
+            </div>
+            {% if form.groupe.errors %}<div class="azavis-err">{{ form.groupe.errors }}</div>{% endif %}
+            <div class="azavis-hint">
+              <i class="fa-solid fa-filter"></i>
+              Choisis un niveau → les groupes se chargent automatiquement.
+            </div>
+          </div>
+        </div>
+
+        <!-- ELEVE -->
+        <div class="azavis-cible" data-cible="ELEVE">
+          <div class="azavis-field">
+            <label class="azavis-label">Élève</label>
+            <div class="azavis-selectwrap" id="azEleveWrap">
+              {{ form.eleve }}
+              <span class="azavis-loader" id="azEleveLoader" aria-hidden="true"></span>
+            </div>
+            {% if form.eleve.errors %}<div class="azavis-err">{{ form.eleve.errors }}</div>{% endif %}
+            <div class="azavis-hint">
+              <i class="fa-solid fa-users"></i>
+              Niveau → Groupe → Élève.
+            </div>
+          </div>
+        </div>
+
+        <div class="azavis-field azavis-switchrow">
+          <label class="azavis-switch">
+            {{ form.visible_parent }}
+            <span class="ui"></span>
+            <span class="lbl">Visible pour les parents </span>
+          </label>
+        </div>
+
+        <div class="azavis-actions">
+          <button type="button" class="azavis-btn ghost" data-prev>
+            <i class="fa-solid fa-arrow-left"></i> Retour
+          </button>
+
+          <button type="button" class="azavis-btn primary" data-next>
+            Continuer <i class="fa-solid fa-arrow-right"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- STEP 3 -->
+      <div class="azavis-block is-hidden" data-block="3">
+        <div class="azavis-summary" id="azAvisSummary">
+          <div class="row">
+            <span class="k">Cible</span>
+            <span class="v" id="azSumCible">—</span>
+          </div>
+          <div class="row">
+            <span class="k">Titre</span>
+            <span class="v" id="azSumTitre">—</span>
+          </div>
+          <div class="row">
+            <span class="k">Aperçu</span>
+            <span class="v muted">Vérifie à droite puis enregistre.</span>
+          </div>
+        </div>
+
+        <div class="azavis-actions">
+          <button type="button" class="azavis-btn ghost" data-prev>
+            <i class="fa-solid fa-arrow-left"></i> Retour
+          </button>
+
+          <button class="azavis-btn primary" type="submit">
+            <i class="fa-solid fa-floppy-disk"></i> Enregistrer
+          </button>
+
+          <a class="azavis-btn outline" href="{% url 'core:avis_list' %}">
+            Annuler
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- RIGHT -->
+    <aside class="azavis-card azavis-right">
+      <div class="azavis-card-head">
+        <div class="azavis-card-title">
+          <i class="fa-regular fa-eye"></i>
+          <div>
+            <div class="t1">Aperçu</div>
+            <div class="t2">Ce que verront les utilisateurs.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="azavis-preview">
+        <div class="chip" id="azPreviewChip">TOUS</div>
+        <div class="ttl" id="azPreviewTitle">Titre de l’avis…</div>
+        <div class="cnt" id="azPreviewContent">Contenu de l’avis…</div>
+        <div class="meta" id="azPreviewMeta">
+          <i class="fa-solid fa-location-crosshairs"></i>
+          <span>—</span>
+        </div>
+      </div>
+
+
+    </aside>
+
+  </form>
+</div>
+
+{% endblock %}

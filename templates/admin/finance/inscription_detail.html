@@ -1,0 +1,113 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}Suivi paiement | AZ{% endblock %}
+{% block page_title %}Suivi paiement{% endblock %}
+{% block breadcrumb %}Finance / Suivi élève{% endblock %}
+
+{% block content %}
+<div class="az-page-head">
+  <div class="az-page-head-left">
+    <div class="az-pill">
+      <i class="fa-solid fa-wallet"></i>
+      <span>{{ insc.eleve.matricule }} — {{ insc.eleve.nom }} {{ insc.eleve.prenom }}</span>
+    </div>
+  </div>
+  <div class="az-page-head-right">
+    <a class="az-btn az-btn-primary" href="{% url 'core:paiement_create' insc.id %}">
+      <i class="fa-solid fa-plus"></i> Ajouter paiement
+    </a>
+  </div>
+</div>
+
+<div class="az-grid" style="grid-template-columns:repeat(12,1fr);gap:12px;">
+  <div class="az-card" style="grid-column:span 4;">
+    <h4 style="margin:0;">Global</h4>
+    <p class="az-sub">Du: <b>{{ kpi.global_du }}</b> — Payé: <b>{{ kpi.global_paye }}</b></p>
+    <div class="az-kpi">
+      <span>Reste</span>
+      <b style="font-size:22px;">{{ kpi.global_reste }} MAD</b>
+    </div>
+  </div>
+
+  <div class="az-card" style="grid-column:span 4;">
+    <h4 style="margin:0;">Inscription</h4>
+    <p class="az-sub">Du: <b>{{ kpi.insc_du }}</b> — Payé: <b>{{ kpi.insc_paye }}</b></p>
+    <div class="az-kpi"><span>Reste</span><b>{{ kpi.insc_reste }} MAD</b></div>
+  </div>
+
+  <div class="az-card" style="grid-column:span 4;">
+    <h4 style="margin:0;">Scolarité (10 mois)</h4>
+    <p class="az-sub">Du: <b>{{ kpi.mensuel_du }}</b> — Payé: <b>{{ kpi.mensuel_paye }}</b></p>
+    <div class="az-kpi"><span>Reste</span><b>{{ kpi.mensuel_reste }} MAD</b></div>
+  </div>
+
+  <div class="az-card" style="grid-column:span 12;">
+    <h4 style="margin:0 0 10px;">Échéances mensuelles</h4>
+    <div class="az-table-wrap">
+      <table class="az-table">
+        <thead>
+          <tr>
+            <th>Mois</th>
+            <th>Date</th>
+            <th>Du</th>
+            <th>Payé</th>
+            <th>Reste</th>
+            <th>Statut</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for e in echeances %}
+          <tr>
+            <td>M{{ e.mois_index }}</td>
+            <td>{{ e.date_echeance }}</td>
+            <td>{{ e.montant_du }}</td>
+            <td>{{ e.montant_paye }}</td>
+            <td><b>{{ e.reste }}</b></td>
+            <td>
+              {% if e.statut == "PAYE" %}
+                <span class="az-badge az-badge-success">PAYÉ</span>
+              {% elif e.statut == "PARTIEL" %}
+                <span class="az-badge az-badge-warn">PARTIEL</span>
+              {% else %}
+                <span class="az-badge az-badge-danger">À PAYER</span>
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="az-card" style="grid-column:span 12;">
+    <h4 style="margin:0 0 10px;">Historique des paiements</h4>
+    <div class="az-table-wrap">
+      <table class="az-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Nature</th>
+            <th>Échéance</th>
+            <th>Montant</th>
+            <th>Mode</th>
+            <th>Référence</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for p in paiements %}
+          <tr>
+            <td>{{ p.date_paiement }}</td>
+            <td>{{ p.get_nature_display }}</td>
+            <td>{% if p.echeance %}M{{ p.echeance.mois_index }}{% else %}—{% endif %}</td>
+            <td><b>{{ p.montant }} MAD</b></td>
+            <td>{{ p.get_mode_display }}</td>
+            <td>{{ p.reference|default:"—" }}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="6" class="az-empty">Aucun paiement.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

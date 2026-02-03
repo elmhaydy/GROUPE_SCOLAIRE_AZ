@@ -1,0 +1,69 @@
+/* admin/css/absences/tomselect-az.css
+   Tom Select — Skin AZ NEBULA (dark/light) + dropdown fix
+*/
+
+.ts-wrapper{ width:100%; }
+.ts-control{
+  min-height: 46px;
+  border-radius: 14px !important;
+  border: 1px solid var(--az-border) !important;
+  background: var(--az-bg-primary) !important;
+  color: var(--az-text-primary) !important;
+  padding: 10px 12px !important;
+  box-shadow: none !important;
+}
+
+.ts-wrapper.focus .ts-control{
+  border-color: var(--az-primary) !important;
+  box-shadow: 0 0 0 4px rgba(99,102,241,.12) !important;
+}
+
+.ts-control input{
+  color: var(--az-text-primary) !important;
+  font-family: inherit !important;
+  font-size: .95rem !important;
+}
+
+.ts-control .item{
+  background: rgba(99,102,241,.14) !important;
+  border: 1px solid rgba(99,102,241,.22) !important;
+  color: var(--az-text-primary) !important;
+  border-radius: 999px !important;
+  padding: 4px 10px !important;
+}
+
+.ts-dropdown{
+  z-index: 999999 !important;      /* FIX menu caché */
+  border-radius: 14px !important;
+  border: 1px solid var(--az-border) !important;
+  background: var(--az-bg-primary) !important;
+  color: var(--az-text-primary) !important;
+  box-shadow: var(--az-shadow-xl) !important;
+  overflow: hidden !important;
+}
+
+.ts-dropdown .option{
+  padding: 10px 12px !important;
+  color: var(--az-text-primary) !important;
+}
+
+.ts-dropdown .option.active,
+.ts-dropdown .option:hover{
+  background: rgba(99,102,241,.16) !important;
+}
+
+.ts-dropdown .create{
+  padding: 10px 12px !important;
+}
+
+/* Dark select options fix (si navigateur force du blanc) */
+html[data-theme="dark"] .ts-dropdown{
+  color-scheme: dark;
+}
+
+/* Empêche coupure dropdown par un parent */
+.az-card,
+.az-absence-form-card,
+.az-absence-form-page{
+  overflow: visible !important;
+}

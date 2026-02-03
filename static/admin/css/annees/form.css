@@ -1,0 +1,345 @@
+/* =========================================================
+   AZ — Année scolaire (FORM) — admin/css/annees/form.css
+   Inspiré de la liste Années (mêmes tokens / look)
+   Compatible data-theme="dark"/"light"
+   ========================================================= */
+
+/* ========= Base tokens ========= */
+:root{
+  --az-radius: 18px;
+  --az-radius-sm: 14px;
+  --az-border: rgba(148,163,184,.22);
+  --az-shadow: 0 18px 40px rgba(15,23,42,.18);
+  --az-shadow-strong: 0 22px 60px rgba(15,23,42,.28);
+
+  --az-grad: linear-gradient(135deg,#6366f1,#ec4899);
+  --az-green: #22c55e;
+  --az-orange: #f97316;
+  --az-red: #ef4444;
+
+  --az-focus: rgba(99,102,241,.22);
+}
+
+/* Light / Dark tokens */
+html[data-theme="dark"]{
+  --az-surface: rgba(255,255,255,.04);
+  --az-surface-2: rgba(255,255,255,.06);
+  --az-text: #e5e7eb;
+  --az-muted: rgba(229,231,235,.65);
+  --az-muted-2: rgba(229,231,235,.50);
+  --az-row-hover: rgba(99,102,241,.08);
+  --az-card-border: rgba(255,255,255,.10);
+
+  --az-input-bg: rgba(0,0,0,.10);
+  --az-input-border: rgba(255,255,255,.12);
+  --az-input-border-hover: rgba(99,102,241,.42);
+}
+
+html[data-theme="light"]{
+  --az-surface: #ffffff;
+  --az-surface-2: #f8fafc;
+  --az-text: #0f172a;
+  --az-muted: rgba(15,23,42,.62);
+  --az-muted-2: rgba(15,23,42,.45);
+  --az-row-hover: rgba(99,102,241,.06);
+  --az-card-border: rgba(15,23,42,.10);
+
+  --az-input-bg: #ffffff;
+  --az-input-border: rgba(15,23,42,.14);
+  --az-input-border-hover: rgba(99,102,241,.55);
+}
+
+/* =========================================================
+   CARD
+   ========================================================= */
+.az-annee-card{
+  grid-column: span 12;
+  max-width: 760px;
+  margin: 0 auto;
+  border-radius: var(--az-radius);
+  background: var(--az-surface);
+  border: 1px solid var(--az-card-border);
+  box-shadow: var(--az-shadow);
+  overflow: hidden;
+  padding: 18px 18px 16px;
+}
+
+/* Titre */
+.az-annee-title{
+  margin: 2px 0 14px;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  color: var(--az-text);
+  font-size:16px;
+  font-weight: 750;
+  letter-spacing: .2px;
+}
+.az-annee-title::before{
+  content:"";
+  width:10px;
+  height:10px;
+  border-radius:999px;
+  background: var(--az-grad);
+  box-shadow: 0 10px 26px rgba(99,102,241,.26);
+}
+
+/* =========================================================
+   FORM
+   ========================================================= */
+.az-annee-form{
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+}
+
+.az-annee-form > div{
+  display:flex;
+  flex-direction:column;
+  gap:7px;
+}
+
+.az-annee-form label{
+  color: var(--az-muted);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .02em;
+}
+
+/* Inputs Django */
+.az-annee-form input[type="text"],
+.az-annee-form input[type="date"],
+.az-annee-form input[type="number"],
+.az-annee-form select,
+.az-annee-form textarea{
+  width: 100%;
+  padding: 12px 12px;
+  border-radius: var(--az-radius-sm);
+  background: var(--az-input-bg);
+  color: var(--az-text);
+  border: 1px solid var(--az-input-border);
+  transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease, background .18s ease;
+  outline: none;
+  font-size: 13px;
+}
+
+.az-annee-form input:hover,
+.az-annee-form select:hover,
+.az-annee-form textarea:hover{
+  border-color: var(--az-input-border-hover);
+}
+
+.az-annee-form input:focus,
+.az-annee-form select:focus,
+.az-annee-form textarea:focus{
+  border-color: var(--az-input-border-hover);
+  box-shadow: 0 0 0 4px var(--az-focus);
+}
+
+.az-annee-form input::placeholder,
+.az-annee-form textarea::placeholder{
+  color: var(--az-muted-2);
+}
+
+/* Séparateur */
+.az-annee-form::after{
+  content:"";
+  display:block;
+  height:1px;
+  margin: 6px 0 2px;
+  background: linear-gradient(to right, transparent, var(--az-card-border), transparent);
+}
+/* =========================================================
+   SWITCH — "année active" (AZ moderne)
+   ========================================================= */
+
+/* ligne switch (cliquable) */
+.az-switch-row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:14px;
+
+  padding: 12px 14px;
+  border-radius: var(--az-radius-sm);
+
+  background: var(--az-surface-2);
+  border: 1px solid var(--az-card-border);
+
+  cursor:pointer;
+  user-select:none;
+  transition: background .18s ease, border-color .18s ease, transform .18s ease;
+}
+
+/* hover */
+.az-switch-row:hover{
+  border-color: rgba(99,102,241,.45);
+  background: rgba(99,102,241,.08);
+  transform: translateY(-1px);
+}
+
+/* texte */
+.az-switch-text{
+  color: var(--az-text);
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.3;
+  opacity: .92;
+}
+
+/* cacher le checkbox natif (Django) */
+.az-switch-row input[type="checkbox"]{
+  position:absolute;
+  width:1px;
+  height:1px;
+  padding:0;
+  margin:-1px;
+  overflow:hidden;
+  clip: rect(0,0,0,0);
+  white-space:nowrap;
+  border:0;
+}
+
+/* UI du switch */
+.az-switch-ui{
+  width: 52px;
+  height: 30px;
+  border-radius: 999px;
+  background: rgba(148,163,184,.22);
+  border: 1px solid rgba(148,163,184,.25);
+  position: relative;
+  flex-shrink: 0;
+  transition: background .18s ease, border-color .18s ease, box-shadow .18s ease;
+}
+
+/* le rond */
+.az-switch-ui::after{
+  content:"";
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  position:absolute;
+  top: 50%;
+  left: 3px;
+  transform: translateY(-50%);
+  background: #ffffff;
+  box-shadow: 0 10px 18px rgba(0,0,0,.18);
+  transition: left .18s ease, transform .18s ease;
+}
+
+/* ON */
+.az-switch-row input[type="checkbox"]:checked ~ .az-switch-ui{
+  background: var(--az-grad);
+  border-color: rgba(99,102,241,.55);
+  box-shadow: 0 10px 24px rgba(99,102,241,.20);
+}
+
+.az-switch-row input[type="checkbox"]:checked ~ .az-switch-ui::after{
+  left: 25px;
+}
+
+/* focus clavier */
+.az-switch-row input[type="checkbox"]:focus-visible ~ .az-switch-ui{
+  box-shadow: 0 0 0 4px var(--az-focus), 0 10px 24px rgba(99,102,241,.20);
+}
+
+/* Dark: rond légèrement moins flashy */
+html[data-theme="dark"] .az-switch-ui::after{
+  background: rgba(255,255,255,.92);
+}
+
+/* =========================================================
+   Zone erreurs JS (optionnel)
+   ========================================================= */
+.az-annee-error{
+  display:none;
+  margin-top: 6px;
+  padding: 10px 12px;
+  border-radius: var(--az-radius-sm);
+  border: 1px solid rgba(239,68,68,.35);
+  background: rgba(239,68,68,.10);
+  color: var(--az-text);
+  font-size: 13px;
+}
+.az-annee-error.show{ display:block; }
+
+/* =========================================================
+   Actions
+   ========================================================= */
+.az-annee-actions{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  justify-content:flex-start;
+  margin-top: 14px;
+}
+
+.az-annee-actions .az-btn{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding:10px 14px;
+  border-radius:999px;
+  font-weight:700;
+  font-size:13px;
+  text-decoration:none;
+  border:1px solid transparent;
+  cursor:pointer;
+  transition:transform .18s ease, box-shadow .18s ease, background .18s ease, border-color .18s ease, opacity .18s ease;
+  user-select:none;
+  white-space:nowrap;
+}
+
+.az-annee-actions .az-btn i{ font-size:13px; }
+
+.az-annee-actions .az-btn-gradient{
+  background: var(--az-grad);
+  color:#fff;
+  box-shadow: 0 14px 30px rgba(99,102,241,.28);
+}
+.az-annee-actions .az-btn-gradient:hover{
+  transform: translateY(-1px);
+  box-shadow: var(--az-shadow-strong);
+}
+
+.az-annee-actions .az-btn:not(.az-btn-gradient){
+  background: transparent;
+  border-color: rgba(99,102,241,.55);
+  color: var(--az-text);
+}
+.az-annee-actions .az-btn:not(.az-btn-gradient):hover{
+  background: rgba(99,102,241,.10);
+  transform: translateY(-1px);
+}
+
+/* =========================================================
+   Responsive
+   ========================================================= */
+@media (max-width: 900px){
+  .az-annee-card{ max-width: 92vw; }
+}
+
+@media (max-width: 560px){
+  .az-annee-card{
+    padding: 14px;
+    border-radius: 16px;
+  }
+
+  .az-annee-title{
+    font-size: 15px;
+  }
+
+  .az-annee-actions{
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .az-annee-actions .az-btn{
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 360px){
+  .az-annee-card{ padding: 12px; }
+}

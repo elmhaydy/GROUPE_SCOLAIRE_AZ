@@ -1,0 +1,401 @@
+/* =========================================================
+   AZ — Eleve Form Modern — FINAL
+   Dark/Light via html[data-theme]
+   - Light par défaut
+   - Dark: html[data-theme="dark"]
+   - Fallback: prefers-color-scheme si data-theme absent
+   ========================================================= */
+
+/* =========================
+   TOKENS (LIGHT default)
+   ========================= */
+:root{
+  color-scheme: light;
+
+  --az-bg-page: #f8fafc;
+  --az-bg-card: #ffffff;
+  --az-bg-section: #f1f5f9;
+
+  --az-text-main: #1e293b;
+  --az-text-sub: #64748b;
+
+  --az-border: #e2e8f0;
+  --az-input-bg: #ffffff;
+
+  --az-primary: #4f46e5;
+  --az-primary-dark: #4338ca;
+  --az-primary-soft: #eef2ff;
+
+  --az-success: #10b981;
+  --az-danger: #ef4444;
+
+  --az-shadow: 0 4px 6px -1px rgba(0,0,0,.10), 0 2px 4px -2px rgba(0,0,0,.10);
+  --az-radius: 16px;
+
+  --az-transition: all .25s cubic-bezier(.4,0,.2,1);
+}
+
+/* =========================
+   DARK (force)
+   ========================= */
+html[data-theme="dark"]{
+  color-scheme: dark;
+
+  --az-bg-page: #0f172a;
+  --az-bg-card: #111c2f;     /* un peu plus premium que #1e293b */
+  --az-bg-section: #0b1220;
+
+  --az-text-main: #f1f5f9;
+  --az-text-sub: #94a3b8;
+
+  --az-border: rgba(255,255,255,.08);
+  --az-input-bg: rgba(2,6,23,.28);
+
+  --az-primary-soft: rgba(79,70,229,.16);
+
+  --az-shadow: 0 14px 28px rgba(0,0,0,.35);
+}
+
+/* =========================
+   LIGHT (force)
+   ========================= */
+html[data-theme="light"]{
+  color-scheme: light;
+}
+
+/* =========================
+   Fallback system (si pas de data-theme)
+   ========================= */
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+
+    --az-bg-page: #0f172a;
+    --az-bg-card: #111c2f;
+    --az-bg-section: #0b1220;
+
+    --az-text-main: #f1f5f9;
+    --az-text-sub: #94a3b8;
+
+    --az-border: rgba(255,255,255,.08);
+    --az-input-bg: rgba(2,6,23,.28);
+
+    --az-primary-soft: rgba(79,70,229,.16);
+
+    --az-shadow: 0 14px 28px rgba(0,0,0,.35);
+  }
+}
+
+/* =========================
+   PAGE BASE
+   ========================= */
+body{
+  background: var(--az-bg-page);
+  color: var(--az-text-main);
+}
+
+/* =========================
+   CARD WRAPPER
+   ========================= */
+.az-eleve-card--modern{
+  background: var(--az-bg-card);
+  border-radius: var(--az-radius);
+  box-shadow: var(--az-shadow);
+  padding: 2rem;
+  max-width: 1000px;
+  margin: 2rem auto;
+  border: 1px solid var(--az-border);
+  color: var(--az-text-main);
+  transition: var(--az-transition);
+  animation: azFadeUp .35s ease both;
+}
+
+@keyframes azFadeUp{
+  from{ opacity:0; transform: translateY(10px); }
+  to{ opacity:1; transform: translateY(0); }
+}
+
+/* =========================
+   HEADER
+   ========================= */
+.az-eleve-head--modern{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap: 1rem;
+  margin-bottom: 2.5rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--az-border);
+  flex-wrap:wrap;
+}
+
+.az-eleve-title{
+  font-size: 1.75rem;
+  font-weight: 900;
+  margin: 0;
+  color: var(--az-text-main);
+}
+
+.az-eleve-sub{
+  color: var(--az-text-sub);
+  margin-top: .5rem;
+}
+
+/* Badge */
+.az-badge-soft{
+  background: var(--az-primary-soft);
+  color: var(--az-primary);
+  padding: .6rem 1.2rem;
+  border-radius: 999px;
+  font-weight: 900;
+  font-size: .85rem;
+  border: 1px solid rgba(79,70,229,.18);
+}
+
+/* =========================
+   SECTIONS
+   ========================= */
+.az-section{
+  margin-bottom: 2.5rem;
+  padding: 1.5rem;
+  background: var(--az-bg-section);
+  border-radius: 12px;
+  border: 1px solid var(--az-border);
+}
+
+.az-section-head{ margin-bottom: 1.5rem; }
+
+.az-section-title{
+  font-size: 1.1rem;
+  font-weight: 900;
+  margin: 0;
+  display:flex;
+  align-items:center;
+  gap: .75rem;
+  color: var(--az-primary);
+}
+
+.az-section-sub{
+  font-size: .85rem;
+  color: var(--az-text-sub);
+  margin-top: .25rem;
+}
+
+/* =========================
+   PHOTO BOX
+   ========================= */
+.az-photo-box--modern{
+  display:flex;
+  gap: 2rem;
+  align-items:center;
+}
+
+.az-photo-preview{
+  width: 120px;
+  height: 120px;
+  border-radius: 24px;
+  overflow:hidden;
+  background: var(--az-input-bg);
+  border: 2px dashed rgba(148,163,184,.35);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size: 3rem;
+  flex-shrink: 0;
+}
+
+html[data-theme="dark"] .az-photo-preview{
+  border-color: rgba(148,163,184,.22);
+}
+
+.az-photo-preview img{
+  width:100%;
+  height:100%;
+  object-fit: cover;
+}
+
+.az-photo-field{ flex-grow:1; }
+
+/* =========================
+   GRIDS
+   ========================= */
+.az-grid-2{
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+@media (max-width: 768px){
+  .az-grid-2{ grid-template-columns: 1fr; }
+  .az-photo-box--modern{ flex-direction: column; text-align:center; }
+}
+
+/* =========================
+   FIELDS / INPUTS
+   ========================= */
+.az-field{
+  display:flex;
+  flex-direction:column;
+  gap: .5rem;
+  margin-bottom: 1rem;
+}
+
+.az-field label{
+  font-weight: 800;
+  font-size: .9rem;
+  color: var(--az-text-main);
+}
+
+.az-field input,
+.az-field select,
+.az-field textarea{
+  padding: .85rem 1rem;
+  border-radius: 10px;
+  border: 1px solid rgba(148,163,184,.35);
+  background: var(--az-input-bg);
+  color: var(--az-text-main);
+  font-size: 1rem;
+  transition: var(--az-transition);
+}
+
+html[data-theme="dark"] .az-field input,
+html[data-theme="dark"] .az-field select,
+html[data-theme="dark"] .az-field textarea{
+  border-color: rgba(148,163,184,.22);
+  background: rgba(2,6,23,.22);
+  color: rgba(241,245,249,.95);
+}
+
+/* Focus glow violet */
+.az-field input:focus,
+.az-field select:focus,
+.az-field textarea:focus{
+  outline:none;
+  border-color: rgba(79,70,229,.65);
+  box-shadow:
+    0 0 0 4px var(--az-primary-soft),
+    0 10px 22px rgba(79,70,229,.10);
+  transform: translateY(-1px);
+}
+
+/* Fix dropdown options (dark) */
+html[data-theme="dark"] .az-field select{
+  color-scheme: dark;
+}
+html[data-theme="dark"] .az-field select option,
+html[data-theme="dark"] .az-field select optgroup{
+  background-color:#0b1220 !important;
+  color: rgba(241,245,249,.95) !important;
+}
+html[data-theme="dark"] .az-field select option:checked{
+  background:#1d4ed8 !important;
+  color:#fff !important;
+}
+
+.az-help{
+  font-size: .8rem;
+  color: var(--az-text-sub);
+  margin-top: .25rem;
+}
+
+/* =========================
+   SWITCH (PILL)
+   ========================= */
+.az-switch--pill{
+  display:flex;
+  align-items:center;
+  gap: 1rem;
+  font-weight: 900;
+  color: var(--az-text-main);
+}
+
+.az-switch--pill input[type="checkbox"]{
+  appearance:none;
+  width: 48px;
+  height: 24px;
+  background: rgba(148,163,184,.55);
+  border-radius: 999px;
+  position: relative;
+  cursor:pointer;
+  transition: var(--az-transition);
+  border: 1px solid rgba(148,163,184,.25);
+}
+
+html[data-theme="dark"] .az-switch--pill input[type="checkbox"]{
+  background: rgba(255,255,255,.08);
+  border-color: rgba(148,163,184,.22);
+}
+
+.az-switch--pill input[type="checkbox"]:checked{
+  background: var(--az-success);
+  border-color: rgba(16,185,129,.35);
+}
+
+.az-switch--pill input[type="checkbox"]::before{
+  content:"";
+  position:absolute;
+  width: 18px;
+  height: 18px;
+  background:#fff;
+  border-radius: 50%;
+  top: 3px;
+  left: 3px;
+  transition: var(--az-transition);
+  box-shadow: 0 8px 16px rgba(15,23,42,.18);
+}
+
+.az-switch--pill input[type="checkbox"]:checked::before{
+  left: 27px;
+}
+
+/* =========================
+   ACTIONS STICKY
+   ========================= */
+.az-eleve-actions--sticky{
+  position: sticky;
+  bottom: 0;
+  background: var(--az-bg-card);
+  padding: 1.5rem 0;
+  margin-top: 2rem;
+  border-top: 1px solid var(--az-border);
+  display:flex;
+  justify-content:space-between;
+  gap: 10px;
+  z-index: 10;
+  backdrop-filter: blur(10px);
+}
+
+/* =========================
+   BUTTONS
+   ========================= */
+.az-btn{
+  padding: .85rem 1.5rem;
+  border-radius: 10px;
+  font-weight: 900;
+  text-decoration:none;
+  display:inline-flex;
+  align-items:center;
+  gap: .5rem;
+  transition: var(--az-transition);
+  border: 1px solid var(--az-border);
+  background: var(--az-input-bg);
+  color: var(--az-text-main);
+  cursor:pointer;
+}
+
+.az-btn:hover{
+  background: var(--az-bg-section);
+  transform: translateY(-1px);
+}
+
+.az-btn-gradient{
+  background: linear-gradient(135deg, var(--az-primary), var(--az-primary-dark));
+  color:#fff;
+  border:none;
+}
+
+.az-btn-gradient:hover{
+  transform: translateY(-2px);
+  box-shadow: 0 10px 22px rgba(79,70,229,.25);
+}
