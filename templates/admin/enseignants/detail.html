@@ -46,9 +46,11 @@
       <a class="az-btn az-btn-soft" href="{% url 'core:enseignant_delete' ens.id %}" style="border-color: rgba(239,68,68,.25); color:#ef4444;">
         <i class="fa-solid fa-trash"></i> Supprimer
       </a>
-      <button class="az-btn az-btn-primary" type="button" disabled title="Bientôt" style="opacity:.7;cursor:not-allowed;">
-        <i class="fa-solid fa-calendar-days"></i> EDT
-      </button>
+<a class="az-btn az-btn-primary" href="{% url 'core:edt_prof_week' %}?enseignant={{ enseignant.id }}">
+  <i class="fa-solid fa-calendar-days"></i> EDT
+</a>
+
+
     </div>
   </div>
 

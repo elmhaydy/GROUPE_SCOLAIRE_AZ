@@ -13,6 +13,9 @@ from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+ENV_FILE = os.getenv("DJANGO_ENV_FILE", ".env")
+load_dotenv(BASE_DIR / ENV_FILE, override=True)
+
 # Charger .env (à la racine du projet : /var/www/az/.env)
 load_dotenv(BASE_DIR / ".env", override=True)
 
@@ -24,15 +27,7 @@ SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "CHANGE_ME")
 DEBUG = os.getenv("DJANGO_DEBUG", "False").lower() in ("1", "true", "yes", "on")
 
 # ALLOWED_HOSTS sous forme CSV: "ip,domain.com,www.domain.com"
-ALLOWED_HOSTS = [
-    "groupescolaireaz.cloud",
-    "www.groupescolaireaz.cloud",
-    "127.0.0.1",
-    "localhost",
-    "[::1]",
-    "2a02:4780:28:13d8::1",
-    "[2a02:4780:28:13d8::1]",
-]
+ALLOWED_HOSTS = [h.strip() for h in os.getenv("DJANGO_ALLOWED_HOSTS", "").split(",") if h.strip()]
 
 # CSRF trusted origins: "https://domain.com,https://www.domain.com"
 CSRF_TRUSTED_ORIGINS = [o.strip() for o in os.getenv("DJANGO_CSRF_TRUSTED_ORIGINS", "").split(",") if o.strip()]
@@ -228,8 +223,7 @@ if not DEBUG:
     # Nginx reverse proxy -> indique à Django que la requête originale était en HTTPS
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
-    SECURE_SSL_REDIRECT = os.getenv("DJANGO_SECURE_SSL_REDIRECT", "True").lower() in ("1", "true", "yes", "on")
-
+    SECURE_SSL_REDIRECT = True
     SESSION_COOKIE_SECURE = os.getenv("DJANGO_SESSION_COOKIE_SECURE", "True").lower() in ("1", "true", "yes", "on")
     CSRF_COOKIE_SECURE = os.getenv("DJANGO_CSRF_COOKIE_SECURE", "True").lower() in ("1", "true", "yes", "on")
 

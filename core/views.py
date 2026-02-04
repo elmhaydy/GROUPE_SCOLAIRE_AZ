@@ -5,11 +5,13 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from core.permissions import group_required
-
+from itertools import chain
 from decimal import Decimal
 from django.db.models import Avg, Count
 from core.services.pedagogie import sync_enseignant_groupe_from_matiere
 from core.views_prof import _allowed_groupes as _allowed_groupes_for_user
+from datetime import time
+from django.db.models import Q
 
 
 from .forms import AnneeScolaireForm
@@ -36,14 +38,10 @@ from django.http import JsonResponse
 
 from django.db.models import Sum, DecimalField
 from django.db.models.functions import Coalesce
-from decimal import Decimal
 
 from .models import Paiement
 from .forms import PaiementForm
 
-from django.db.models import Sum, DecimalField
-from django.db.models.functions import Coalesce
-from decimal import Decimal
 
 from .models import Enseignant
 from .forms import EnseignantForm
@@ -72,8 +70,6 @@ from .models import Recouvrement, Relance
 from django.utils import timezone
 
 from django.db.models import Sum, DecimalField, F, ExpressionWrapper
-from django.db.models.functions import Coalesce
-from decimal import Decimal
 
 from .models import FraisNiveau, AnneeScolaire
 
@@ -86,10 +82,7 @@ from .utils_users import get_or_create_user_with_group
 
 import csv
 from django.contrib.auth import get_user_model
-from django.http import HttpResponse
 
-from django.db.models import Q
-from django.utils import timezone
 
 from .models import Avis, SmsHistorique, Parent, ParentEleve, Eleve, Groupe, Niveau, Degre
 from .forms_communication import AvisForm, SmsSendForm
@@ -98,274 +91,570 @@ from .services.sms_provider import normalize_phone, send_sms_via_twilio
 import calendar
 from datetime import date as date_cls
 from datetime import date
-from decimal import Decimal
 
-from django.contrib.auth.decorators import login_required
 from django.db.models import Sum, Count, F, Value, DecimalField
 from django.db.models.functions import Coalesce, TruncMonth
 from django.shortcuts import render, redirect
-from django.contrib.auth import get_user_model
 
 from core.models import Eleve, Groupe, Inscription, Paiement, AnneeScolaire
 
-# ─────────────────────────────────────────
-# Utils dates (tu les as déjà, garde les tiens si ok)
-# ─────────────────────────────────────────
+from datetime import date, datetime
+from decimal import Decimal
+
+from django.contrib.auth import get_user_model
+from django.contrib.auth.decorators import login_required
+from django.db.models import (
+    Sum, Count, F, Value, DecimalField,
+)
+from django.db.models.functions import Coalesce, TruncMonth
+from django.shortcuts import render, redirect
+
+from core.models import (
+    AnneeScolaire, Eleve, Groupe, Paiement, Inscription, Absence
+)
+
+# ============================================================
+# Helpers date (si tu les as déjà ailleurs, garde les tiens)
+# ============================================================
 def _month_start(d: date) -> date:
-    return d.replace(day=1)
+    return date(d.year, d.month, 1)
 
-def _add_months(dt: date, months: int) -> date:
-    y = dt.year + (dt.month - 1 + months) // 12
-    m = (dt.month - 1 + months) % 12 + 1
-    d = min(dt.day, [31,
-                    29 if (y % 4 == 0 and (y % 100 != 0 or y % 400 == 0)) else 28,
-                    31, 30, 31, 30, 31, 31, 30, 31, 30, 31][m-1])
-    return date(y, m, d)
+def _add_months(d: date, months: int) -> date:
+    y = d.year + (d.month - 1 + months) // 12
+    m = (d.month - 1 + months) % 12 + 1
+    return date(y, m, 1)
 
+# ============================================================
+# Helpers roles (si tu les as déjà ailleurs, garde les tiens)
+# ============================================================
 def _is_superadmin(user) -> bool:
-    return (
-        user.is_authenticated
-        and (
-            user.is_superuser
-            or user.groups.filter(name="SUPER_ADMIN").exists()
-        )
-    )
+    return bool(getattr(user, "is_superuser", False))
 
 def _is_admin(user) -> bool:
-    return user.is_authenticated and user.groups.filter(name="ADMIN").exists()
+    if _is_superadmin(user):
+        return True
+    # adapte si tu utilises Groups
+    return user.groups.filter(name__in=["ADMIN", "SUPER_ADMIN"]).exists()
 
-def _is_direction(user) -> bool:
-    return user.is_authenticated and (
-        user.groups.filter(name="DIRECTION").exists()
-        or user.groups.filter(name="DIRECTION_STAFF").exists()
-    )
-# ─────────────────────────────────────────
-# Base builder (commun)
-# ─────────────────────────────────────────
+
+# ============================================================
+# Dashboard Context — FINAL (fix Decimal vs Int)
+# ============================================================
+
+
+# ============================================================
+# Dashboard Context — FINAL (Impayés mensuels + Encaissé non 0)
+# - Impayés: basé sur EcheanceMensuelle (mois courant) + (option) inscription
+# - Encaissé: Paiement + TransactionFinance (nouveau système)
+# ============================================================
+
+from datetime import date, datetime
+from decimal import Decimal
+import json
+
+from django.db.models import (
+    Sum, Count, F, Q, Value, DecimalField, ExpressionWrapper
+)
+from django.db.models.functions import TruncMonth
+from django.utils import timezone
+from django.db.models.functions import Coalesce
+
+MONEY_FIELD = DecimalField(max_digits=12, decimal_places=2)
+ZERO_MONEY = Value(Decimal("0.00"), output_field=MONEY_FIELD)
+
+
+def _month_key(x):
+    if isinstance(x, datetime):
+        x = x.date()
+    if isinstance(x, date):
+        return date(x.year, x.month, 1)
+    return None
+
+
+def _model_has_field(model, field_name: str) -> bool:
+    try:
+        model._meta.get_field(field_name)
+        return True
+    except Exception:
+        return False
+
+
+def _last_12_months_labels(today: date):
+    labels = []
+    d = date(today.year, today.month, 1)
+    for i in range(11, -1, -1):
+        y = d.year + (d.month - 1 - i) // 12
+        m = (d.month - 1 - i) % 12 + 1
+        labels.append(date(y, m, 1))
+    return labels
+
+
+def _trend(cur, prev):
+    cur = Decimal(cur or "0.00")
+    prev = Decimal(prev or "0.00")
+
+    # Aucun mouvement
+    if cur == 0 and prev == 0:
+        return 0
+
+    # Nouveau chiffre ce mois-ci
+    if prev == 0 and cur > 0:
+        return None  # ⬅️ important
+
+    # Chute totale
+    if prev > 0 and cur == 0:
+        return -100
+
+    return int(((cur - prev) / prev) * 100)
+
+def _add_months(d: date, months: int) -> date:
+    y = d.year + (d.month - 1 + months) // 12
+    m = (d.month - 1 + months) % 12 + 1
+    return date(y, m, 1)
+
+
 def _build_dashboard_context():
-    today = date.today()
-    start_this_month = _month_start(today)
+    today = timezone.now().date()
+
+    # =========================
+    # Périodes
+    # =========================
+    start_this_month = date(today.year, today.month, 1)
     start_last_month = _add_months(start_this_month, -1)
     start_next_month = _add_months(start_this_month, 1)
 
+    # =========================
+    # Année active
+    # =========================
     annee_active_obj = AnneeScolaire.objects.filter(is_active=True).first()
     annee_active = annee_active_obj.nom if annee_active_obj else "—"
 
-    nb_eleves = Eleve.objects.count()
-    nb_groupes = Groupe.objects.count()
+    # Si pas d'année active -> safe
+    if not annee_active_obj:
+        return {
+            "today": today,
+            "current_date": today,
+            "annee_active": annee_active,
+            "nb_eleves": 0,
+            "nb_groupes": 0,
+            "total_paye": Decimal("0.00"),
+            "total_impayes": Decimal("0.00"),
+            "nb_paiements": 0,
+            "nb_impayes": 0,
+            "taux_paiement": 0,
+            "eleves_trend": 0,
+            "groupes_trend": 0,
+            "revenue_trend": 0,
+            "payment_trend": 0,
+            "derniers_paiements": [],
+            "nouvelles_inscriptions": [],
+            "impayes_recents": [],
+            "repartition_eleves": [],
+            "presences": {"presents": 0, "absents": 0, "retards": 0, "total": 0, "taux_presence": 0, "taux_absence": 0, "taux_retard": 0},
+            "objectif_mensuel": 0,
+            "objectif_atteint": 0,
+            "chart_labels": json.dumps([]),
+            "chart_paiements": json.dumps([]),
+            "chart_inscriptions": json.dumps([]),
 
-    total_paye = (
-        Paiement.objects.aggregate(
-            s=Coalesce(Sum("montant"), Value(0), output_field=DecimalField(max_digits=12, decimal_places=2))
-        )["s"] or Decimal("0")
+            # ✅ nouveaux (mensuel)
+            "mois_courant": 0,
+            "mois_courant_nom": "",
+        }
+
+    # =========================
+    # Helpers “mois courant scolaire”
+    # (tu as déjà ces fonctions dans ton projet, utilisées dans impayes_mensuels_list)
+    # =========================
+    idx_courant = mois_index_courant(annee_active_obj, today)  # 1..10 (Sep..Jun)
+    idx_courant = max(1, min(10, int(idx_courant or 1)))
+    mois_courant_nom = mois_nom(idx_courant)
+
+    # =========================
+    # Global counts
+    # =========================
+    inscs_active = Inscription.objects.filter(annee_id=annee_active_obj.id)
+
+    nb_eleves = inscs_active.values("eleve_id").distinct().count()
+    nb_groupes = inscs_active.values("groupe_id").distinct().count()
+
+
+    # =========================
+    # ✅ ENCAISSÉ (mois courant) => Paiement + TransactionFinance
+    # =========================
+    pay_mois_old = (
+        Paiement.objects
+        .filter(
+            inscription__annee_id=annee_active_obj.id,
+            date_paiement__gte=start_this_month,
+            date_paiement__lt=start_next_month,
+        )
+        .aggregate(s=Coalesce(Sum("montant"), ZERO_MONEY))["s"]
+        or Decimal("0.00")
     )
 
-    total_attendu = (
-        Inscription.objects.aggregate(
-            s=Coalesce(Sum("montant_total"), Value(0), output_field=DecimalField(max_digits=12, decimal_places=2))
-        )["s"] or Decimal("0")
+    pay_mois_new = (
+        TransactionFinance.objects
+        .filter(
+            inscription__annee_id=annee_active_obj.id,
+            date_transaction__gte=start_this_month,
+            date_transaction__lt=start_next_month,
+        )
+        .aggregate(s=Coalesce(Sum("montant_total"), ZERO_MONEY))["s"]
+        or Decimal("0.00")
     )
 
-    total_impayes = (
-        Inscription.objects.annotate(
-            reste=F("montant_total")
-            - Coalesce(
-                Sum("paiements__montant"),
-                Value(0),
-                output_field=DecimalField(max_digits=12, decimal_places=2),
+
+    total_encaisse_mois = (pay_mois_old or Decimal("0.00")) + (pay_mois_new or Decimal("0.00"))
+
+    # ✅ pour tes listes “derniers paiements” on garde Paiement (si tu veux aussi tx, dis-moi)
+    nb_paiements_old = Paiement.objects.filter(inscription__annee_id=annee_active_obj.id).count()
+    nb_paiements_new = TransactionFinance.objects.filter(inscription__annee_id=annee_active_obj.id).count()
+    nb_paiements = nb_paiements_old + nb_paiements_new
+
+
+
+    # =========================
+    # 🎯 OBJECTIF MENSUEL (ce qui est DÛ ce mois)
+    # =========================
+
+    # Scolarité du mois courant (du total)
+    objectif_sco = (
+        EcheanceMensuelle.objects
+        .filter(annee_id=annee_active_obj.id, mois_index=idx_courant)
+        .aggregate(s=Coalesce(Sum("montant_du"), ZERO_MONEY))["s"]
+        or Decimal("0.00")
+    )
+
+    # Transport du mois courant (safe)
+    objectif_tr = Decimal("0.00")
+    try:
+        objectif_tr = (
+            EcheanceTransportMensuelle.objects
+            .filter(annee_id=annee_active_obj.id, mois_index=idx_courant)
+            .aggregate(s=Coalesce(Sum("montant_du"), ZERO_MONEY))["s"]
+            or Decimal("0.00")
+        )
+    except Exception:
+        pass
+
+    # Inscription (optionnel) -> ce qui est dû au total (année active)
+    objectif_ins = (
+        Inscription.objects
+        .filter(
+            annee_id=annee_active_obj.id,
+            date_inscription__gte=start_this_month,
+            date_inscription__lt=start_next_month,
+        )
+        .aggregate(s=Coalesce(Sum("frais_inscription_du"), ZERO_MONEY))["s"]
+        or Decimal("0.00")
+    )
+
+
+    objectif_mensuel = (objectif_sco + objectif_tr + objectif_ins)
+
+    # % atteint (cap 100%)
+    if objectif_mensuel > 0:
+        objectif_atteint = int(min((total_encaisse_mois / objectif_mensuel) * 100, 100))
+    else:
+        objectif_atteint = 0
+
+    # =========================
+    # ✅ IMPAYÉS (MENSUEL)
+    # - Scolarité : EcheanceMensuelle du mois courant (reste > 0)
+    # - Transport : si EcheanceTransportMensuelle existe (reste > 0)
+    # - Inscription : optionnel (reste inscription) -> je l’ajoute car impayé réel
+    # =========================
+    sco_qs_mois = (
+        EcheanceMensuelle.objects
+        .filter(annee_id=annee_active_obj.id, mois_index=idx_courant)
+        .annotate(
+            reste=ExpressionWrapper(
+                Coalesce(F("montant_du"), ZERO_MONEY) - Coalesce(F("montant_paye"), ZERO_MONEY),
+                output_field=MONEY_FIELD,
             )
         )
-        .filter(reste__gt=0)
-        .aggregate(
-            s=Coalesce(Sum("reste"), Value(0), output_field=DecimalField(max_digits=12, decimal_places=2))
-        )["s"] or Decimal("0")
     )
 
-    nb_paiements = Paiement.objects.count()
-    nb_impayes = (
-        Inscription.objects.annotate(
-            reste=F("montant_total")
-            - Coalesce(
-                Sum("paiements__montant"),
-                Value(0),
-                output_field=DecimalField(max_digits=12, decimal_places=2),
+    total_impaye_sco_mois = (
+        sco_qs_mois.filter(reste__gt=0)
+        .aggregate(s=Coalesce(Sum("reste"), ZERO_MONEY))["s"]
+        or Decimal("0.00")
+    )
+
+    nb_impaye_sco_mois = sco_qs_mois.filter(reste__gt=0).values("eleve_id").distinct().count()
+
+    # Transport (safe si modèle pas importé)
+    total_impaye_tr_mois = Decimal("0.00")
+    nb_impaye_tr_mois = 0
+    try:
+        tr_qs_mois = (
+            EcheanceTransportMensuelle.objects
+            .filter(annee_id=annee_active_obj.id, mois_index=idx_courant)
+            .annotate(
+                reste=ExpressionWrapper(
+                    Coalesce(F("montant_du"), ZERO_MONEY) - Coalesce(F("montant_paye"), ZERO_MONEY),
+                    output_field=MONEY_FIELD,
+                )
             )
         )
-        .filter(reste__gt=0)
-        .count()
+        total_impaye_tr_mois = (
+            tr_qs_mois.filter(reste__gt=0)
+            .aggregate(s=Coalesce(Sum("reste"), ZERO_MONEY))["s"]
+            or Decimal("0.00")
+        )
+        nb_impaye_tr_mois = tr_qs_mois.filter(reste__gt=0).values("eleve_id").distinct().count()
+    except Exception:
+        pass
+
+    # Inscription (reste inscription)
+    insc_qs = Inscription.objects.filter(annee_id=annee_active_obj.id).annotate(
+        reste_ins=ExpressionWrapper(
+            Coalesce(F("frais_inscription_du"), ZERO_MONEY) - Coalesce(F("frais_inscription_paye"), ZERO_MONEY),
+            output_field=MONEY_FIELD,
+        )
     )
 
-    taux_paiement = int((total_paye / total_attendu) * 100) if total_attendu > 0 else 0
-
-    # Trends
-    eleves_this = Inscription.objects.filter(date_inscription__gte=start_this_month, date_inscription__lt=start_next_month).count()
-    eleves_last = Inscription.objects.filter(date_inscription__gte=start_last_month, date_inscription__lt=start_this_month).count()
-
-    paye_this = (
-        Paiement.objects.filter(date_paiement__gte=start_this_month, date_paiement__lt=start_next_month)
-        .aggregate(s=Coalesce(Sum("montant"), Value(0), output_field=DecimalField(max_digits=12, decimal_places=2)))["s"]
-        or Decimal("0")
+    total_impaye_ins = (
+        insc_qs.filter(reste_ins__gt=0)
+        .aggregate(s=Coalesce(Sum("reste_ins"), ZERO_MONEY))["s"]
+        or Decimal("0.00")
     )
-    paye_last = (
-        Paiement.objects.filter(date_paiement__gte=start_last_month, date_paiement__lt=start_this_month)
-        .aggregate(s=Coalesce(Sum("montant"), Value(0), output_field=DecimalField(max_digits=12, decimal_places=2)))["s"]
-        or Decimal("0")
+    nb_impaye_ins = insc_qs.filter(reste_ins__gt=0).values("eleve_id").distinct().count()
+
+    # ✅ total impayés du dashboard (mensuel)
+    total_impayes_mois = (total_impaye_sco_mois + total_impaye_tr_mois + total_impaye_ins)
+
+    # ✅ nb dossiers impayés (distinct élèves) -> on prend max simple
+    # (si tu veux distinct global exact par union, je te le fais aussi)
+    nb_impayes_mois = max(nb_impaye_sco_mois, nb_impaye_tr_mois, nb_impaye_ins)
+
+    # =========================
+    # Trends (encaisse)
+    # =========================
+    pay_last_old = (
+        Paiement.objects
+        .filter(
+            inscription__annee_id=annee_active_obj.id,
+            date_paiement__gte=start_last_month,
+            date_paiement__lt=start_this_month,
+        )
+        .aggregate(s=Coalesce(Sum("montant"), ZERO_MONEY))["s"]
+        or Decimal("0.00")
     )
 
-    attendu_this = (
-        Inscription.objects.filter(date_inscription__gte=start_this_month, date_inscription__lt=start_next_month)
-        .aggregate(s=Coalesce(Sum("montant_total"), Value(0), output_field=DecimalField(max_digits=12, decimal_places=2)))["s"]
-        or Decimal("0")
-    )
-    attendu_last = (
-        Inscription.objects.filter(date_inscription__gte=start_last_month, date_inscription__lt=start_this_month)
-        .aggregate(s=Coalesce(Sum("montant_total"), Value(0), output_field=DecimalField(max_digits=12, decimal_places=2)))["s"]
-        or Decimal("0")
+    pay_last_new = (
+        TransactionFinance.objects
+        .filter(
+            inscription__annee_id=annee_active_obj.id,
+            date_transaction__gte=start_last_month,
+            date_transaction__lt=start_this_month,
+        )
+        .aggregate(s=Coalesce(Sum("montant_total"), ZERO_MONEY))["s"]
+        or Decimal("0.00")
     )
 
-    def _trend(cur, prev):
-        if prev == 0:
-            return 0 if cur == 0 else 100
-        return int(((cur - prev) / prev) * 100)
+    total_encaisse_last = (pay_last_old or Decimal("0.00")) + (pay_last_new or Decimal("0.00"))
+
+    revenue_trend = _trend(total_encaisse_mois, total_encaisse_last)
+
+    # Trends inscriptions (ok)
+    eleves_this = Inscription.objects.filter(
+        annee_id=annee_active_obj.id,
+        date_inscription__gte=start_this_month,
+        date_inscription__lt=start_next_month,
+    ).count()
+
+    eleves_last = Inscription.objects.filter(
+        annee_id=annee_active_obj.id,
+        date_inscription__gte=start_last_month,
+        date_inscription__lt=start_this_month,
+    ).count()
 
     eleves_trend = _trend(eleves_this, eleves_last)
-    revenue_trend = _trend(paye_this, paye_last)
-    taux_this = int((paye_this / attendu_this) * 100) if attendu_this > 0 else 0
-    taux_last = int((paye_last / attendu_last) * 100) if attendu_last > 0 else 0
-    payment_trend = _trend(taux_this, taux_last)
 
-    # Dernières listes
-    derniers_paiements = Paiement.objects.select_related("inscription__eleve", "inscription__groupe").order_by("-date_paiement", "-id")[:8]
-    nouvelles_inscriptions = Inscription.objects.select_related("eleve", "groupe", "groupe__niveau").order_by("-date_inscription")[:8]
+    # =========================
+    # ✅ TAUX PAIEMENT (mensuel réel)
+    # attendu_mois = scolarité du mois + transport du mois + inscriptions créées ce mois (optionnel)
+    # =========================
 
-    impayes_recents = (
-        Inscription.objects.select_related("eleve", "groupe")
-        .annotate(
-            reste=F("montant_total")
-            - Coalesce(Sum("paiements__montant"), Value(0), output_field=DecimalField(max_digits=12, decimal_places=2))
+    attendu_sco_mois = (
+        EcheanceMensuelle.objects
+        .filter(annee_id=annee_active_obj.id, mois_index=idx_courant)
+        .aggregate(s=Coalesce(Sum("montant_du"), ZERO_MONEY))["s"]
+        or Decimal("0.00")
+    )
+
+    # Transport du mois (safe)
+    attendu_tr_mois = Decimal("0.00")
+    try:
+        attendu_tr_mois = (
+            EcheanceTransportMensuelle.objects
+            .filter(annee_id=annee_active_obj.id, mois_index=idx_courant)
+            .aggregate(s=Coalesce(Sum("montant_du"), ZERO_MONEY))["s"]
+            or Decimal("0.00")
         )
+    except Exception:
+        pass
+
+    # Inscriptions du mois (pas toute l'année !)
+    attendu_ins_mois = (
+        Inscription.objects
+        .filter(
+            annee_id=annee_active_obj.id,
+            date_inscription__gte=start_this_month,
+            date_inscription__lt=start_next_month,
+        )
+        .aggregate(s=Coalesce(Sum("frais_inscription_du"), ZERO_MONEY))["s"]
+        or Decimal("0.00")
+    )
+
+    attendu_mois = (attendu_sco_mois + attendu_tr_mois + attendu_ins_mois)
+
+    # Taux (cap 100)
+    if attendu_mois > 0:
+        taux_paiement = int(min((total_encaisse_mois / attendu_mois) * 100, 100))
+    else:
+        taux_paiement = 0
+
+    # ---------- Trend (mois dernier) ----------
+    idx_last = max(1, min(10, idx_courant - 1))
+
+    attendu_sco_last = (
+        EcheanceMensuelle.objects
+        .filter(annee_id=annee_active_obj.id, mois_index=idx_last)
+        .aggregate(s=Coalesce(Sum("montant_du"), ZERO_MONEY))["s"]
+        or Decimal("0.00")
+    )
+
+    attendu_tr_last = Decimal("0.00")
+    try:
+        attendu_tr_last = (
+            EcheanceTransportMensuelle.objects
+            .filter(annee_id=annee_active_obj.id, mois_index=idx_last)
+            .aggregate(s=Coalesce(Sum("montant_du"), ZERO_MONEY))["s"]
+            or Decimal("0.00")
+        )
+    except Exception:
+        pass
+
+    # inscriptions créées le mois dernier (pas toute l’année)
+    attendu_ins_last = (
+        Inscription.objects
+        .filter(
+            annee_id=annee_active_obj.id,
+            date_inscription__gte=start_last_month,
+            date_inscription__lt=start_this_month,
+        )
+        .aggregate(s=Coalesce(Sum("frais_inscription_du"), ZERO_MONEY))["s"]
+        or Decimal("0.00")
+    )
+
+    attendu_last = (attendu_sco_last + attendu_tr_last + attendu_ins_last)
+
+    taux_last = int(min((total_encaisse_last / attendu_last) * 100, 100)) if attendu_last > 0 else 0
+    payment_trend = _trend(taux_paiement, taux_last)
+
+    groupes_trend = 0  # safe
+
+    # =========================
+    # Dernières listes
+    # =========================
+
+
+
+
+    # =========================
+    # ✅ Derniers paiements (Paiement + TransactionFinance)
+    # =========================
+
+    # A) Paiement (old)
+    last_old = (
+        Paiement.objects
+        .select_related("inscription__eleve", "inscription__groupe")
+        .filter(inscription__annee_id=annee_active_obj.id)
+        .order_by("-date_paiement", "-id")[:8]
+    )
+
+    old_items = []
+    for p in last_old:
+        old_items.append({
+            "type": "OLD",
+            "eleve_nom": getattr(p.inscription.eleve, "nom_complet", str(p.inscription.eleve)),
+            "groupe_nom": getattr(p.inscription.groupe, "nom", "—"),
+            "montant": p.montant,
+            "date": p.date_paiement,
+            "mode": getattr(p, "mode", None),
+            "mode_label": getattr(p, "get_mode_display", lambda: "")(),
+        })
+
+    # B) TransactionFinance (new)
+    last_new = (
+        TransactionFinance.objects
+        .select_related("inscription__eleve", "inscription__groupe")
+        .filter(inscription__annee_id=annee_active_obj.id)
+        .order_by("-date_transaction", "-id")[:8]
+    )
+
+    new_items = []
+    for t in last_new:
+        new_items.append({
+            "type": "NEW",
+            "eleve_nom": getattr(t.inscription.eleve, "nom_complet", str(t.inscription.eleve)),
+            "groupe_nom": getattr(t.inscription.groupe, "nom", "—"),
+            "montant": t.montant_total,
+            "date": t.date_transaction,
+            "mode": getattr(t, "mode", None),
+            "mode_label": getattr(t, "get_mode_display", lambda: "Transaction")() or "Transaction",
+        })
+
+    # C) Fusion + tri par date desc + top 8
+    derniers_paiements = sorted(
+        chain(old_items, new_items),
+        key=lambda x: (x["date"] or timezone.now()),
+        reverse=True
+    )[:8]
+
+
+    nouvelles_inscriptions = (
+        Inscription.objects
+        .select_related("eleve", "groupe", "groupe__niveau")
+        .filter(annee_id=annee_active_obj.id)
+        .order_by("-date_inscription", "-id")[:8]
+    )
+
+
+    # Impayés récents : on garde ton ancien “reste inscription + scolarité cumulée”
+    # (si tu veux “impayés du mois seulement” dans la liste, je te le change)
+    impayes_recents = (
+        Inscription.objects
+        .select_related("eleve", "groupe")
+        .filter(annee_id=annee_active_obj.id)
+        .annotate(paiements_total=Coalesce(Sum("paiements__montant"), ZERO_MONEY))
+        .annotate(reste=ExpressionWrapper(F("montant_total") - F("paiements_total"), output_field=MONEY_FIELD))
         .filter(reste__gt=0)
         .order_by("-reste")[:8]
     )
 
+
     # Répartition par niveau
     repartition_qs = (
-        Inscription.objects.select_related("groupe__niveau")
+        Inscription.objects
+        .filter(annee_id=annee_active_obj.id)
+        .select_related("groupe__niveau")
         .values("groupe__niveau__nom")
         .annotate(total=Count("id"))
         .order_by("-total")
     )
-    repartition_eleves = [{"nom": r["groupe__niveau__nom"] or "—", "total": r["total"], "couleur": None} for r in repartition_qs]
 
-    # Chart 12 mois
-    months_fr = ["Jan", "Fév", "Mar", "Avr", "Mai", "Juin", "Juil", "Aoû", "Sep", "Oct", "Nov", "Déc"]
-    start_12 = _add_months(_month_start(today), -11)
+    repartition_eleves = [
+        {"nom": r["groupe__niveau__nom"] or "—", "total": r["total"], "couleur": None}
+        for r in repartition_qs
+    ]
 
-    pay_month = (
-        Paiement.objects.filter(date_paiement__gte=start_12)
-        .annotate(m=TruncMonth("date_paiement"))
-        .values("m")
-        .annotate(total=Coalesce(Sum("montant"), Value(0), output_field=DecimalField(max_digits=12, decimal_places=2)))
-        .order_by("m")
-    )
-
-    pay_map = {(row["m"].date() if hasattr(row["m"], "date") else row["m"]): row["total"] for row in pay_month if row["m"] is not None}
-
-    ins_month = (
-        Inscription.objects.filter(date_inscription__gte=start_12)
-        .annotate(m=TruncMonth("date_inscription"))
-        .values("m")
-        .annotate(total=Count("id"))
-        .order_by("m")
-    )
-    ins_map = {(row["m"].date() if hasattr(row["m"], "date") else row["m"]): row["total"] for row in ins_month if row["m"] is not None}
-
-    labels, inscriptions_series, paiements_k_series = [], [], []
-    cur = start_12
-    for _ in range(12):
-        labels.append(months_fr[cur.month - 1])
-        inscriptions_series.append(int(ins_map.get(cur, 0)))
-        paiements_k_series.append(float((pay_map.get(cur, Decimal("0")) / Decimal("1000"))))
-        cur = _add_months(cur, 1)
-
-    monthly_chart_json = {"labels": labels, "inscriptions": inscriptions_series, "paiements_k": paiements_k_series}
-
-    absents_qs = Absence.objects.filter(date=today, type="ABS")
-    retards_qs = Absence.objects.filter(date=today, type="RET")
-
-    # compter des élèves DISTINCTS
-    absents = absents_qs.values("eleve_id").distinct().count()
-    retards = retards_qs.values("eleve_id").distinct().count()
-
-    total = nb_eleves
-    presents = max(total - absents, 0)
-
-    taux_presence = int((presents / total) * 100) if total else 0
-    taux_absence = int((absents / total) * 100) if total else 0
-    taux_retard = int((retards / total) * 100) if total else 0
-
-    presences = {
-        "presents": presents,
-        "absents": absents,
-        "retards": retards,
-        "total": total,
-        "taux_presence": taux_presence,
-        "taux_absence": taux_absence,
-        "taux_retard": taux_retard,
-    }
-
-    return {
-        "today": today,
-        "current_date": today,
-
-        "nb_eleves": nb_eleves,
-        "nb_groupes": nb_groupes,
-
-        "total_paye": total_paye,
-        "total_impayes": total_impayes,
-        "nb_paiements": nb_paiements,
-        "nb_impayes": nb_impayes,
-        "taux_paiement": taux_paiement,
-
-        "eleves_trend": eleves_trend,
-        "revenue_trend": revenue_trend,
-        "payment_trend": payment_trend,
-
-        "derniers_paiements": derniers_paiements,
-        "nouvelles_inscriptions": nouvelles_inscriptions,
-        "impayes_recents": impayes_recents,
-
-        "repartition_eleves": repartition_eleves,
-        "monthly_chart_json": monthly_chart_json,
-        "presences": presences,
-
-        "annee_active": annee_active,
-        "objectif_mensuel": 0,
-        "objectif_atteint": 0,
-    }
-
-
-def _build_staff_dashboard_context():
-    today = date.today()
-
-    # KPIs simples
-    nb_eleves = Eleve.objects.count()
-    nb_groupes = Groupe.objects.count()
-
-    total_paye = (
-        Paiement.objects.aggregate(
-            s=Coalesce(
-                Sum("montant"),
-                Value(0),
-                output_field=DecimalField(max_digits=12, decimal_places=2)
-            )
-        )["s"] or Decimal("0")
-    )
-
-    # Présences (aujourd’hui)
+    # Présences
     absents = Absence.objects.filter(date=today, type="ABS").values("eleve_id").distinct().count()
     retards = Absence.objects.filter(date=today, type="RET").values("eleve_id").distinct().count()
-
     total = nb_eleves
     presents = max(total - absents, 0)
 
@@ -379,16 +668,200 @@ def _build_staff_dashboard_context():
         "taux_retard": int((retards / total) * 100) if total else 0,
     }
 
-    # Derniers paiements (simple)
-    derniers_paiements = (
-        Paiement.objects
-        .select_related("inscription__eleve", "inscription__groupe")
-        .order_by("-date_paiement", "-id")[:6]
-    )
+    # =========================
+    # Graphe Pilotage (12 mois) — Paiement + TransactionFinance + Inscriptions ✅
+    # =========================
+    months = _last_12_months_labels(today)
 
-    # Année active (affichage)
+    # 1) Paiement par mois (OLD)
+    pay_qs_old = (
+        Paiement.objects
+        .filter(inscription__annee_id=annee_active_obj.id)
+        .annotate(m=TruncMonth("date_paiement"))
+        .values("m")
+        .annotate(total=Coalesce(Sum("montant"), ZERO_MONEY))
+        .order_by("m")
+    )
+    old_map = {
+        _month_key(row["m"]): Decimal(row["total"] or 0)
+        for row in pay_qs_old
+        if _month_key(row["m"]) is not None
+    }
+
+    # 2) TransactionFinance par mois (NEW)
+    pay_qs_new = (
+        TransactionFinance.objects
+        .filter(inscription__annee_id=annee_active_obj.id)
+        .annotate(m=TruncMonth("date_transaction"))
+        .values("m")
+        .annotate(total=Coalesce(Sum("montant_total"), ZERO_MONEY))
+        .order_by("m")
+    )
+    new_map = {
+        _month_key(row["m"]): Decimal(row["total"] or 0)
+        for row in pay_qs_new
+        if _month_key(row["m"]) is not None
+    }
+
+    # 3) Map finale = old + new (par mois)
+    pay_map = {}
+    for k in set(old_map.keys()) | set(new_map.keys()):
+        pay_map[k] = float(old_map.get(k, Decimal("0.00")) + new_map.get(k, Decimal("0.00")))
+
+    # 4) Inscriptions par mois (NB)
+    # ✅ on prend date_inscription si existe, sinon fallback (created_at...)
+    inscription_field = None
+    for candidate in ["date_inscription", "created_at", "date_creation", "date"]:
+        if _model_has_field(Inscription, candidate):
+            inscription_field = candidate
+            break
+
+    ins_map = {}
+    if inscription_field:
+        ins_qs = (
+            Inscription.objects
+            .filter(annee_id=annee_active_obj.id)
+            .annotate(m=TruncMonth(inscription_field))
+            .values("m")
+            .annotate(cnt=Count("id"))
+            .order_by("m")
+        )
+        ins_map = {
+            _month_key(row["m"]): int(row["cnt"] or 0)
+            for row in ins_qs
+            if _month_key(row["m"]) is not None
+        }
+
+    # Labels + séries alignées sur months
+    months_fr = ["Jan", "Fév", "Mar", "Avr", "Mai", "Juin", "Juil", "Aoû", "Sep", "Oct", "Nov", "Déc"]
+    chart_labels = [months_fr[m.month - 1] for m in months]
+    chart_paiements = [pay_map.get(m, 0) for m in months]
+    chart_inscriptions = [ins_map.get(m, 0) for m in months]
+
+    # ✅ JSON pour le template
+    chart_labels_json = json.dumps(chart_labels)
+    chart_paiements_json = json.dumps(chart_paiements)
+    chart_inscriptions_json = json.dumps(chart_inscriptions)
+
+
+    # =========================
+    # ✅ CONTEXT FINAL (ton template)
+    # - total_paye => encaissé MENSUEL (plus 0)
+    # - total_impayes => impayés MENSUELS (avec mois)
+    # =========================
+    return {
+        "today": today,
+        "current_date": today,
+
+        "annee_active": annee_active,
+
+        "nb_eleves": nb_eleves,
+        "nb_groupes": nb_groupes,
+
+        # ✅ dashboard KPI
+        "total_paye": total_encaisse_mois,      # <= FIX (mensuel + tx)
+        "total_impayes": total_impayes_mois,    # <= FIX (mensuel)
+        "nb_paiements": nb_paiements,
+        "nb_impayes": nb_impayes_mois,
+        "taux_paiement": taux_paiement,
+
+        "eleves_trend": eleves_trend,
+        "groupes_trend": groupes_trend,
+        "revenue_trend": revenue_trend,
+        "payment_trend": payment_trend,
+
+        "derniers_paiements": derniers_paiements,
+        "nouvelles_inscriptions": nouvelles_inscriptions,
+        "impayes_recents": impayes_recents,
+
+        "repartition_eleves": repartition_eleves,
+        "presences": presences,
+
+        "objectif_mensuel": objectif_mensuel,
+        "objectif_atteint": objectif_atteint,
+
+
+        # ✅ Chart (Pilotage)
+        "chart_labels": chart_labels_json,
+        "chart_paiements": chart_paiements_json,
+        "chart_inscriptions": chart_inscriptions_json,
+
+        # ✅ pour afficher “Février” sur le dashboard
+        "mois_courant": idx_courant,
+        "mois_courant_nom": mois_courant_nom,
+    }
+
+
+
+def _build_staff_dashboard_context():
+    today = timezone.now().date()
+
+    # périodes mois courant
+    start_this_month = date(today.year, today.month, 1)
+    start_next_month = _add_months(start_this_month, 1)
+
     annee_active_obj = AnneeScolaire.objects.filter(is_active=True).first()
     annee_active = annee_active_obj.nom if annee_active_obj else "—"
+
+    # ✅ SAFE si pas d'année active
+    if not annee_active_obj:
+        return {
+            "today": today,
+            "current_date": today,
+            "annee_active": annee_active,
+            "nb_eleves": 0,
+            "nb_groupes": 0,
+            "total_paye": Decimal("0.00"),
+            "presences": {
+                "presents": 0, "absents": 0, "retards": 0, "total": 0,
+                "taux_presence": 0, "taux_absence": 0, "taux_retard": 0,
+            },
+        }
+
+    inscs_active = Inscription.objects.filter(annee_id=annee_active_obj.id)
+    nb_eleves = inscs_active.values("eleve_id").distinct().count()
+    nb_groupes = inscs_active.values("groupe_id").distinct().count()
+
+    # ✅ Encaissement mensuel (comme admin) => Paiement + TransactionFinance
+    pay_mois_old = (
+        Paiement.objects
+        .filter(
+            inscription__annee_id=annee_active_obj.id,
+            date_paiement__gte=start_this_month,
+            date_paiement__lt=start_next_month,
+        )
+        .aggregate(s=Coalesce(Sum("montant"), ZERO_MONEY))["s"]
+        or Decimal("0.00")
+    )
+
+    pay_mois_new = (
+        TransactionFinance.objects
+        .filter(
+            inscription__annee_id=annee_active_obj.id,
+            date_transaction__gte=start_this_month,
+            date_transaction__lt=start_next_month,
+        )
+        .aggregate(s=Coalesce(Sum("montant_total"), ZERO_MONEY))["s"]
+        or Decimal("0.00")
+    )
+
+    total_paye = (pay_mois_old or Decimal("0.00")) + (pay_mois_new or Decimal("0.00"))
+
+    # Présences
+    absents = Absence.objects.filter(date=today, type="ABS").values("eleve_id").distinct().count()
+    retards = Absence.objects.filter(date=today, type="RET").values("eleve_id").distinct().count()
+    total = nb_eleves
+    presents = max(total - absents, 0)
+
+    presences = {
+        "presents": presents,
+        "absents": absents,
+        "retards": retards,
+        "total": total,
+        "taux_presence": int((presents / total) * 100) if total else 0,
+        "taux_absence": int((absents / total) * 100) if total else 0,
+        "taux_retard": int((retards / total) * 100) if total else 0,
+    }
 
     return {
         "today": today,
@@ -400,14 +873,11 @@ def _build_staff_dashboard_context():
         "total_paye": total_paye,
 
         "presences": presences,
-        "derniers_paiements": derniers_paiements,
     }
+
 # ─────────────────────────────────────────
 # Route "dashboard" -> redirige selon role
 # ─────────────────────────────────────────
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import redirect
-
 @login_required
 def dashboard(request):
     user = request.user
@@ -420,15 +890,15 @@ def dashboard(request):
 
     return redirect("core:dashboard_staff")
 
+
 @login_required
 def dashboard_staff(request):
     ctx = _build_staff_dashboard_context()
     ctx["dash_kind"] = "staff"
     ctx["dash_title"] = "Dashboard Direction"
     return render(request, "admin/Dashboard/staff.html", ctx)
-# ─────────────────────────────────────────
-# Dashboard ADMIN
-# ─────────────────────────────────────────
+
+
 @login_required
 def dashboard_admin(request):
     ctx = _build_dashboard_context()
@@ -436,9 +906,7 @@ def dashboard_admin(request):
     ctx["dash_title"] = "Tableau de bord"
     return render(request, "admin/Dashboard/admin.html", ctx)
 
-# ─────────────────────────────────────────
-# Dashboard SUPERADMIN (KPIs extra)
-# ─────────────────────────────────────────
+
 @login_required
 def dashboard_superadmin(request):
     if not _is_superadmin(request.user):
@@ -453,10 +921,9 @@ def dashboard_superadmin(request):
     ctx["nb_staff"] = User.objects.filter(is_staff=True).count()
     ctx["nb_superusers"] = User.objects.filter(is_superuser=True).count()
 
-    # Exemple: activité 24h (simple, optionnel)
-    # ctx["paiements_24h"] = Paiement.objects.filter(date_paiement=date.today()).count()
-
     return render(request, "admin/Dashboard/superadmin.html", ctx)
+
+
 
 def mois_index_courant(annee: AnneeScolaire, today: date_cls) -> int:
     """
@@ -497,7 +964,6 @@ def annee_list(request):
 
 
 from django.db import transaction
-from django.contrib import messages
 from django.shortcuts import redirect, render
 
 @login_required
@@ -546,15 +1012,30 @@ def annee_update(request, pk):
         "annee": annee
     })
 
+
 @login_required
 @group_required("SUPER_ADMIN", "ADMIN")
 def annee_delete(request, pk):
     annee = get_object_or_404(AnneeScolaire, pk=pk)
+
     if request.method == "POST":
-        annee.delete()
-        messages.success(request, "🗑️ Année scolaire supprimée.")
-        return redirect("core:annee_list")
-    return render(request, "admin/annees/delete.html", {"annee": annee})
+        try:
+            annee.delete()
+            messages.success(request, "🗑️ Année supprimée avec succès.")
+            return redirect("core:annee_list")
+
+        except ProtectedError:
+            messages.error(
+                request,
+                "❌ Suppression impossible : cette année contient des données "
+                "(groupes, élèves, paiements, séances…). "
+                "Désactive-la plutôt."
+            )
+            return redirect("core:annee_list")
+
+    return render(request, "admin/annees/delete.html", {
+        "annee": annee,
+    })
 
 
 @login_required
@@ -572,8 +1053,6 @@ def annee_activer(request, pk):
 # ============================
 
 
-from decimal import Decimal
-from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
 from django.db.models import Min, Max
 from .models import AnneeScolaire, Degre, FraisNiveau
@@ -668,12 +1147,20 @@ def degre_update(request, pk):
 @group_required("SUPER_ADMIN", "ADMIN")
 def degre_delete(request, pk):
     degre = get_object_or_404(Degre, pk=pk)
-    if request.method == "POST":
-        degre.delete()
-        messages.success(request, "🗑️ Degré supprimé.")
-        return redirect("core:degre_list")
-    return render(request, "admin/degres/delete.html", {"degre": degre})
 
+    if request.method == "POST":
+        try:
+            degre.delete()
+            messages.success(request, "🗑️ Degré supprimé.")
+        except ProtectedError:
+            messages.error(
+                request,
+                "❌ Suppression impossible : ce degré contient des niveaux (ex: CE1, CM1...). "
+                "Supprime d’abord les niveaux liés."
+            )
+        return redirect("core:degre_list")
+
+    return render(request, "admin/degres/delete.html", {"degre": degre})
 # ============================
 # B2 — Niveaux
 # ============================
@@ -736,10 +1223,6 @@ def niveau_prix_edit(request, niveau_id):
         "frais_niveau": frais_niveau,
     })
 
-from django.db.models import Min, Max, Count  # ✅ ajoute Count
-from decimal import Decimal
-from django.shortcuts import render
-from django.contrib.auth.decorators import login_required
 from accounts.decorators import group_required
 
 # ... tes imports existants ...
@@ -840,10 +1323,19 @@ def niveau_update(request, pk):
 @group_required("SUPER_ADMIN", "ADMIN")
 def niveau_delete(request, pk):
     niveau = get_object_or_404(Niveau, pk=pk)
+
     if request.method == "POST":
-        niveau.delete()
-        messages.success(request, "🗑️ Niveau supprimé.")
+        try:
+            niveau.delete()
+            messages.success(request, "🗑️ Niveau supprimé.")
+        except ProtectedError:
+            messages.error(
+                request,
+                "❌ Suppression impossible : ce niveau est utilisé (groupes, frais, inscriptions...). "
+                "Supprime d’abord les éléments liés ou archive-le."
+            )
         return redirect("core:niveau_list")
+
     return render(request, "admin/niveaux/delete.html", {"niveau": niveau})
 
 # ============================
@@ -932,15 +1424,26 @@ def groupe_update(request, pk):
     return render(request, "admin/groupes/form.html", {"form": form, "mode": "update", "groupe": groupe})
 
 
+
+
 @login_required
 @group_required("SUPER_ADMIN", "ADMIN")
 def groupe_delete(request, pk):
-    groupe = get_object_or_404(Groupe, pk=pk)
+    g = get_object_or_404(Groupe, pk=pk)
+
     if request.method == "POST":
-        groupe.delete()
-        messages.success(request, "🗑️ Groupe supprimé.")
+        try:
+            g.delete()
+            messages.success(request, "🗑️ Groupe supprimé.")
+        except ProtectedError:
+            messages.error(
+                request,
+                "❌ Suppression impossible : ce groupe est utilisé (inscriptions, échéances, séances, cahier, PDF...). "
+                "Supprime d’abord les éléments liés ou archive le groupe."
+            )
         return redirect("core:groupe_list")
-    return render(request, "admin/groupes/delete.html", {"groupe": groupe})
+
+    return render(request, "admin/groupes/delete.html", {"groupe": g})
 
 # ============================
 # C1 — Élèves
@@ -1311,7 +1814,6 @@ def eleve_delete(request, pk):
 # ============================
 # C3 — Inscriptions
 # ============================
-# core/views.py
 
 from .forms import InscriptionFullForm
 
@@ -1384,7 +1886,6 @@ def inscription_create(request):
     return render(request, "admin/inscriptions/form.html", {"form": form, "mode": "create"})
 
 
-from django.db.models import Q
 from datetime import datetime
 
 @login_required
@@ -1562,24 +2063,15 @@ def groupes_par_annee(request):
 # =========================
 
 import uuid
-from decimal import Decimal
-from django.contrib import messages
-from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
-from django.db import transaction
 from django.db.models import Q, Sum, DecimalField
-from django.db.models.functions import Coalesce
 from django.http import JsonResponse, Http404
-from django.shortcuts import get_object_or_404, redirect, render
-from datetime import datetime
 
 from .models import (
     AnneeScolaire, Niveau, Groupe, Periode,
     Inscription, Eleve, ParentEleve,
     EcheanceMensuelle, Paiement
 )
-from .forms import PaiementForm
-from accounts.decorators import group_required
 
 
 
@@ -1589,9 +2081,10 @@ from accounts.decorators import group_required
 # =========================================================
 @login_required
 def ajax_fratrie(request):
-    eleve_id = request.GET.get("eleve")
-    if not eleve_id:
+    eleve_id_raw = (request.GET.get("eleve") or "").strip()
+    if not eleve_id_raw.isdigit():
         return JsonResponse({"ok": False, "error": "eleve manquant"}, status=400)
+    eleve_id = int(eleve_id_raw)
 
     parent_ids = ParentEleve.objects.filter(eleve_id=eleve_id).values_list("parent_id", flat=True)
     if not parent_ids:
@@ -1611,17 +2104,12 @@ def ajax_fratrie(request):
 # =========================================================
 # LIST
 # =========================================================
-from decimal import Decimal
 
-from django.contrib.auth.decorators import login_required
 from django.db.models import Q, Sum, F, DecimalField
-from django.db.models.functions import Coalesce
-from django.shortcuts import render
 from django.utils.dateparse import parse_date
 
 from accounts.permissions import group_required
 from django.db.models import Sum, F, DecimalField, ExpressionWrapper, Case, When, Value, BooleanField
-from django.db.models.functions import Coalesce
 
 from core.models import (
     AnneeScolaire, Periode, Niveau, Groupe, Inscription,
@@ -2148,10 +2636,6 @@ def impayes_list(request):
 # IMPAYÉS MENSUELS (NEW) — scolarité + transport + inscription
 # Règle: afficher impayés du mois courant OU avant (mois_index <= mois_courant)
 # =========================
-from decimal import Decimal
-from django.db.models import Q
-from django.utils import timezone
-from django.http import HttpResponse
 from openpyxl import Workbook
 
 
@@ -2273,17 +2757,12 @@ def impayes_mensuels_list(request):
 
     if type_selected in ["ALL", "SCOLARITE"]:
         sco_qs = (
-            EcheanceMensuelle.objects
-            .select_related(
-                "inscription",
-                "inscription__eleve",
-                "inscription__groupe",
-                "annee",
-            )
-            .filter(annee_id=annee_obj.id, inscription__eleve_id__in=eleve_ids)
-            .filter(mois_index__lte=idx_limit)
-            .order_by("inscription__eleve__matricule", "mois_index")
-        )
+    EcheanceMensuelle.objects
+    .select_related("eleve", "groupe", "annee")
+    .filter(annee_id=annee_obj.id, eleve_id__in=eleve_ids)
+    .filter(mois_index__lte=idx_limit)
+    .order_by("eleve__matricule", "mois_index")
+)
 
         for e in sco_qs:
             du = e.montant_du or Decimal("0.00")
@@ -2292,8 +2771,8 @@ def impayes_mensuels_list(request):
             if reste <= 0:
                 continue
 
-            insc = e.inscription
-            eleve = insc.eleve if insc else None
+            eleve = e.eleve
+            insc = insc_by_eleve.get(e.eleve_id)
 
             sco_rows.append({
                 "type": "SCOLARITE",
@@ -2324,15 +2803,10 @@ def impayes_mensuels_list(request):
     if type_selected in ["ALL", "TRANSPORT"]:
         tr_qs = (
             EcheanceTransportMensuelle.objects
-            .select_related(
-                "inscription",
-                "inscription__eleve",
-                "inscription__groupe",
-                "annee",
-            )
-            .filter(annee_id=annee_obj.id, inscription__eleve_id__in=eleve_ids)
+            .select_related("eleve", "groupe", "annee")
+            .filter(annee_id=annee_obj.id, eleve_id__in=eleve_ids)
             .filter(mois_index__lte=idx_limit)
-            .order_by("inscription__eleve__matricule", "mois_index")
+            .order_by("eleve__matricule", "mois_index")
         )
 
         for e in tr_qs:
@@ -2342,14 +2816,14 @@ def impayes_mensuels_list(request):
             if reste <= 0:
                 continue
 
-            insc = e.inscription
-            eleve = insc.eleve if insc else None
+            eleve = e.eleve
+            insc = insc_by_eleve.get(e.eleve_id)
 
             tr_rows.append({
                 "type": "TRANSPORT",
                 "eleve": eleve,
                 "inscription": insc,
-                "groupe": (insc.groupe if insc else None),
+                "groupe": (insc.groupe if insc else None),  # on garde ton affichage groupe via inscription
                 "mois_index": int(e.mois_index),
                 "mois_nom": mois_nom(int(e.mois_index)),
                 "date_echeance": e.date_echeance,
@@ -2363,6 +2837,7 @@ def impayes_mensuels_list(request):
             tr_du += du
             tr_paye += paye
             tr_reste += reste
+
     # =========================
     # Inscription impayée
     # =========================
@@ -2493,15 +2968,15 @@ def impayes_mensuels_excel_export(request):
     # scolarité
     if type_selected in ["ALL", "SCOLARITE"]:
         sco_qs = (
-            EcheanceMensuelle.objects
-            .select_related("inscription__eleve", "inscription__groupe", "annee")
-            .filter(
-                annee_id=annee_obj.id,
-                inscription__eleve_id__in=eleve_ids,
-                mois_index__lte=idx_limit,
-            )
-            .order_by("inscription__eleve__matricule", "mois_index")
-        )
+    EcheanceMensuelle.objects
+    .select_related("eleve", "groupe", "annee")
+    .filter(
+        annee_id=annee_obj.id,
+        eleve_id__in=eleve_ids,
+        mois_index__lte=idx_limit,
+    )
+    .order_by("eleve__matricule", "mois_index")
+)
         for e in sco_qs:
             du = e.montant_du or Decimal("0.00")
             paye = e.montant_paye or Decimal("0.00")
@@ -2509,24 +2984,26 @@ def impayes_mensuels_excel_export(request):
             if reste <= 0:
                 continue
 
-            insc = e.inscription
-            eleve = insc.eleve if insc else None
+            eleve = e.eleve
+            insc = insc_by_eleve.get(e.eleve_id)
             g = insc.groupe if insc else None
             rows.append(("SCOLARITE", eleve, g, mois_nom(int(e.mois_index)), e.date_echeance, du, paye, reste))
 
 
     # transport
+
     if type_selected in ["ALL", "TRANSPORT"]:
         tr_qs = (
             EcheanceTransportMensuelle.objects
-            .select_related("inscription__eleve", "inscription__groupe", "annee")
+            .select_related("eleve", "groupe", "annee")
             .filter(
                 annee_id=annee_obj.id,
-                inscription__eleve_id__in=eleve_ids,
+                eleve_id__in=eleve_ids,
                 mois_index__lte=idx_limit,
             )
-            .order_by("inscription__eleve__matricule", "mois_index")
+            .order_by("eleve__matricule", "mois_index")
         )
+
         for e in tr_qs:
             du = e.montant_du or Decimal("0.00")
             paye = e.montant_paye or Decimal("0.00")
@@ -2534,9 +3011,10 @@ def impayes_mensuels_excel_export(request):
             if reste <= 0:
                 continue
 
-            insc = e.inscription
-            eleve = insc.eleve if insc else None
+            eleve = e.eleve
+            insc = insc_by_eleve.get(e.eleve_id)
             g = insc.groupe if insc else None
+
             rows.append(("TRANSPORT", eleve, g, mois_nom(int(e.mois_index)), e.date_echeance, du, paye, reste))
 
 
@@ -2758,10 +3236,6 @@ from .models import Enseignant, AnneeScolaire, AbsenceProf
 from .services_absences_profs import stats_mensuelles_prof
 
 
-from django.contrib.auth.decorators import login_required
-from django.db.models import Q
-from django.shortcuts import render
-from accounts.decorators import group_required
 
 from core.models import (
     Enseignant, AnneeScolaire, Niveau, Groupe, Periode,
@@ -3082,8 +3556,12 @@ def enseignant_affectation_delete(request, pk, aff_id):
 # E2 — Emploi du temps (Séances)
 # ============================
 
-from datetime import datetime
-from django.db.models import Q
+
+from django.db.models.deletion import ProtectedError
+
+from .models import Seance, Absence
+
+
 
 from .models import AnneeScolaire, Groupe, Niveau, Enseignant, Seance
 
@@ -3110,49 +3588,47 @@ def _jour_code_from_date(date_str: str):
 def seance_list(request):
     annee_active = AnneeScolaire.objects.filter(is_active=True).first()
 
-    annee_id = request.GET.get("annee", "").strip()
-    niveau_id = request.GET.get("niveau", "").strip()
-    groupe_id = request.GET.get("groupe", "").strip()
-    enseignant_id = request.GET.get("enseignant", "").strip()
-    date_str = request.GET.get("date", "").strip()
-    q = request.GET.get("q", "").strip()
+    annee_id = (request.GET.get("annee") or "").strip()
+    niveau_id = (request.GET.get("niveau") or "").strip()
+    groupe_id = (request.GET.get("groupe") or "").strip()
+    enseignant_id = (request.GET.get("enseignant") or "").strip()
+    date_str = (request.GET.get("date") or "").strip()
+    q = (request.GET.get("q") or "").strip()
 
+    # ✅ année par défaut = active
     if not annee_id and annee_active:
         annee_id = str(annee_active.id)
 
     jour_code = _jour_code_from_date(date_str)
 
+    # ✅ Queryset de base
     seances = Seance.objects.select_related(
         "annee", "groupe", "groupe__niveau", "groupe__niveau__degre", "enseignant"
     )
-    # ✅ Filtre Année/Niveau/Groupe via Séances
-    # IMPORTANT: on ne filtre via seances QUE si l'utilisateur a réellement filtré
-    # (niveau/groupe/période). Sinon on affiche aussi les enseignants sans séances.
 
-    filtrage_via_seances = bool(niveau_id or groupe_id or date_str)
+    # ✅ IMPORTANT : appliquer le filtre année (sinon => toutes les années)
+    if annee_id and annee_id.isdigit():
+        seances = seances.filter(annee_id=int(annee_id))
 
-    if filtrage_via_seances:
-        if annee_id:
-            enseignants = enseignants.filter(seances__annee_id=annee_id)
+    # ✅ Filtre niveau/groupe (via groupe)
+    if niveau_id and niveau_id.isdigit():
+        seances = seances.filter(groupe__niveau_id=int(niveau_id))
 
-        if niveau_id:
-            enseignants = enseignants.filter(seances__groupe__niveau_id=niveau_id)
+    if groupe_id and groupe_id.isdigit():
+        seances = seances.filter(groupe_id=int(groupe_id))
 
-        if groupe_id:
-            enseignants = enseignants.filter(seances__groupe_id=groupe_id)
-
-
-    if enseignant_id:
-        seances = seances.filter(enseignant_id=enseignant_id)
+    # ✅ Filtre enseignant
+    if enseignant_id and enseignant_id.isdigit():
+        seances = seances.filter(enseignant_id=int(enseignant_id))
 
     # ✅ Filtre DATE -> convertit en jour (LUN/MAR/...)
     if date_str:
         if jour_code:
             seances = seances.filter(jour=jour_code)
         else:
-            # date invalide => aucun résultat
             seances = seances.none()
 
+    # ✅ Recherche
     if q:
         seances = seances.filter(
             Q(matiere__icontains=q) |
@@ -3162,40 +3638,40 @@ def seance_list(request):
             Q(enseignant__prenom__icontains=q)
         )
 
+    # Listes filtres
     annees = AnneeScolaire.objects.all()
 
-    # ✅ Niveaux disponibles pour l'année (via groupes)
     niveaux = Niveau.objects.select_related("degre").all()
-    if annee_id:
-        niveaux = niveaux.filter(groupes__annee_id=annee_id).distinct()
+    if annee_id and annee_id.isdigit():
+        niveaux = niveaux.filter(groupes__annee_id=int(annee_id)).distinct()
 
-    # ✅ Groupes filtrés par année + niveau
     groupes = Groupe.objects.select_related("niveau", "niveau__degre", "annee").all()
-    if annee_id:
-        groupes = groupes.filter(annee_id=annee_id)
-    if niveau_id:
-        groupes = groupes.filter(niveau_id=niveau_id)
+    if annee_id and annee_id.isdigit():
+        groupes = groupes.filter(annee_id=int(annee_id))
+    if niveau_id and niveau_id.isdigit():
+        groupes = groupes.filter(niveau_id=int(niveau_id))
 
-    # ✅ Enseignants : on propose ceux qui ont des séances selon les filtres (plus logique)
-    enseignants = Enseignant.objects.all()
-
-    ens_qs = Seance.objects.select_related("enseignant")
-    if annee_id:
-        ens_qs = ens_qs.filter(annee_id=annee_id)
-    if niveau_id:
-        ens_qs = ens_qs.filter(groupe__niveau_id=niveau_id)
-    if groupe_id:
-        ens_qs = ens_qs.filter(groupe_id=groupe_id)
+    # ✅ Enseignants proposés : uniquement ceux qui ont des séances selon filtres
+    ens_qs = Seance.objects.all()
+    if annee_id and annee_id.isdigit():
+        ens_qs = ens_qs.filter(annee_id=int(annee_id))
+    if niveau_id and niveau_id.isdigit():
+        ens_qs = ens_qs.filter(groupe__niveau_id=int(niveau_id))
+    if groupe_id and groupe_id.isdigit():
+        ens_qs = ens_qs.filter(groupe_id=int(groupe_id))
     if date_str and jour_code:
         ens_qs = ens_qs.filter(jour=jour_code)
 
-    enseignants = Enseignant.objects.filter(id__in=ens_qs.values_list("enseignant_id", flat=True).distinct())
+    enseignants = Enseignant.objects.filter(
+        id__in=ens_qs.values_list("enseignant_id", flat=True).distinct()
+    )
 
     return render(request, "admin/seances/list.html", {
         "seances": seances,
 
         "annees": annees,
         "annee_selected": annee_id,
+        "annee_active": annee_active,  # ✅ pour ton template
 
         "niveaux": niveaux,
         "niveau_selected": niveau_id,
@@ -3255,16 +3731,6 @@ def seance_update(request, pk):
     else:
         form = SeanceForm(instance=s)
     return render(request, "admin/seances/form.html", {"form": form, "mode": "update", "s": s})
-
-
-from django.contrib import messages
-from django.contrib.auth.decorators import login_required
-from django.db import transaction
-from django.db.models.deletion import ProtectedError
-from django.shortcuts import get_object_or_404, redirect, render
-
-from .models import Seance, Absence
-
 
 
 @login_required
@@ -3403,9 +3869,7 @@ def edt_week(request):
 # ============================
 # F1 — Absences
 # ============================
-from datetime import datetime
 from django.views.decorators.http import require_GET, require_POST
-from django.db import transaction
 
 @login_required
 @group_required("SUPER_ADMIN", "ADMIN", "SCOLARITE", "PEDAGOGIQUE", "SECRETAIRE")
@@ -3554,12 +4018,8 @@ def api_feuille_presence(request):
     return JsonResponse({"seance": seance_data, "eleves": eleves_data})
 
 
-from django.http import JsonResponse
 from django.views.decorators.http import require_POST
-from django.contrib.auth.decorators import login_required
-from django.db import transaction
 from django.shortcuts import get_object_or_404
-from datetime import datetime
 import json
 
 @require_POST
@@ -3767,13 +4227,20 @@ def absence_list(request):
         "q": q,
     })
 
+
+def _get_annee_active():
+    return AnneeScolaire.objects.filter(is_active=True).first()
+
 @login_required
 @group_required("SUPER_ADMIN", "ADMIN", "SCOLARITE", "PEDAGOGIQUE", "SECRETAIRE")
 def absence_create(request):
-    # ✅ Pré-remplissage depuis l'URL (GET) : annee, groupe, date, seance
-    initial = {}
-    if request.GET.get("annee"):
-        initial["annee"] = request.GET.get("annee")
+    annee_active = _get_annee_active()
+    if not annee_active:
+        messages.error(request, "⚠️ Aucune année scolaire active.")
+        return redirect("core:absence_list")
+
+    # ✅ Pré-remplissage depuis l'URL
+    initial = {"annee": annee_active.id}
     if request.GET.get("groupe"):
         initial["groupe"] = request.GET.get("groupe")
     if request.GET.get("date"):
@@ -3782,18 +4249,25 @@ def absence_create(request):
         initial["seance"] = request.GET.get("seance")
 
     if request.method == "POST":
-        # ✅ POST : on garde le form lié à POST (pour afficher les erreurs si invalid)
         form = AbsenceForm(request.POST)
         if form.is_valid():
-            form.save()
+            obj = form.save(commit=False)
+
+            # ✅ sécurité : force année active
+            obj.annee = annee_active
+
+            obj.save()
             messages.success(request, "✅ Absence enregistrée.")
             return redirect("core:absence_list")
+        # ✅ si invalid: on retombe sur le render avec erreurs
     else:
-        # ✅ GET : on crée toujours le form (sinon UnboundLocalError)
         form = AbsenceForm(initial=initial)
 
-    return render(request, "admin/absences/form.html", {"form": form, "mode": "create"})
-
+    return render(request, "admin/absences/form.html", {
+        "form": form,
+        "mode": "create",
+        "annee_active": annee_active,
+    })
 
 @login_required
 @group_required("SUPER_ADMIN", "ADMIN", "SCOLARITE", "PEDAGOGIQUE", "SECRETAIRE")
@@ -3911,7 +4385,6 @@ def absences_jour(request):
 # G1 — Parents + liens (Formset)
 # ============================
 
-from django.db.models import Q
 
 from .models import Parent, AnneeScolaire, Niveau, Groupe  # + ParentEleve pas obligatoire ici
 
@@ -4702,7 +5175,6 @@ def inscriptions_excel_import(request):
 
     return render(request, "admin/inscriptions/import.html")
 
-from datetime import datetime
 
 @login_required
 @group_required("SUPER_ADMIN", "ADMIN", "COMPTABLE")
@@ -4891,8 +5363,6 @@ def matiere_list(request):
     })
 
 
-from django.db import transaction
-from core.services.pedagogie import sync_enseignant_groupe_from_matiere
 
 @login_required
 @group_required("ADMIN", "SCOLARITE")
@@ -4949,11 +5419,6 @@ def matiere_delete(request, pk):
 
 
 # core/views_notes.py (ou core/views.py selon ton projet)
-from datetime import datetime
-from django.contrib.auth.decorators import login_required
-from django.http import JsonResponse
-from django.shortcuts import render
-from django.db.models import Q
 
 from .models import (
     AnneeScolaire, Niveau, Groupe, Periode,
@@ -4964,7 +5429,6 @@ from .models import (
 # =========================
 # AJAX — Élèves par groupe (pour Communication / SMS)
 # =========================
-from django.http import JsonResponse
 
 @login_required
 def ajax_eleves_par_groupe(request):
@@ -5099,7 +5563,6 @@ def ajax_matieres(request):
     return JsonResponse({"results": []})
 
 
-# core/views.py
 @login_required
 @group_required("ADMIN", "SCOLARITE")
 def evaluation_list(request):
@@ -5239,21 +5702,30 @@ def evaluation_list(request):
 @group_required("ADMIN", "SCOLARITE")
 def evaluation_create(request):
     annee_active = AnneeScolaire.objects.filter(is_active=True).first()
+    if not annee_active:
+        messages.error(request, "⚠️ Aucune année scolaire active.")
+        return redirect("core:evaluation_list")  # adapte si besoin
 
-    # ✅ Niveau UI (sert juste à filtrer les groupes)
-    niveau_ui = (request.POST.get("niveau_ui") if request.method == "POST" else request.GET.get("niveau_ui")) or ""
-    niveau_ui = niveau_ui.strip()
+    niveau_ui = (
+        (request.POST.get("niveau_ui") if request.method == "POST" else request.GET.get("niveau_ui"))
+        or ""
+    ).strip()
 
-    niveaux = Niveau.objects.select_related("degre").all().order_by("degre__ordre", "ordre", "nom")
+    niveaux = (
+        Niveau.objects
+        .select_related("degre")
+        .all()
+        .order_by("degre__ordre", "ordre", "nom")
+    )
 
     if request.method == "POST":
-        form = EvaluationForm(request.POST)
+        form = EvaluationForm(request.POST, niveau_ui=niveau_ui)
         if form.is_valid():
             ev = form.save()
             messages.success(request, "✅ Évaluation créée.")
             return redirect("core:notes_saisie", evaluation_id=ev.id)
     else:
-        form = EvaluationForm()
+        form = EvaluationForm(niveau_ui=niveau_ui)
 
     return render(request, "admin/notes/evaluations_form.html", {
         "form": form,
@@ -5482,9 +5954,6 @@ def notes_saisie(request, evaluation_id):
     })
 
 
-from decimal import Decimal
-from django.contrib import messages
-from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, render, redirect
 
 from core.models import (
@@ -5789,8 +6258,6 @@ def bulletin_pdf_view(request, eleve_id):
         moyenne_classe=moyenne_cls
     )
 
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import render
 from .models import ParentEleve
 
 @login_required
@@ -5827,18 +6294,10 @@ def parent_dashboard(request):
         "liens": liens,      # (optionnel, utile plus tard)
     })
 
-# core/views.py
-import json
-from datetime import date
-from django.utils import timezone
 from django.db.models import (
     Count, Sum, F, Value, DecimalField, IntegerField, Q
 )
-from django.db.models.functions import Coalesce, TruncMonth
-from decimal import Decimal
 
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import render
 
 from .models import Eleve, Groupe, Inscription, Paiement, Niveau
 # Si ton modèle Absence existe, décommente:
@@ -5854,14 +6313,8 @@ def _pct_change(current, previous):
     return int(round(((current - previous) / previous) * 100))
 
 
-# core/views.py
-from datetime import date
-from decimal import Decimal
 
-from django.contrib.auth.decorators import login_required
 from django.db.models import Count, Sum, F, Value, DecimalField
-from django.db.models.functions import Coalesce, TruncMonth
-from django.shortcuts import render
 
 from .models import Eleve, Groupe, Inscription, Paiement
 
@@ -6008,13 +6461,9 @@ def users_reset_passwords_export_csv(request):
 # ============================
 
 from django.contrib.auth.models import Group
-from django.contrib.auth import get_user_model
-from django.db.models import Q
-from django.utils import timezone
 
 from .forms_users import UserCreateForm, UserUpdateForm, PasswordChangeForm
 from .utils_users import generate_temp_password, reset_password
-from .models import TempPassword
 
 
 @login_required
@@ -6174,12 +6623,6 @@ def _has_linked_profile(user):
     return False
 
 
-from django.http import JsonResponse
-from django.db import transaction
-from django.db.models.deletion import ProtectedError
-from django.shortcuts import get_object_or_404, redirect, render
-from django.contrib import messages
-from django.contrib.auth import get_user_model
 
 @login_required
 @group_required("SUPER_ADMIN", "ADMIN")
@@ -6261,8 +6704,6 @@ def users_delete(request, user_id):
     # (ton delete.html doit être le HTML modal AZ, sans <style> ni <script>)
     return render(request, "admin/users/delete.html", {"u": u, "parent": parent, "ens": ens})
 
-from django.http import JsonResponse
-from .models import Enseignant
 @login_required
 @group_required("SUPER_ADMIN", "ADMIN", "SCOLARITE", "PEDAGOGIQUE", "SECRETAIRE")
 def api_enseignants(request):
@@ -6289,8 +6730,6 @@ def api_enseignants(request):
     return JsonResponse({"results": data})
 
 
-from django.http import JsonResponse
-from django.contrib.auth.decorators import login_required
 
 @login_required
 def api_matieres_par_groupe(request):
@@ -6416,17 +6855,50 @@ def ajax_periodes(request):
 # I — Communication (Avis)
 # =========================
 
+from django.utils import timezone
+from datetime import timedelta
+
 @login_required
 @group_required("SUPER_ADMIN", "ADMIN")
 def avis_list(request):
     q = (request.GET.get("q") or "").strip()
+    cible = (request.GET.get("cible") or "").strip()      # cible_type
+    period = (request.GET.get("period") or "").strip()    # 7d, 30d, ytd, all
 
     items = Avis.objects.all()
+
+    # 🔎 Search
     if q:
         items = items.filter(Q(titre__icontains=q) | Q(contenu__icontains=q))
 
-    return render(request, "admin/avis/list.html", {"items": items, "q": q})
+    # 🎯 Cible type
+    if cible:
+        items = items.filter(cible_type=cible)
 
+    # ⏱️ Période (date_publication)
+    now = timezone.now()
+    if period == "7d":
+        items = items.filter(date_publication__gte=now - timedelta(days=7))
+    elif period == "30d":
+        items = items.filter(date_publication__gte=now - timedelta(days=30))
+    elif period == "ytd":
+        start_year = now.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+        items = items.filter(date_publication__gte=start_year)
+    # "all" ou vide => rien
+
+    items = items.order_by("-date_publication", "-id")
+
+    # ✅ pour remplir le select des cibles dynamiquement
+    # (Avis.CIBLE_CHOICES si tu l'as dans le model)
+    cible_choices = getattr(Avis, "CIBLE_CHOICES", None)
+
+    return render(request, "admin/avis/list.html", {
+        "items": items,
+        "q": q,
+        "cible": cible,
+        "period": period,
+        "cible_choices": cible_choices,
+    })
 
 @login_required
 @group_required("SUPER_ADMIN", "ADMIN")
@@ -6571,31 +7043,49 @@ def sms_send(request):
 
 @login_required
 def sms_history(request):
+    q = (request.GET.get("q") or "").strip()
+    status = (request.GET.get("status") or "").strip()     # SENT/FAILED/PENDING/...
+    period = (request.GET.get("period") or "").strip()     # 7d / 30d / ytd / all
+
     qs = SmsHistorique.objects.select_related("parent").all()
-    return render(request, "admin/communication/sms_history.html", {"items": qs})
 
+    if q:
+        qs = qs.filter(
+            Q(parent__nom__icontains=q) |
+            Q(parent__prenom__icontains=q) |
+            Q(telephone__icontains=q) |
+            Q(message__icontains=q) |
+            Q(error_message__icontains=q)
+        )
 
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import get_object_or_404, render, redirect
-from django.http import JsonResponse
-from .models import AnneeScolaire
+    if status:
+        qs = qs.filter(status=status)
 
-@login_required
-def annee_delete_modal(request, pk):
-    annee = get_object_or_404(AnneeScolaire, pk=pk)
+    now = timezone.now()
+    if period == "7d":
+        qs = qs.filter(created_at__gte=now - timedelta(days=7))
+    elif period == "30d":
+        qs = qs.filter(created_at__gte=now - timedelta(days=30))
+    elif period == "ytd":
+        start_year = now.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+        qs = qs.filter(created_at__gte=start_year)
 
-    if request.method == "POST":
-        try:
-            annee.delete()
-            return JsonResponse({"ok": True})
-        except Exception as e:
-            return JsonResponse({"ok": False, "error": str(e)}, status=500)
+    qs = qs.order_by("-created_at", "-id")
 
-    return render(request, "admin/annees/delete_modal.html", {"annee": annee})
+    # ✅ liste statuts pour select
+    status_choices = ["PENDING", "SENT", "DELIVERED", "FAILED", "ERROR"]
+
+    return render(request, "admin/communication/sms_history.html", {
+        "items": qs,
+        "q": q,
+        "status_selected": status,
+        "period_selected": period,
+        "status_choices": status_choices,
+    })
+
 
 
 from django.shortcuts import render, get_object_or_404
-from django.contrib.auth import get_user_model
 
 User = get_user_model()
 
@@ -6694,24 +7184,16 @@ def eleve_reinscrire(request, pk):
 
 from decimal import Decimal, InvalidOperation
 
-from django.contrib import messages
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import get_object_or_404, redirect, render
 
 from core.models import Degre, AnneeScolaire
 
 
 
 
-# core/views.py
-from django.http import JsonResponse
-from django.contrib.auth.decorators import login_required
 from .models import EcheanceMensuelle
 
 
 
-from django.http import JsonResponse
-from django.contrib.auth.decorators import login_required
 from core.models import Periode
 from .views_prof import _allowed_groupes_for_user
 
@@ -6730,11 +7212,6 @@ def api_periodes_par_groupe(request):
     return JsonResponse([{"id": p.id, "label": p.nom} for p in periodes], safe=False)
 
 
-from decimal import Decimal
-from django.http import JsonResponse
-from django.shortcuts import get_object_or_404
-from django.contrib.auth.decorators import login_required
-from accounts.decorators import group_required
 from core.services.transport_echeances import sync_transport_echeances_for_inscription
 from core.models import Inscription, EleveTransport, EcheanceTransportMensuelle
 
@@ -6782,16 +7259,9 @@ def ajax_transport_echeances(request):
         "items": items
     }, status=200)
 
-from decimal import Decimal
-from django.contrib import messages
-from django.contrib.auth.decorators import login_required
-from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect
-from django.views.decorators.http import require_POST
-from accounts.decorators import group_required
 
 from core.models import Eleve, EleveTransport, Inscription
-from core.services.transport_echeances import sync_transport_echeances_for_inscription
 
 
 def _d(x) -> Decimal:
@@ -6885,12 +7355,6 @@ def ajax_transport_status(request):
 
 
 # core/views_finance.py
-from decimal import Decimal, InvalidOperation
-from django.contrib import messages
-from django.db import transaction
-from django.shortcuts import get_object_or_404, redirect, render
-from django.contrib.auth.decorators import login_required
-from accounts.permissions import group_required
 from core.models import TransactionFinance, RemboursementFinance
 from django.db import models
 
@@ -6951,4 +7415,176 @@ def transaction_remboursement_create(request, tx_id: int):
         "max_remb": max_remb,
         "is_zero_tx": is_zero_tx,
         "modes": RemboursementFinance.MODE_CHOICES,
+    })
+
+
+@login_required
+@group_required("SUPER_ADMIN", "ADMIN", "PEDAGOGIQUE")
+def edt_prof_week(request, pk=None):
+    annee_active = AnneeScolaire.objects.filter(is_active=True).first()
+
+    # --- GET (toujours en str) ---
+    annee_id = (request.GET.get("annee") or "").strip()
+    niveau_id = (request.GET.get("niveau") or "").strip()
+    groupe_id = (request.GET.get("groupe") or "").strip()
+    enseignant_id = (request.GET.get("enseignant") or "").strip()
+
+    # ✅ si accès depuis fiche enseignant (/enseignants/<pk>/edt/)
+    if pk and not enseignant_id:
+        enseignant_id = str(pk)
+
+    # ✅ Année par défaut = active
+    if not annee_id.isdigit():
+        annee_id = str(annee_active.id) if annee_active else ""
+
+    # Listes filtres
+    annees = AnneeScolaire.objects.all()
+
+    niveaux = Niveau.objects.select_related("degre").all()
+    if annee_id.isdigit():
+        niveaux = niveaux.filter(groupes__annee_id=int(annee_id)).distinct()
+
+    groupes = Groupe.objects.select_related("annee", "niveau", "niveau__degre").all()
+    if annee_id.isdigit():
+        groupes = groupes.filter(annee_id=int(annee_id))
+    if niveau_id.isdigit():
+        groupes = groupes.filter(niveau_id=int(niveau_id))
+
+    # ✅ Enseignants possibles (selon filtres) = ceux qui ont des séances
+    ens_qs = Seance.objects.all()
+    if annee_id.isdigit():
+        ens_qs = ens_qs.filter(annee_id=int(annee_id))
+    if niveau_id.isdigit():
+        ens_qs = ens_qs.filter(groupe__niveau_id=int(niveau_id))
+    if groupe_id.isdigit():
+        ens_qs = ens_qs.filter(groupe_id=int(groupe_id))
+
+    enseignants = Enseignant.objects.filter(
+        id__in=ens_qs.values_list("enseignant_id", flat=True).distinct()
+    ).order_by("nom", "prenom", "matricule")
+
+    # ✅ si enseignant_id vide, on prend le 1er (UX pratique)
+    if (not enseignant_id.isdigit()) and enseignants.exists():
+        enseignant_id = str(enseignants.first().id)
+
+    # =========================
+    # Séances (EDT prof)
+    # =========================
+    seances = Seance.objects.select_related("enseignant", "groupe", "groupe__niveau").all()
+
+    if annee_id.isdigit():
+        seances = seances.filter(annee_id=int(annee_id))
+
+    if niveau_id.isdigit():
+        seances = seances.filter(groupe__niveau_id=int(niveau_id))
+
+    if groupe_id.isdigit():
+        seances = seances.filter(groupe_id=int(groupe_id))
+
+    if enseignant_id.isdigit():
+        seances = seances.filter(enseignant_id=int(enseignant_id))
+    else:
+        # aucun enseignant => aucune séance
+        seances = seances.none()
+
+    seances = list(seances)
+
+    # =========================
+    # Grille semaine (même algo que prof_edt)
+    # =========================
+    days = [("LUN", "Lu"), ("MAR", "Ma"), ("MER", "Me"), ("JEU", "Je"), ("VEN", "Ve"), ("SAM", "Sa")]
+    slots = [
+        (time(8, 30),  time(9, 30)),
+        (time(9, 30),  time(10, 30)),
+        (time(10, 30), time(11, 30)),
+        (time(11, 30), time(12, 30)),
+        (time(14, 30), time(15, 30)),
+        (time(15, 30), time(16, 30)),
+        (time(16, 30), time(17, 30)),
+        (time(17, 30), time(18, 30)),
+    ]
+
+    def fmt(t): return t.strftime("%H:%M") if t else ""
+
+    def find_slot_index_start(t_):
+        for i, (a, b) in enumerate(slots):
+            if a <= t_ < b:
+                return i
+        return None
+
+    def find_slot_index_end(t_):
+        for i, (a, b) in enumerate(slots):
+            if a < t_ <= b:
+                return i
+        return None
+
+    slot_labels = [{"num": i, "start": fmt(a), "end": fmt(b)} for i, (a, b) in enumerate(slots, start=1)]
+    n = len(slots)
+
+    seances_by_day = {}
+    for se in seances:
+        seances_by_day.setdefault(se.jour, []).append(se)
+
+    rows = []
+    for code, short in days:
+        occ = [None] * n
+
+        for se in seances_by_day.get(code, []):
+            i0 = find_slot_index_start(se.heure_debut)
+            i1 = find_slot_index_end(se.heure_fin)
+            if i0 is None or i1 is None:
+                continue
+
+            colspan = max(1, (i1 - i0 + 1))
+            if isinstance(occ[i0], dict):
+                occ[i0]["items"].append(se)
+                occ[i0]["colspan"] = max(occ[i0]["colspan"], colspan)
+            else:
+                occ[i0] = {"items": [se], "colspan": colspan}
+
+            for k in range(i0 + 1, min(i0 + colspan, n)):
+                occ[k] = "SKIP"
+
+        cells_render = []
+        i = 0
+        while i < n:
+            if occ[i] == "SKIP":
+                i += 1
+                continue
+
+            if isinstance(occ[i], dict):
+                cell = occ[i]
+                span = min(cell["colspan"], n - i)
+                cells_render.append({"kind": "event", "colspan": span, "items": cell["items"]})
+                i += span
+            else:
+                cells_render.append({"kind": "empty", "colspan": 1, "items": []})
+                i += 1
+
+        rows.append({"code": code, "short": short, "cells": cells_render})
+
+    # pour header (nom enseignant sélectionné)
+    ens_obj = None
+    if enseignant_id.isdigit():
+        ens_obj = Enseignant.objects.filter(id=int(enseignant_id)).first()
+
+    return render(request, "admin/seances/edt_prof_week.html", {
+        "annee_active": annee_active,
+
+        "annees": annees,
+        "annee_selected": annee_id,
+
+        "niveaux": niveaux,
+        "niveau_selected": niveau_id,
+
+        "groupes": groupes,
+        "groupe_selected": groupe_id,
+
+        "enseignants": enseignants,
+        "enseignant_selected": enseignant_id,
+        "enseignant_obj": ens_obj,
+
+        "slot_labels": slot_labels,
+        "rows": rows,
+        "has_slots": bool(seances),
     })

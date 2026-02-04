@@ -49,3 +49,12 @@
     if (e.key === "Escape") closeModal();
   });
 })();
+(function(){
+  const form = document.getElementById("avisFilters");
+  if(!form) return;
+
+  ["id_cible","id_period"].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.addEventListener("change", ()=> form.submit());
+  });
+})();

@@ -1,0 +1,54 @@
+{% extends "admin/base_admin.html" %}
+{% load static %}
+
+{% block title %}Supprimer année | AZ{% endblock %}
+{% block page_title %}Supprimer une année{% endblock %}
+{% block current_page %}Paramètres / Années scolaires / Suppression{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'admin/css/annees/delete.css' %}?v=1">
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'admin/js/annees/delete.js' %}?v=1" defer></script>
+{% endblock %}
+
+{% block content %}
+<div class="az-del-page">
+  <div class="az-del-wrap">
+    <div class="az-del-card">
+      <div class="az-del-head">
+        <div class="az-del-title">
+          <i class="fas fa-triangle-exclamation"></i>
+          Supprimer une année
+        </div>
+        <div class="az-del-sub">Confirmation de suppression (action irréversible)</div>
+      </div>
+
+      <div class="az-del-body">
+        <p class="az-del-text">
+          Tu es sûr de vouloir supprimer <b>{{ annee.nom }}</b> ?
+        </p>
+
+        <div class="az-danger-box">
+          <i class="fas fa-circle-info"></i>
+          Cette action est irréversible.
+        </div>
+      </div>
+
+      <div class="az-del-actions">
+        <a class="az-btn az-btn-ghost" href="{% url 'core:annee_list' %}">
+          <i class="fas fa-arrow-left"></i> Annuler
+        </a>
+
+        <form method="post" class="az-del-form" data-az-modal-form>
+          {% csrf_token %}
+          <button class="az-btn az-btn-danger" type="submit">
+            <i class="fas fa-trash"></i> Oui, supprimer
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

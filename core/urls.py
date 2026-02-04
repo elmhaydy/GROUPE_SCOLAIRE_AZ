@@ -210,7 +210,6 @@ urlpatterns = [
 
 
     # Années scolaires — MODALE delete
-    path("annees/<int:pk>/supprimer/modal/", views.annee_delete_modal, name="annee_delete_modal"),
     path("users/<int:pk>/modal/", views.users_detail_modal, name="users_detail_modal"),
 
 
@@ -288,6 +287,9 @@ urlpatterns = [
     path("finance/depenses/categories/<int:pk>/edit/", dep.categorie_edit, name="depense_categorie_edit"),
     path("finance/depenses/categories/<int:pk>/delete/",dep.categorie_delete,name="depense_categorie_delete"),
 
+
+    path("edt-prof/", views.edt_prof_week, name="edt_prof_week"),
+    path("enseignants/<int:pk>/edt/", views.edt_prof_week, name="enseignant_edt"),
 
 ]
  

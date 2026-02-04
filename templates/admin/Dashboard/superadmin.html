@@ -63,16 +63,19 @@
       <div class="azsa-kpi-meta">
         <div class="azsa-kpi-val">{{ nb_eleves|default:0 }}</div>
         <div class="azsa-kpi-label">Élèves actifs</div>
-        <div class="azsa-kpi-trend">
-          {% if eleves_trend > 0 %}
-            <span class="azsa-tr up"><i class="fa-solid fa-arrow-up"></i> +{{ eleves_trend }}%</span>
-          {% elif eleves_trend < 0 %}
-            <span class="azsa-tr down"><i class="fa-solid fa-arrow-down"></i> {{ eleves_trend }}%</span>
-          {% else %}
-            <span class="azsa-tr flat"><i class="fa-solid fa-minus"></i> Stable</span>
-          {% endif %}
-          <span class="azsa-tr-sub">vs mois dernier</span>
-        </div>
+<div class="azsa-kpi-trend">
+  {% if eleves_trend is None %}
+    <span class="azsa-tr new"><i class="fa-solid fa-sparkles"></i> Nouveau</span>
+  {% elif eleves_trend > 0 %}
+    <span class="azsa-tr up"><i class="fa-solid fa-arrow-up"></i> +{{ eleves_trend }}%</span>
+  {% elif eleves_trend < 0 %}
+    <span class="azsa-tr down"><i class="fa-solid fa-arrow-down"></i> {{ eleves_trend }}%</span>
+  {% else %}
+    <span class="azsa-tr flat"><i class="fa-solid fa-minus"></i> Stable</span>
+  {% endif %}
+  <span class="azsa-tr-sub">vs mois dernier</span>
+</div>
+
       </div>
     </div>
 
@@ -83,16 +86,19 @@
       <div class="azsa-kpi-meta">
         <div class="azsa-kpi-val">{{ nb_groupes|default:0 }}</div>
         <div class="azsa-kpi-label">Groupes actifs</div>
-        <div class="azsa-kpi-trend">
-          {% if groupes_trend > 0 %}
-            <span class="azsa-tr up"><i class="fa-solid fa-arrow-up"></i> +{{ groupes_trend }}%</span>
-          {% elif groupes_trend < 0 %}
-            <span class="azsa-tr down"><i class="fa-solid fa-arrow-down"></i> {{ groupes_trend }}%</span>
-          {% else %}
-            <span class="azsa-tr flat"><i class="fa-solid fa-minus"></i> Stable</span>
-          {% endif %}
-          <span class="azsa-tr-sub">vs mois dernier</span>
-        </div>
+<div class="azsa-kpi-trend">
+  {% if groupes_trend is None %}
+    <span class="azsa-tr new"><i class="fa-solid fa-sparkles"></i> Nouveau</span>
+  {% elif groupes_trend > 0 %}
+    <span class="azsa-tr up"><i class="fa-solid fa-arrow-up"></i> +{{ groupes_trend }}%</span>
+  {% elif groupes_trend < 0 %}
+    <span class="azsa-tr down"><i class="fa-solid fa-arrow-down"></i> {{ groupes_trend }}%</span>
+  {% else %}
+    <span class="azsa-tr flat"><i class="fa-solid fa-minus"></i> Stable</span>
+  {% endif %}
+  <span class="azsa-tr-sub">vs mois dernier</span>
+</div>
+
       </div>
     </div>
 
@@ -104,7 +110,9 @@
         <div class="azsa-kpi-val">{{ total_paye|default:0 }} <span class="azsa-kpi-unit">MAD</span></div>
         <div class="azsa-kpi-label">Total encaissé</div>
         <div class="azsa-kpi-trend">
-          {% if revenue_trend > 0 %}
+          {% if revenue_trend is None %}
+            <span class="azsa-tr new"><i class="fa-solid fa-sparkles"></i> Nouveau</span>
+          {% elif revenue_trend > 0 %}
             <span class="azsa-tr up"><i class="fa-solid fa-arrow-up"></i> +{{ revenue_trend }}%</span>
           {% elif revenue_trend < 0 %}
             <span class="azsa-tr down"><i class="fa-solid fa-arrow-down"></i> {{ revenue_trend }}%</span>
@@ -113,6 +121,7 @@
           {% endif %}
           <span class="azsa-tr-sub">vs mois dernier</span>
         </div>
+
       </div>
     </div>
 
@@ -123,6 +132,7 @@
       <div class="azsa-kpi-meta">
         <div class="azsa-kpi-val">{{ total_impayes|default:"0" }} <span class="azsa-kpi-unit">MAD</span></div>
         <div class="azsa-kpi-label">Impayés (reste)</div>
+        <div class="azsa-kpi-sub">Mois : {{ mois_courant_nom }}</div>
         <div class="azsa-kpi-trend">
           <span class="azsa-tr warn"><i class="fa-solid fa-clock"></i> {{ nb_impayes|default:0 }} dossiers</span>
           <span class="azsa-tr-sub">à traiter</span>
@@ -138,7 +148,9 @@
         <div class="azsa-kpi-val">{{ taux_paiement|default:0 }}<span class="azsa-kpi-unit">%</span></div>
         <div class="azsa-kpi-label">Taux de paiement</div>
         <div class="azsa-kpi-trend">
-          {% if payment_trend > 0 %}
+          {% if payment_trend is None %}
+            <span class="azsa-tr new"><i class="fa-solid fa-sparkles"></i> Nouveau</span>
+          {% elif payment_trend > 0 %}
             <span class="azsa-tr up"><i class="fa-solid fa-arrow-up"></i> +{{ payment_trend }}%</span>
           {% elif payment_trend < 0 %}
             <span class="azsa-tr down"><i class="fa-solid fa-arrow-down"></i> {{ payment_trend }}%</span>
@@ -147,6 +159,7 @@
           {% endif %}
           <span class="azsa-tr-sub">vs mois dernier</span>
         </div>
+
       </div>
     </div>
 
@@ -172,7 +185,7 @@
     <div class="azsa-card">
       <div class="azsa-card-head">
         <h3><i class="fa-solid fa-heart-pulse"></i> Santé & alertes</h3>
-        <span class="azsa-badge">{% if nb_impayes|default:0 > 0 %}Action requise{% else %}OK{% endif %}</span>
+        <span class="azsa-badge">{% if nb_impayes|default_if_none:0|add:0 > 0 %}Action requise{% else %}OK{% endif %}</span>
       </div>
 
       <div class="azsa-health-grid">
@@ -280,38 +293,57 @@
           <a class="azsa-link" href="{% url 'core:paiement_list' %}">Voir tout <i class="fa-solid fa-arrow-right"></i></a>
         </div>
 
-        <div class="azsa-list">
-          {% for paiement in derniers_paiements %}
-            <div class="azsa-row">
-              <div class="azsa-row-left">
-                <div class="azsa-avatar">{{ paiement.inscription.eleve.nom|first|upper }}</div>
-                <div class="azsa-row-info">
-                  <div class="azsa-row-title">{{ paiement.inscription.eleve.nom_complet }}</div>
-                  <div class="azsa-row-sub">{{ paiement.inscription.groupe.nom }}</div>
-                </div>
-              </div>
-
-              <div class="azsa-row-right">
-                <div class="azsa-amt">
-                  <div class="azsa-amt-val">{{ paiement.montant }} MAD</div>
-                  <div class="azsa-amt-sub">{{ paiement.date_paiement|date:"d/m/Y" }}</div>
-                </div>
-
-                <div class="azsa-badges">
-                  <span class="azsa-badge-mode {{ paiement.mode|lower }}">
-                    <i class="fa-solid fa-{% if paiement.mode == 'ESPECES' %}money-bill{% elif paiement.mode == 'CHEQUE' %}file-invoice{% elif paiement.mode == 'VIREMENT' %}right-left{% else %}credit-card{% endif %}"></i>
-                    {{ paiement.get_mode_display }}
-                  </span>
-                </div>
-              </div>
-            </div>
-          {% empty %}
-            <div class="azsa-empty">
-              <i class="fa-solid fa-receipt"></i>
-              <span>Aucun paiement récent</span>
-            </div>
-          {% endfor %}
+<div class="azsa-list">
+  {% for p in derniers_paiements %}
+    <div class="azsa-row">
+      <div class="azsa-row-left">
+        <div class="azsa-avatar">
+          {{ p.eleve_nom|default:"—"|slice:":1"|upper }}
         </div>
+        <div class="azsa-row-info">
+          <div class="azsa-row-title">{{ p.eleve_nom|default:"—" }}</div>
+          <div class="azsa-row-sub">{{ p.groupe_nom|default:"—" }}</div>
+        </div>
+      </div>
+
+      <div class="azsa-row-right">
+        <div class="azsa-amt">
+          <div class="azsa-amt-val">{{ p.montant|default:"0" }} MAD</div>
+          <div class="azsa-amt-sub">
+            {% if p.date %}{{ p.date|date:"d/m/Y" }}{% else %}—{% endif %}
+          </div>
+        </div>
+
+        <div class="azsa-badges">
+          {# ✅ Badge "source" (Paiement / Transaction) #}
+          {% if p.type == "NEW" %}
+            <span class="azsa-badge-mode tx">
+              <i class="fa-solid fa-arrows-rotate"></i> Transaction
+            </span>
+          {% else %}
+            <span class="azsa-badge-mode old">
+              <i class="fa-solid fa-receipt"></i> Paiement
+            </span>
+          {% endif %}
+
+          {# ✅ Badge "mode" si dispo (Paiement a mode, Transaction peut ne pas en avoir) #}
+          {% if p.mode %}
+            <span class="azsa-badge-mode {{ p.mode|lower }}">
+              <i class="fa-solid fa-{% if p.mode == 'ESPECES' %}money-bill{% elif p.mode == 'CHEQUE' %}file-invoice{% elif p.mode == 'VIREMENT' %}right-left{% else %}credit-card{% endif %}"></i>
+              {{ p.mode_label|default:"—" }}
+            </span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  {% empty %}
+    <div class="azsa-empty">
+      <i class="fa-solid fa-receipt"></i>
+      <span>Aucun paiement récent</span>
+    </div>
+  {% endfor %}
+</div>
+
       </div>
 
       <!-- INSCRIPTIONS -->
@@ -447,11 +479,16 @@
 
 </div>
 
-{# ✅ données chart backend #}
-{{ monthly_chart_json|json_script:"monthly-chart-data" }}
 
 <script>
-  // optionnel si tu veux le doughnut plus tard
+  // ✅ données chart backend (Pilotage 12 mois) — depuis context final
+  window.AZ_CHART = {
+    labels: JSON.parse('{{ chart_labels|escapejs }}'),
+    paiements: JSON.parse('{{ chart_paiements|escapejs }}'),
+    inscriptions: JSON.parse('{{ chart_inscriptions|escapejs }}')
+  };
+
+  // Optionnel (tu gardes ça)
   window.AZ_DASH = {
     repartitionLen: {{ repartition_eleves|length|default:0 }},
     repartitionLabels: [{% for n in repartition_eleves %}'{{ n.nom|escapejs }}',{% endfor %}],
@@ -462,5 +499,5 @@
 
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="{% static 'admin/js/dashboard/superadmin.js' %}?v=2"></script>
+<script src="{% static 'admin/js/dashboard/superadmin.js' %}?v=9"></script>
 {% endblock %}

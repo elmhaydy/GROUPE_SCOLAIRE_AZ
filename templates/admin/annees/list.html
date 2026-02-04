@@ -85,11 +85,11 @@
               <i class="fa-solid fa-pen"></i> Modifier
             </a>
 
-            <a class="az-btn az-btn-sm az-btn-danger-soft"
-              href="{% url 'core:annee_delete_modal' a.id %}"
-              data-az-modal-open="{% url 'core:annee_delete_modal' a.id %}">
-              <i class="fas fa-trash"></i> Supprimer
-            </a>
+<a class="az-btn az-btn-sm az-btn-danger-soft"
+   href="{% url 'core:annee_delete' a.id %}">
+  <i class="fas fa-trash"></i> Supprimer
+</a>
+
 
 
           </div>

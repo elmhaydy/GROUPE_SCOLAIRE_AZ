@@ -472,6 +472,7 @@ class SeanceForm(forms.ModelForm):
         return cleaned
 
 
+
 class AbsenceForm(forms.ModelForm):
     class Meta:
         model = Absence
@@ -489,11 +490,86 @@ class AbsenceForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
 
         active = AnneeScolaire.objects.filter(is_active=True).first()
-        if active and not self.initial.get("annee"):
-            self.initial["annee"] = active
+
+        # ✅ si pas d'année active => on laisse, mais UI sera vide
+        if not active:
+            return
+
+        # ─────────────────────────────────────────
+        # ✅ 1) Année = uniquement active
+        # ─────────────────────────────────────────
+        self.fields["annee"].queryset = AnneeScolaire.objects.filter(id=active.id)
+        self.initial["annee"] = active.id
+
+        # 👉 Option: cacher totalement le champ année (recommandé)
+        # self.fields["annee"].widget = forms.HiddenInput()
+
+        # ─────────────────────────────────────────
+        # ✅ récupérer "groupe_id" depuis:
+        # - POST (submit)
+        # - initial (GET prérempli)
+        # - instance (update)
+        # ─────────────────────────────────────────
+        groupe_id = None
+
+        if self.data.get("groupe"):
+            groupe_id = str(self.data.get("groupe")).strip() or None
+        elif self.initial.get("groupe"):
+            groupe_id = str(self.initial.get("groupe")).strip() or None
+        elif getattr(self.instance, "groupe_id", None):
+            groupe_id = str(self.instance.groupe_id)
+
+        # ─────────────────────────────────────────
+        # ✅ 2) Groupes = seulement année active
+        # ─────────────────────────────────────────
+        self.fields["groupe"].queryset = Groupe.objects.filter(annee=active).select_related("niveau", "niveau__degre")
+
+        # ─────────────────────────────────────────
+        # ✅ 3) Séances = seulement année active
+        #    + si groupe choisi => séances du groupe
+        # ─────────────────────────────────────────
+        seances_qs = Seance.objects.filter(annee=active).select_related("enseignant", "groupe")
+        if groupe_id and groupe_id.isdigit():
+            seances_qs = seances_qs.filter(groupe_id=int(groupe_id))
+        self.fields["seance"].queryset = seances_qs
+
+        # ─────────────────────────────────────────
+        # ✅ 4) Élèves = seulement élèves inscrits dans le groupe (année active)
+        # ─────────────────────────────────────────
+        if groupe_id and groupe_id.isdigit():
+            eleve_ids = (
+                Inscription.objects
+                .filter(annee=active, groupe_id=int(groupe_id))
+                .values_list("eleve_id", flat=True)
+                .distinct()
+            )
+            self.fields["eleve"].queryset = Eleve.objects.filter(id__in=eleve_ids).order_by("nom", "prenom")
+        else:
+            # tant qu'on a pas choisi groupe -> vide (plus propre)
+            self.fields["eleve"].queryset = Eleve.objects.none()
+
+        # ─────────────────────────────────────────
+        # ✅ 5) sécurité: empêcher autre année en POST
+        # ─────────────────────────────────────────
+        if self.data.get("annee") and str(self.data.get("annee")) != str(active.id):
+            # on force l’année active côté formulaire
+            mutable = getattr(self.data, "_mutable", None)
+            try:
+                if mutable is not None:
+                    self.data._mutable = True
+                self.data["annee"] = str(active.id)
+            finally:
+                if mutable is not None:
+                    self.data._mutable = mutable
 
     def clean(self):
         cleaned = super().clean()
+
+        active = AnneeScolaire.objects.filter(is_active=True).first()
+        if active:
+            # ✅ override final (même si l'user a bricolé le POST)
+            cleaned["annee"] = active
+
         eleve = cleaned.get("eleve")
         date = cleaned.get("date")
         seance = cleaned.get("seance")
@@ -506,16 +582,15 @@ class AbsenceForm(forms.ModelForm):
         if self.instance and self.instance.pk:
             qs = qs.exclude(pk=self.instance.pk)
 
-        # Si seance choisie -> doublon exact
         if seance:
             if qs.filter(seance=seance).exists():
                 raise forms.ValidationError("⚠️ Cette absence existe déjà (même séance).")
         else:
-            # Sans séance -> interdire plusieurs entrées "sans séance"
             if qs.filter(seance__isnull=True).exists():
                 raise forms.ValidationError("⚠️ Une absence (sans séance) existe déjà pour cet élève à cette date.")
 
         return cleaned
+
 # --- G1: Parents ---
 from django import forms
 from django.forms import inlineformset_factory
@@ -593,80 +668,106 @@ class MatiereForm(forms.ModelForm):
 # PeriodeForm supprimé volontairement:
 # Les semestres (S1/S2) sont créés automatiquement à chaque année scolaire.
 
-        
-        
-# core/forms.py
-from django import forms
-from .models import Evaluation, Matiere, Groupe, Enseignant
 
 class EvaluationForm(forms.ModelForm):
     class Meta:
         model = Evaluation
-        # ✅ AJOUT "enseignant"
         fields = [
             "titre", "periode", "groupe", "matiere", "enseignant",
             "type", "date", "note_max", "coefficient"
         ]
 
     def __init__(self, *args, **kwargs):
+        # ✅ on accepte un param custom depuis la view
+        niveau_ui = kwargs.pop("niveau_ui", None)
+
         super().__init__(*args, **kwargs)
 
-        # ✅ Par défaut : rien (évite afficher tout)
+        # =========================
+        # ✅ Année active
+        # =========================
+        active = AnneeScolaire.objects.filter(is_active=True).first()
+
+        # Par défaut : éviter afficher tout
         self.fields["matiere"].queryset = Matiere.objects.none()
         self.fields["enseignant"].queryset = Enseignant.objects.none()
 
-        # ---------
-        # 1) UPDATE (instance existante)
-        # ---------
+        # ✅ Filtrer groupe/période par année active
+        if active:
+            qs_groupes = Groupe.objects.select_related("niveau", "annee").filter(annee=active)
+            if niveau_ui and str(niveau_ui).isdigit():
+                qs_groupes = qs_groupes.filter(niveau_id=int(niveau_ui))
+
+            self.fields["groupe"].queryset = qs_groupes.order_by("niveau__degre__ordre", "niveau__ordre", "nom")
+
+            # IMPORTANT : adapte si ton modèle Periode s'appelle autrement
+            self.fields["periode"].queryset = Periode.objects.filter(annee=active).order_by("ordre")
+        else:
+            self.fields["groupe"].queryset = Groupe.objects.none()
+            self.fields["periode"].queryset = Periode.objects.none()
+
+        # =========================
+        # ✅ UPDATE (instance existante)
+        # =========================
         if self.instance and self.instance.pk and self.instance.groupe_id:
             g = self.instance.groupe
 
-            # matières selon niveau
+            # sécurité : si groupe pas année active => on laisse quand même afficher, mais tu peux bloquer
             if getattr(g, "niveau_id", None):
                 self.fields["matiere"].queryset = (
                     Matiere.objects.filter(niveaux=g.niveau, is_active=True).order_by("nom")
                 )
 
-            # enseignants selon affectations (année + groupe)
+            # enseignants par affectations (année + groupe)
             self.fields["enseignant"].queryset = (
                 Enseignant.objects.filter(
                     is_active=True,
                     affectations_groupes__annee_id=g.annee_id,
                     affectations_groupes__groupe_id=g.id
-                )
-                .distinct()
-                .order_by("nom", "prenom")
+                ).distinct().order_by("nom", "prenom")
             )
             return
 
-        # ---------
-        # 2) CREATE / POST (groupe choisi dans le formulaire)
-        # ---------
+        # =========================
+        # ✅ CREATE / POST (groupe choisi)
+        # =========================
         data = self.data or None
         groupe_id = data.get("groupe") if data else None
 
-        if groupe_id and str(groupe_id).isdigit():
-            try:
-                g = Groupe.objects.select_related("niveau", "annee").get(id=int(groupe_id))
+        if active and groupe_id and str(groupe_id).isdigit():
+            g = Groupe.objects.select_related("niveau", "annee").filter(
+                id=int(groupe_id),
+                annee=active,   # ✅ BLOQUE les groupes des autres années
+            ).first()
 
-                # matières selon niveau
+            if g:
                 self.fields["matiere"].queryset = (
                     Matiere.objects.filter(niveaux=g.niveau, is_active=True).order_by("nom")
                 )
 
-                # enseignants selon affectations (année + groupe)
                 self.fields["enseignant"].queryset = (
                     Enseignant.objects.filter(
                         is_active=True,
                         affectations_groupes__annee_id=g.annee_id,
                         affectations_groupes__groupe_id=g.id
-                    )
-                    .distinct()
-                    .order_by("nom", "prenom")
+                    ).distinct().order_by("nom", "prenom")
                 )
 
-            except Exception:
-                pass
+    def clean_periode(self):
+        """✅ Empêche choisir une période d’une autre année."""
+        p = self.cleaned_data.get("periode")
+        active = AnneeScolaire.objects.filter(is_active=True).first()
+        if active and p and getattr(p, "annee_id", None) != active.id:
+            raise ValidationError("Période invalide (pas dans l'année active).")
+        return p
+
+    def clean_groupe(self):
+        """✅ Empêche choisir un groupe d’une autre année."""
+        g = self.cleaned_data.get("groupe")
+        active = AnneeScolaire.objects.filter(is_active=True).first()
+        if active and g and getattr(g, "annee_id", None) != active.id:
+            raise ValidationError("Groupe invalide (pas dans l'année active).")
+        return g
 
 
 # core/forms.py

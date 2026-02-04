@@ -1,0 +1,158 @@
+{% extends "admin/base_admin.html" %}
+{% load static %}
+
+{% block title %}EDT Prof | AZ{% endblock %}
+{% block page_title %}EDT Prof{% endblock %}
+{% block current_page %}Pédagogie / EDT Prof{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'admin/css/seances/edt_prof.css' %}?v=2">
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'admin/js/seances/edt_prof.js' %}?v=2" defer></script>
+{% endblock %}
+
+{% block content %}
+<div class="az-schedule-container">
+
+  <!-- ✅ FILTERS CARD (NEBULA GLASS) -->
+  <section class="az-filters-card">
+    <form method="get" class="az-filters-form" id="edtProfForm">
+
+      <div class="az-filter-group">
+        <label>ANNÉE</label>
+        <select id="id_annee" name="annee" class="az-select-modern">
+          {% for a in annees %}
+            <option value="{{ a.id }}" {% if a.id|stringformat:"s" == annee_selected %}selected{% endif %}>{{ a.nom }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="az-filter-group">
+        <label>NIVEAU</label>
+        <select id="id_niveau" name="niveau" class="az-select-modern">
+          <option value="">Tous</option>
+          {% for n in niveaux %}
+            <option value="{{ n.id }}" {% if n.id|stringformat:"s" == niveau_selected %}selected{% endif %}>
+              {{ n.degre.nom }} — {{ n.nom }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="az-filter-group">
+        <label>GROUPE</label>
+        <select id="id_groupe" name="groupe" class="az-select-modern">
+          <option value="">Tous</option>
+          {% for g in groupes %}
+            <option value="{{ g.id }}" {% if g.id|stringformat:"s" == groupe_selected %}selected{% endif %}>
+              {{ g.niveau.nom }} — {{ g.nom }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="az-filter-group">
+        <label>ENSEIGNANT</label>
+        <select id="id_enseignant" name="enseignant" class="az-select-modern">
+          <option value="">— Choisir —</option>
+          {% for e in enseignants %}
+            <option value="{{ e.id }}" {% if e.id|stringformat:"s" == enseignant_selected %}selected{% endif %}>
+              {{ e.matricule }} — {{ e.nom }} {{ e.prenom }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="az-filter-actions">
+        <button class="az-btn-gradient" type="submit">
+          <i class="fas fa-search"></i> Afficher
+        </button>
+      </div>
+
+    </form>
+  </section>
+
+  <!-- ✅ HEADER PROF -->
+  <div class="az-edt-prof-head">
+    <div class="az-edt-prof-pill">
+      <i class="fa-solid fa-calendar-days"></i>
+      <span>EDT Prof</span>
+      <span class="sep">•</span>
+      <span>
+        {% if enseignant_obj %}
+          <b>{{ enseignant_obj.matricule }}</b> — {{ enseignant_obj.nom }} {{ enseignant_obj.prenom }}
+        {% else %}
+          Choisir un enseignant
+        {% endif %}
+      </span>
+    </div>
+    <div class="az-edt-prof-sub">
+      Année active :
+      <b>{% if annee_active %}{{ annee_active.nom }}{% else %}—{% endif %}</b>
+    </div>
+  </div>
+
+  <!-- ✅ TABLE SLOTS (look NEBULA) -->
+  <section class="az-edt-table-card">
+    {% if has_slots %}
+      <div class="az-edt-scroll">
+        <table class="az-edt-table">
+          <thead>
+            <tr>
+              <th class="az-edt-daycol">Jour</th>
+              {% for s in slot_labels %}
+                <th class="az-edt-slotcol">
+                  <div class="az-edt-slotnum">{{ s.num }}</div>
+                  <div class="az-edt-slottime">{{ s.start }}–{{ s.end }}</div>
+                </th>
+              {% endfor %}
+            </tr>
+          </thead>
+
+          <tbody>
+            {% for r in rows %}
+              <tr>
+                <td class="az-edt-day">
+                  <div class="az-edt-daybig">{{ r.short }}</div>
+                </td>
+
+                {% for c in r.cells %}
+                  <td class="az-edt-cell" colspan="{{ c.colspan }}">
+                    {% if c.kind == "event" and c.items %}
+                      <div class="az-edt-cellstack">
+                        {% for se in c.items %}
+                          <div class="az-edt-chip">
+                            <div class="az-edt-matiere">{{ se.matiere|default:"—" }}</div>
+                            <div class="az-edt-meta">
+                              <span class="tag">{{ se.groupe.niveau.nom }} • {{ se.groupe.nom }}</span>
+                              {% if se.salle %}
+                                <span class="tag ghost">
+                                  <i class="fa-solid fa-location-dot"></i> {{ se.salle }}
+                                </span>
+                              {% endif %}
+                            </div>
+                          </div>
+                        {% endfor %}
+                      </div>
+                    {% else %}
+                      <div class="az-edt-empty">—</div>
+                    {% endif %}
+                  </td>
+                {% endfor %}
+              </tr>
+            {% endfor %}
+          </tbody>
+
+        </table>
+      </div>
+    {% else %}
+      <div class="az-empty-state">
+        <p>Aucune séance</p>
+      </div>
+    {% endif %}
+  </section>
+
+</div>
+{% endblock %}

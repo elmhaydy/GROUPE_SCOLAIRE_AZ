@@ -5,7 +5,7 @@
 {% block current_page %}Direction • Dashboard{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'admin/css/dashboard/staff.css' %}?v=1">
+<link rel="stylesheet" href="{% static 'admin/css/dashboard/staff.css' %}?v=2">
 {% endblock %}
 
 {% block content %}
@@ -135,41 +135,57 @@
       </div>
     </div>
 
-    <!-- Derniers paiements -->
-    <div class="azad-card">
-      <div class="azad-card-head">
-        <h3><i class="fa-solid fa-clock-rotate-left"></i> Derniers paiements</h3>
-        <a class="azad-link" href="{% url 'core:paiement_list' %}">
-          Voir tout <i class="fa-solid fa-arrow-right"></i>
-        </a>
-      </div>
+<!-- Alertes & actions -->
+<div class="azad-card azstaff-actions">
+  <div class="azad-card-head">
+    <h3><i class="fa-solid fa-bolt"></i> Alertes & actions</h3>
+    <span class="azad-badge">Aujourd’hui</span>
+  </div>
 
-      <div class="azad-list">
-        {% for paiement in derniers_paiements %}
-          <div class="azad-row">
-            <div class="azad-row-left">
-              <div class="azad-avatar">{{ paiement.inscription.eleve.nom|first|upper }}</div>
-              <div class="azad-row-info">
-                <div class="azad-row-title">{{ paiement.inscription.eleve.nom_complet }}</div>
-                <div class="azad-row-sub">{{ paiement.inscription.groupe.nom }}</div>
-              </div>
-            </div>
-
-            <div class="azad-row-right">
-              <div class="azad-amt">
-                <div class="azad-amt-val">{{ paiement.montant }} MAD</div>
-                <div class="azad-amt-sub">{{ paiement.date_paiement|date:"d/m/Y" }}</div>
-              </div>
-            </div>
-          </div>
-        {% empty %}
-          <div class="azad-empty">
-            <i class="fa-solid fa-receipt"></i>
-            <span>Aucun paiement récent</span>
-          </div>
-        {% endfor %}
+  <div class="azstaff-actions-grid">
+    <a class="azstaff-act" href="{% url 'core:absence_list' %}">
+      <div class="ic"><i class="fa-solid fa-clipboard-check"></i></div>
+      <div class="txt">
+        <div class="t">Présences</div>
+        <div class="s">Gérer les absences/retards</div>
       </div>
-    </div>
+      <i class="fa-solid fa-arrow-right go"></i>
+    </a>
+
+    <a class="azstaff-act" href="{% url 'core:absences_jour' %}">
+      <div class="ic"><i class="fa-solid fa-calendar-day"></i></div>
+      <div class="txt">
+        <div class="t">Détail du jour</div>
+        <div class="s">Liste des absences aujourd’hui</div>
+      </div>
+      <i class="fa-solid fa-arrow-right go"></i>
+    </a>
+
+    <a class="azstaff-act" href="{% url 'core:eleve_list' %}">
+      <div class="ic"><i class="fa-solid fa-user-graduate"></i></div>
+      <div class="txt">
+        <div class="t">Élèves</div>
+        <div class="s">Rechercher / consulter</div>
+      </div>
+      <i class="fa-solid fa-arrow-right go"></i>
+    </a>
+
+    <a class="azstaff-act" href="{% url 'core:groupe_list' %}">
+      <div class="ic"><i class="fa-solid fa-layer-group"></i></div>
+      <div class="txt">
+        <div class="t">Groupes</div>
+        <div class="s">Niveaux & classes</div>
+      </div>
+      <i class="fa-solid fa-arrow-right go"></i>
+    </a>
+  </div>
+
+  <div class="azstaff-note" id="staffNote">
+    <i class="fa-solid fa-circle-info"></i>
+    <span>Astuce : utilise “Présences” pour valider rapidement la journée.</span>
+  </div>
+</div>
+
 
   </div>
 
@@ -177,7 +193,7 @@
 
 
 {% block extra_js %}
-<script src="{% static 'admin/js/dashboard/staff.js' %}?v=1"></script>
+<script src="{% static 'admin/js/dashboard/staff.js' %}?v=2"></script>
 {% endblock %}
 
 {% endblock %}

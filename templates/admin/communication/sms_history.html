@@ -6,89 +6,198 @@
 {% block current_page %}Communication / SMS / Historique{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'admin/css/sms.css' %}">
+<link rel="stylesheet" href="{% static 'admin/css/sms/history.css' %}?v=1">
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'admin/js/sms/history.js' %}?v=1" defer></script>
 {% endblock %}
 
 {% block content %}
 
-<div class="az-page-head">
-  <div class="az-page-head-left">
-    <h2 class="az-page-title-xl">🕘 Historique SMS</h2>
-    <p class="az-page-sub">Journal des envois SMS (statut + erreur éventuelle).</p>
+<div class="azsmsH">
+
+  <!-- HERO -->
+  <div class="azsmsH-hero">
+    <div class="azsmsH-hero-left">
+      <div class="azsmsH-pill">
+        <i class="fa-solid fa-message"></i>
+        <span>Communication</span><span class="sep">•</span><span>SMS</span><span class="sep">•</span><span>Historique</span>
+      </div>
+
+      <h1 class="azsmsH-title">
+        <i class="fa-solid fa-clock-rotate-left"></i>
+        Historique SMS
+      </h1>
+
+      <p class="azsmsH-sub">
+        Journal des envois (statut + erreur éventuelle). Utilise les filtres pour retrouver vite un SMS.
+      </p>
+    </div>
+
+    <div class="azsmsH-hero-right">
+      <a class="az-btn az-btn-primary" href="{% url 'core:sms_send' %}">
+        <i class="fa-solid fa-paper-plane"></i> Nouveau SMS
+      </a>
+    </div>
   </div>
 
-  <div class="az-page-head-right">
-    <a class="az-btn az-btn-primary" href="{% url 'core:sms_send' %}">
-      <i class="fa-solid fa-paper-plane"></i> Nouveau SMS
-    </a>
+  <!-- FILTER BAR -->
+  <div class="azsmsH-filters-card">
+    <form class="azsmsH-filters" method="get" id="smsFilters">
+
+      <div class="azsmsH-chip">
+        <i class="fa-solid fa-filter"></i>
+        <span>Filtres</span>
+      </div>
+
+      <div class="azsmsH-field">
+        <label>Recherche</label>
+        <div class="azsmsH-inputIcon">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input class="azsmsH-input" name="q" value="{{ q }}" placeholder="Parent, téléphone, message, erreur...">
+        </div>
+      </div>
+
+      <div class="azsmsH-field">
+        <label>Statut</label>
+        <select class="azsmsH-select" name="status" id="id_status">
+          <option value="">Tous</option>
+          {% for st in status_choices %}
+            <option value="{{ st }}" {% if st == status_selected %}selected{% endif %}>{{ st }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="azsmsH-field">
+        <label>Période</label>
+        <select class="azsmsH-select" name="period" id="id_period">
+          <option value="">Toutes</option>
+          <option value="7d"  {% if period_selected == "7d" %}selected{% endif %}>7 derniers jours</option>
+          <option value="30d" {% if period_selected == "30d" %}selected{% endif %}>30 derniers jours</option>
+          <option value="ytd" {% if period_selected == "ytd" %}selected{% endif %}>Cette année</option>
+        </select>
+      </div>
+
+      <div class="azsmsH-actions">
+        <button class="azsmsH-btn azsmsH-btn-soft" type="submit">
+          <i class="fa-solid fa-sliders"></i> Appliquer
+        </button>
+        <a class="azsmsH-btn azsmsH-btn-ghost" href="{% url 'core:sms_history' %}">
+          <i class="fa-solid fa-rotate-right"></i> Reset
+        </a>
+      </div>
+
+    </form>
   </div>
+
+  <!-- TABLE CARD -->
+  <div class="azsmsH-card">
+    <div class="azsmsH-card-head">
+      <div class="azsmsH-card-title">
+        <i class="fa-solid fa-list"></i> Liste des SMS
+      </div>
+      <div class="azsmsH-card-sub">
+        Total affiché : <b>{{ items|length }}</b>
+      </div>
+    </div>
+
+    <div class="azsmsH-tableWrap">
+      <div class="azsmsH-table">
+
+        <div class="azsmsH-thead">
+          <div>Date</div>
+          <div>Parent</div>
+          <div>Téléphone</div>
+          <div>Statut</div>
+          <div>Erreur</div>
+          <div class="azsmsH-th-actions">Actions</div>
+        </div>
+
+        <div class="azsmsH-tbody">
+          {% for s in items %}
+            <div class="azsmsH-row"
+                 data-msg="{{ s.message|default:''|escape }}"
+                 data-parent="{{ s.parent|default:'—'|escape }}"
+                 data-phone="{{ s.telephone|default:''|escape }}"
+                 data-status="{{ s.status|default:'—'|escape }}"
+                 data-date="{{ s.created_at|date:'d/m/Y H:i'|escape }}"
+                 data-error="{{ s.error_message|default:''|escape }}"
+            >
+              <div class="azsmsH-cell">
+                <b>{{ s.created_at|date:"d/m/Y H:i" }}</b>
+              </div>
+
+              <div class="azsmsH-cell azsmsH-strong">
+                {{ s.parent|default:"—" }}
+              </div>
+
+              <div class="azsmsH-cell">
+                <span class="azsmsH-code">{{ s.telephone|default:"—" }}</span>
+              </div>
+
+              <div class="azsmsH-cell">
+                {% if s.status == "SENT" or s.status == "DELIVERED" %}
+                  <span class="azsmsH-badge azsmsH-badge-success">
+                    <i class="fa-solid fa-check"></i> {{ s.status }}
+                  </span>
+                {% elif s.status == "FAILED" or s.status == "ERROR" %}
+                  <span class="azsmsH-badge azsmsH-badge-danger">
+                    <i class="fa-solid fa-triangle-exclamation"></i> {{ s.status }}
+                  </span>
+                {% else %}
+                  <span class="azsmsH-badge azsmsH-badge-muted">
+                    {{ s.status|default:"—" }}
+                  </span>
+                {% endif %}
+              </div>
+
+              <div class="azsmsH-cell">
+                {% if s.error_message %}
+                  <span class="azsmsH-ellipsis" title="{{ s.error_message }}">{{ s.error_message }}</span>
+                {% else %}
+                  <span class="azsmsH-muted">—</span>
+                {% endif %}
+              </div>
+
+              <div class="azsmsH-cell azsmsH-actions">
+                <button type="button" class="azsmsH-btnIcon js-sms-view" title="Voir message">
+                  <i class="fa-regular fa-eye"></i>
+                </button>
+              </div>
+            </div>
+          {% empty %}
+            <div class="azsmsH-empty">
+              <i class="fa-solid fa-inbox"></i>
+              <div>
+                <b>Aucun SMS</b>
+                <div class="azsmsH-empty-sub">L’historique est vide pour le moment.</div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+
+      </div>
+    </div>
+  </div>
+
 </div>
 
-<div class="az-card az-sms-card">
-  <div class="az-card-head">
-    <h3 class="az-card-title">
-      <i class="fa-solid fa-message"></i>
-      Liste des SMS
-    </h3>
-  </div>
-
-  <div class="az-table">
-    <div class="az-thead">
-      <div>Date</div>
-      <div>Parent</div>
-      <div>Téléphone</div>
-      <div>Statut</div>
-      <div>Erreur</div>
+<!-- MODAL VIEW -->
+<div class="azsmsH-modal" id="smsModal" aria-hidden="true">
+  <div class="azsmsH-modalBackdrop" data-close></div>
+  <div class="azsmsH-modalPanel" role="dialog" aria-modal="true" aria-labelledby="smsModalTitle">
+    <div class="azsmsH-modalHead">
+      <div class="azsmsH-modalTitle" id="smsModalTitle">Détails SMS</div>
+      <button class="azsmsH-btnIcon" type="button" data-close title="Fermer">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
     </div>
-
-    <div class="az-tbody">
-      {% for s in items %}
-        <div class="az-row">
-          <div class="az-cell">
-            <b>{{ s.created_at|date:"d/m/Y H:i" }}</b>
-          </div>
-
-          <div class="az-cell az-strong">
-            {{ s.parent }}
-          </div>
-
-          <div class="az-cell">
-            <span class="az-code">{{ s.telephone }}</span>
-          </div>
-
-          <div class="az-cell">
-            {% if s.status == "SENT" or s.status == "DELIVERED" %}
-              <span class="az-badge az-badge-success">
-                <i class="fa-solid fa-check"></i> {{ s.status }}
-              </span>
-            {% elif s.status == "FAILED" or s.status == "ERROR" %}
-              <span class="az-badge az-badge-danger">
-                <i class="fa-solid fa-triangle-exclamation"></i> {{ s.status }}
-              </span>
-            {% else %}
-              <span class="az-badge az-badge-muted">{{ s.status|default:"—" }}</span>
-            {% endif %}
-          </div>
-
-          <div class="az-cell">
-            {% if s.error_message %}
-              <span class="az-ellipsis" title="{{ s.error_message }}">{{ s.error_message }}</span>
-            {% else %}
-              <span class="az-muted">—</span>
-            {% endif %}
-          </div>
-        </div>
-      {% empty %}
-        <div class="az-empty">
-          <i class="fa-solid fa-inbox"></i>
-          <div>
-            <b>Aucun SMS</b>
-            <div class="az-empty-sub">L’historique est vide pour le moment.</div>
-          </div>
-        </div>
-      {% endfor %}
+    <div class="azsmsH-modalBody">
+      <div class="azsmsH-modalMeta" id="smsModalMeta"></div>
+      <div class="azsmsH-modalMessage" id="smsModalMessage"></div>
+      <div class="azsmsH-modalError" id="smsModalError"></div>
     </div>
-
   </div>
 </div>
 

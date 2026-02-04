@@ -1,229 +1,188 @@
 {% extends "admin/base_admin.html" %}
-{% block page_title %}📩 Envoyer SMS{% endblock %}
+{% load static %}
+
+{% block title %}Envoyer SMS | AZ{% endblock %}
+{% block page_title %}Envoyer SMS{% endblock %}
+{% block current_page %}Communication / SMS / Envoi{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'admin/css/sms/send.css' %}?v=1">
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  window.AZ_SMS = {
+    urlNiveaux: "{% url 'core:ajax_niveaux' %}",
+    urlGroupes: "{% url 'core:ajax_groupes' %}",
+    urlEleves: "{% url 'core:ajax_eleves_par_groupe' %}"
+  };
+</script>
+<script src="{% static 'admin/js/sms/send.js' %}?v=1" defer></script>
+{% endblock %}
+
 {% block content %}
 
-<div class="az-card">
-  <form method="post">
-    {% csrf_token %}
+<div class="azsms">
 
-    <div class="az-form">
+  <!-- HERO -->
+  <div class="azsms-hero">
+    <div class="azsms-hero-left">
+      <div class="azsms-pill">
+        <i class="fa-solid fa-comment-sms"></i>
+        <span>Communication</span>
+        <span class="sep">•</span>
+        <span>Envoi SMS</span>
+      </div>
 
-      <p>
-        <label><b>Ciblage</b></label><br>
-        {{ form.cible_type }}
+      <h1 class="azsms-title">
+        <i class="fa-solid fa-paper-plane"></i>
+        Envoyer un SMS
+      </h1>
+
+      <p class="azsms-sub">
+        Choisis un ciblage (Tous / Degré / Niveau / Groupe / Élève) puis saisis ton message.
       </p>
-
-      <p>
-        <label><b>Message</b></label><br>
-        {{ form.message }}
-        <small style="opacity:.7">Le numéro sera normalisé automatiquement en +212…</small>
-      </p>
-
-      <hr>
-
-      <p style="opacity:.85"><b>Choisis une cible</b> (si tu n’es pas sur “TOUS”) :</p>
-
-      <!-- ✅ Degré -->
-      <p id="wrap-degre">
-        <label>Degré</label><br>
-        <select name="degre" id="degre_select">
-          <option value="">— Choisir —</option>
-          {% for d in degres %}
-            <option value="{{ d.id }}">{{ d.nom }}</option>
-          {% endfor %}
-        </select>
-      </p>
-
-      <!-- ✅ Niveau -->
-      <p id="wrap-niveau">
-        <label>Niveau</label><br>
-        <select name="niveau" id="niveau_select" disabled>
-          <option value="">— Choisir —</option>
-        </select>
-      </p>
-
-      <!-- ✅ Groupe -->
-      <p id="wrap-groupe">
-        <label>Groupe</label><br>
-        <select name="groupe" id="groupe_select" disabled>
-          <option value="">— Choisir —</option>
-        </select>
-      </p>
-
-      <!-- ✅ Élève -->
-      <p id="wrap-eleve">
-        <label>Élève</label><br>
-        <select name="eleve" id="eleve_select" disabled>
-          <option value="">— Choisir —</option>
-        </select>
-      </p>
-
-      <small style="opacity:.7">
-        Astuce : si tu cibles “Élève”, choisis d’abord Groupe → Élève.
-      </small>
     </div>
 
-    <div class="az-toolbar">
-      <button class="az-btn az-btn-primary" type="submit">📤 Envoyer</button>
-      <a class="az-btn az-btn-ghost" href="{% url 'core:sms_history' %}">Historique</a>
+    <div class="azsms-hero-right">
+      <a class="az-btn az-btn-ghost" href="{% url 'core:sms_history' %}">
+        <i class="fa-solid fa-clock-rotate-left"></i> Historique
+      </a>
+    </div>
+  </div>
+
+  <div class="azsms-grid">
+
+    <!-- FORM CARD -->
+    <div class="azsms-card">
+      <form method="post" id="smsForm" class="azsms-form">
+        {% csrf_token %}
+
+        <!-- Section: Ciblage -->
+        <div class="azsms-section">
+          <div class="azsms-sec-head">
+            <div class="azsms-sec-title">
+              <i class="fa-solid fa-bullseye"></i>
+              Ciblage
+            </div>
+            <div class="azsms-sec-hint">Sélectionne le type de cible</div>
+          </div>
+
+          <div class="azsms-field">
+            <label for="id_cible_type">Type de cible</label>
+            {{ form.cible_type }}
+            <div class="azsms-help">Si tu choisis “Élève”, fais Groupe → Élève.</div>
+          </div>
+        </div>
+
+        <!-- Section: Message -->
+        <div class="azsms-section">
+          <div class="azsms-sec-head">
+            <div class="azsms-sec-title">
+              <i class="fa-solid fa-pen"></i>
+              Message
+            </div>
+            <div class="azsms-sec-hint">
+              <span id="smsCount">0</span>/160 • <span id="smsParts">1</span> SMS
+            </div>
+          </div>
+
+          <div class="azsms-field">
+            <label for="id_message">Contenu</label>
+            {{ form.message }}
+            <div class="azsms-help">
+              Le numéro sera normalisé automatiquement en <b>+212…</b>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section: Cible précise -->
+        <div class="azsms-section">
+          <div class="azsms-sec-head">
+            <div class="azsms-sec-title">
+              <i class="fa-solid fa-list-check"></i>
+              Cible précise
+            </div>
+            <div class="azsms-sec-hint">Visible seulement si tu n’es pas sur “TOUS”</div>
+          </div>
+
+          <div class="azsms-targets">
+
+            <div class="azsms-field" id="wrap-degre">
+              <label for="degre_select">Degré</label>
+              <select name="degre" id="degre_select" class="azsms-select">
+                <option value="">— Choisir —</option>
+                {% for d in degres %}
+                  <option value="{{ d.id }}">{{ d.nom }}</option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="azsms-field" id="wrap-niveau">
+              <label for="niveau_select">Niveau</label>
+              <select name="niveau" id="niveau_select" class="azsms-select" disabled>
+                <option value="">— Choisir —</option>
+              </select>
+            </div>
+
+            <div class="azsms-field" id="wrap-groupe">
+              <label for="groupe_select">Groupe</label>
+              <select name="groupe" id="groupe_select" class="azsms-select" disabled>
+                <option value="">— Choisir —</option>
+              </select>
+            </div>
+
+            <div class="azsms-field" id="wrap-eleve">
+              <label for="eleve_select">Élève</label>
+              <select name="eleve" id="eleve_select" class="azsms-select" disabled>
+                <option value="">— Choisir —</option>
+              </select>
+            </div>
+
+          </div>
+
+          <div class="azsms-tip">
+            <i class="fa-solid fa-circle-info"></i>
+            Astuce : si tu cibles “Élève”, choisis d’abord <b>Groupe</b> puis <b>Élève</b>.
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="azsms-actions">
+          <button class="azsms-btn azsms-btn-primary" type="submit">
+            <i class="fa-solid fa-paper-plane"></i> Envoyer
+          </button>
+          <a class="azsms-btn azsms-btn-ghost" href="{% url 'core:sms_history' %}">
+            <i class="fa-solid fa-clock-rotate-left"></i> Historique
+          </a>
+        </div>
+
+      </form>
     </div>
 
-  </form>
+    <!-- SIDE CARD (preview) -->
+    <aside class="azsms-side">
+      <div class="azsms-side-card">
+        <div class="azsms-side-title">
+          <i class="fa-regular fa-eye"></i> Aperçu
+        </div>
+        <div class="azsms-preview" id="smsPreview">Ton message apparaîtra ici…</div>
+
+        <div class="azsms-meta">
+          <div class="azsms-meta-item">
+            <span class="k">Caractères</span>
+            <span class="v" id="smsCount2">0</span>
+          </div>
+          <div class="azsms-meta-item">
+            <span class="k">SMS</span>
+            <span class="v" id="smsParts2">1</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+  </div>
+
 </div>
-
-<script>
-(function() {
-  const cibleType = document.getElementById("id_cible_type");
-
-  const wrapDegre = document.getElementById("wrap-degre");
-  const wrapNiveau = document.getElementById("wrap-niveau");
-  const wrapGroupe = document.getElementById("wrap-groupe");
-  const wrapEleve = document.getElementById("wrap-eleve");
-
-  const degreSelect = document.getElementById("degre_select");
-  const niveauSelect = document.getElementById("niveau_select");
-  const groupeSelect = document.getElementById("groupe_select");
-  const eleveSelect = document.getElementById("eleve_select");
-
-  // Endpoints existants chez toi
-  const URL_NIVEAUX = "{% url 'core:ajax_niveaux' %}";     // ?degre_id=...
-  const URL_GROUPES = "{% url 'core:ajax_groupes' %}";     // ?niveau_id=...
-  const URL_ELEVES  = "{% url 'core:ajax_eleves_par_groupe' %}"; // ?groupe_id=...
-
-  function hideAllTargets() {
-    wrapDegre.style.display = "none";
-    wrapNiveau.style.display = "none";
-    wrapGroupe.style.display = "none";
-    wrapEleve.style.display = "none";
-  }
-
-  function resetSelect(sel, placeholder="— Choisir —") {
-    sel.innerHTML = "";
-    const opt = document.createElement("option");
-    opt.value = "";
-    opt.textContent = placeholder;
-    sel.appendChild(opt);
-    sel.value = "";
-  }
-
-  async function fetchJSON(url) {
-    const res = await fetch(url, {headers: {"X-Requested-With": "XMLHttpRequest"}});
-    return await res.json();
-  }
-
-  async function loadNiveaux(degreId) {
-    resetSelect(niveauSelect);
-    resetSelect(groupeSelect);
-    resetSelect(eleveSelect);
-
-    niveauSelect.disabled = true;
-    groupeSelect.disabled = true;
-    eleveSelect.disabled = true;
-
-    if (!degreId) return;
-
-    const data = await fetchJSON(URL_NIVEAUX + "?degre_id=" + encodeURIComponent(degreId));
-    const items = data.results || data || [];
-    items.forEach(it => {
-      const o = document.createElement("option");
-      o.value = it.id;
-      o.textContent = it.nom || it.label || ("Niveau #" + it.id);
-      niveauSelect.appendChild(o);
-    });
-    niveauSelect.disabled = false;
-  }
-
-  async function loadGroupes(niveauId) {
-    resetSelect(groupeSelect);
-    resetSelect(eleveSelect);
-
-    groupeSelect.disabled = true;
-    eleveSelect.disabled = true;
-
-    if (!niveauId) return;
-
-    const data = await fetchJSON(URL_GROUPES + "?niveau_id=" + encodeURIComponent(niveauId));
-    const items = data.results || data || [];
-    items.forEach(it => {
-      const o = document.createElement("option");
-      o.value = it.id;
-      o.textContent = it.nom || it.label || ("Groupe #" + it.id);
-      groupeSelect.appendChild(o);
-    });
-    groupeSelect.disabled = false;
-  }
-
-  async function loadEleves(groupeId) {
-    resetSelect(eleveSelect);
-    eleveSelect.disabled = true;
-    if (!groupeId) return;
-
-    const data = await fetchJSON(URL_ELEVES + "?groupe_id=" + encodeURIComponent(groupeId));
-    const items = data.results || [];
-    items.forEach(it => {
-      const o = document.createElement("option");
-      o.value = it.id;
-      o.textContent = it.label || ("Élève #" + it.id);
-      eleveSelect.appendChild(o);
-    });
-    eleveSelect.disabled = false;
-  }
-
-  function applyCiblageUI() {
-    const t = cibleType.value;
-
-    hideAllTargets();
-
-    // Toujours reset
-    // (on évite d’envoyer des IDs non voulus)
-    // On laisse Degré pour démarrer la chaîne
-    if (t === "TOUS") return;
-
-    if (t === "DEGRE") {
-      wrapDegre.style.display = "";
-      return;
-    }
-
-    if (t === "NIVEAU") {
-      wrapDegre.style.display = "";
-      wrapNiveau.style.display = "";
-      return;
-    }
-
-    if (t === "GROUPE") {
-      wrapDegre.style.display = "";
-      wrapNiveau.style.display = "";
-      wrapGroupe.style.display = "";
-      return;
-    }
-
-    if (t === "ELEVE") {
-      wrapDegre.style.display = "";
-      wrapNiveau.style.display = "";
-      wrapGroupe.style.display = "";
-      wrapEleve.style.display = "";
-      return;
-    }
-  }
-
-  // Events
-  cibleType.addEventListener("change", applyCiblageUI);
-
-  degreSelect.addEventListener("change", async () => {
-    await loadNiveaux(degreSelect.value);
-  });
-
-  niveauSelect.addEventListener("change", async () => {
-    await loadGroupes(niveauSelect.value);
-  });
-
-  groupeSelect.addEventListener("change", async () => {
-    await loadEleves(groupeSelect.value);
-  });
-
-  // Init
-  applyCiblageUI();
-})();
-</script>
 
 {% endblock %}
