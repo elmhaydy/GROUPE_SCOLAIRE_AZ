@@ -1,3 +1,4 @@
+
 # core/models.py
 from django.db import models
 from django.db.models import Q
@@ -215,21 +216,64 @@ class FraisNiveau(AuditBase):
 
 # =========================================
 # Échéances mensuelles (Sep -> Jun) INDEPENDANTES de Inscription
-# =========================================
+# =======================================
+
+from decimal import Decimal
+from django.db import models
+from django.core.validators import MinValueValidator, MaxValueValidator
+
+
 class EcheanceMensuelle(models.Model):
-    eleve = models.ForeignKey(Eleve, on_delete=models.CASCADE, related_name="echeances")
-    annee = models.ForeignKey(AnneeScolaire, on_delete=models.PROTECT, related_name="echeances")
+    """
+    Échéances mensuelles Sep->Jun.
+    ✅ Indépendantes fonctionnellement : le suivi se fait via (eleve, annee, groupe, mois_index).
+    ⚠️ Techniquement, inscription est obligatoire car ta DB a inscription_id NOT NULL + UNIQUE(inscription_id, mois_index).
+    """
+
+    # ✅ Obligatoire (conforme DB VPS)
+    inscription = models.ForeignKey(
+        "Inscription",
+        on_delete=models.CASCADE,
+        related_name="echeances_mensuelles",
+    )
+
+    eleve = models.ForeignKey(
+        "Eleve",
+        on_delete=models.CASCADE,
+        related_name="echeances",
+    )
+
+    annee = models.ForeignKey(
+        "AnneeScolaire",
+        on_delete=models.PROTECT,
+        related_name="echeances",
+        null=True,
+        blank=True,
+    )
 
     # snapshot groupe (filtres impayés)
-    groupe = models.ForeignKey(Groupe, on_delete=models.PROTECT, null=True, blank=True, related_name="echeances")
+    groupe = models.ForeignKey(
+        "Groupe",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="echeances",
+    )
 
-    mois_index = models.PositiveSmallIntegerField()  # 1..10 (Sep..Jun)
+    mois_index = models.PositiveSmallIntegerField(
+        validators=[MinValueValidator(1), MaxValueValidator(10)]
+    )  # 1..10 (Sep..Jun)
+
     date_echeance = models.DateField()
 
     montant_du = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
     montant_paye = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
 
-    STATUT_CHOICES = [("A_PAYER", "À payer"), ("PARTIEL", "Partiel"), ("PAYE", "Payé")]
+    STATUT_CHOICES = [
+        ("A_PAYER", "À payer"),
+        ("PARTIEL", "Partiel"),
+        ("PAYE", "Payé"),
+    ]
     statut = models.CharField(max_length=10, choices=STATUT_CHOICES, default="A_PAYER")
 
     MOIS_FR = {
@@ -238,10 +282,17 @@ class EcheanceMensuelle(models.Model):
     }
 
     class Meta:
-        constraints = [
-            models.UniqueConstraint(fields=["eleve", "annee", "mois_index"], name="unique_echeance_eleve_annee_mois")
-        ]
-        ordering = ["mois_index", "id"]
+       ordering = ["mois_index", "id"]
+       constraints = [
+           models.UniqueConstraint(
+               fields=["inscription", "mois_index"],
+               name="core_echeancemensuelle_inscription_id_mois_index_b5b1172f_uniq",
+           ),
+       ]
+       indexes = [
+           models.Index(fields=["eleve"], name="echm_eleve_idx"),
+           models.Index(fields=["groupe"], name="echm_groupe_idx"),
+       ]
 
     @property
     def mois_nom(self) -> str:
@@ -251,36 +302,36 @@ class EcheanceMensuelle(models.Model):
     def reste(self) -> Decimal:
         du = self.montant_du or Decimal("0.00")
         paye = self.montant_paye or Decimal("0.00")
-        return max(du - paye, Decimal("0.00"))
+        r = du - paye
+        return r if r > Decimal("0.00") else Decimal("0.00")
 
     def refresh_statut(self, save=True):
         paye = self.montant_paye or Decimal("0.00")
         du = self.montant_du or Decimal("0.00")
 
-        # ✅ sécurité : ne jamais avoir du < payé (ça casse le reste/statut)
+        # ✅ sécurité : jamais du < payé
         if du < paye:
             du = paye
             self.montant_du = du
-            # si tu veux persister ce fix automatiquement :
             if save:
                 self.save(update_fields=["montant_du"])
 
-        # ✅ règle principale : si rien n'est dû => PAYE (pas "A_PAYER")
+        # ✅ statut correct
         if du <= Decimal("0.00"):
             self.statut = "PAYE"
         elif paye <= Decimal("0.00"):
             self.statut = "A_PAYER"
         elif paye < du:
-            self.statut = "A_PAYER"
+            self.statut = "PARTIEL"
         else:
             self.statut = "PAYE"
 
         if save:
             self.save(update_fields=["statut"])
 
-
     def __str__(self):
         return f"{self.eleve_id} {self.annee_id} {self.mois_nom} reste={self.reste}"
+
 
 
 
@@ -326,8 +377,10 @@ class Inscription(models.Model):
         return max(du - paye, Decimal("0.00"))
 
     def save(self, *args, **kwargs):
+        creating = self.pk is None  # ✅ True si création
+
         old_mensuel = None
-        if self.pk:
+        if not creating:
             old = Inscription.objects.filter(pk=self.pk).only("frais_scolarite_mensuel").first()
             if old:
                 old_mensuel = old.frais_scolarite_mensuel
@@ -349,10 +402,11 @@ class Inscription(models.Model):
 
         super().save(*args, **kwargs)
 
-        # sync échéances si mensuel changé
-        if old_mensuel is None or old_mensuel != self.frais_scolarite_mensuel:
+        # ✅ SYNC uniquement en UPDATE (pas en création)
+        if (not creating) and (old_mensuel is not None) and (old_mensuel != self.frais_scolarite_mensuel):
             from core.services.echeances import sync_echeances_with_tarif
             sync_echeances_with_tarif(self.id)
+
 
     @property
     def total_scolarite_du(self) -> Decimal:

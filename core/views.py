@@ -74,6 +74,8 @@ from django.db.models import Sum, DecimalField, F, ExpressionWrapper
 from .models import FraisNiveau, AnneeScolaire
 
 from django.db.models import Count, Max
+from datetime import date, datetime
+from django.utils import timezone
 
 from .models import EnseignantGroupe
 from .forms import EnseignantGroupeForm
@@ -112,6 +114,33 @@ from django.shortcuts import render, redirect
 from core.models import (
     AnneeScolaire, Eleve, Groupe, Paiement, Inscription, Absence
 )
+
+
+
+def _as_datetime_safe(value):
+    """
+    Convertit value -> datetime (timezone-aware si possible).
+    Accepte: datetime, date, str ISO, None.
+    """
+    if value is None:
+        return timezone.make_aware(datetime.min) if timezone.is_naive(datetime.min) else datetime.min
+
+    if isinstance(value, datetime):
+        return timezone.make_aware(value) if timezone.is_naive(value) else value
+
+    if isinstance(value, date):
+        dt = datetime(value.year, value.month, value.day)
+        return timezone.make_aware(dt)
+
+    if isinstance(value, str):
+        s = value.strip()
+        try:
+            dt = datetime.fromisoformat(s.replace("Z", "+00:00"))
+            return timezone.make_aware(dt) if timezone.is_naive(dt) else dt
+        except Exception:
+            return timezone.make_aware(datetime.min) if timezone.is_naive(datetime.min) else datetime.min
+
+    return timezone.make_aware(datetime.min) if timezone.is_naive(datetime.min) else datetime.min
 
 # ============================================================
 # Helpers date (si tu les as déjà ailleurs, garde les tiens)
@@ -207,15 +236,28 @@ def _trend(cur, prev):
 
     return int(((cur - prev) / prev) * 100)
 
+
+
+
+
 def _add_months(d: date, months: int) -> date:
     y = d.year + (d.month - 1 + months) // 12
     m = (d.month - 1 + months) % 12 + 1
     return date(y, m, 1)
+# --- helper: champ élève dispo dans EcheanceMensuelle ---
+def _echeance_eleve_values_key():
+    """
+    Retourne une clé utilisable dans QuerySet.values()
+    IMPORTANT: doit être un champ RÉELLEMENT présent dans le modèle Django.
+    """
+    # EcheanceMensuelle a toujours "eleve" dans le modèle actuel
+    return "eleve_id"
+
 
 
 def _build_dashboard_context():
     today = timezone.now().date()
-
+    derniers_paiements = []
     # =========================
     # Périodes
     # =========================
@@ -382,7 +424,8 @@ def _build_dashboard_context():
         or Decimal("0.00")
     )
 
-    nb_impaye_sco_mois = sco_qs_mois.filter(reste__gt=0).values("eleve_id").distinct().count()
+    k = _echeance_eleve_values_key()
+    nb_impaye_sco_mois = sco_qs_mois.filter(reste__gt=0).values(k).distinct().count()
 
     # Transport (safe si modèle pas importé)
     total_impaye_tr_mois = Decimal("0.00")
@@ -608,11 +651,12 @@ def _build_dashboard_context():
             "mode_label": getattr(t, "get_mode_display", lambda: "Transaction")() or "Transaction",
         })
 
-    # C) Fusion + tri par date desc + top 8
+        # C) Fusion + tri + top 8
+    derniers_paiements = old_items + new_items
     derniers_paiements = sorted(
-        chain(old_items, new_items),
-        key=lambda x: (x["date"] or timezone.now()),
-        reverse=True
+            derniers_paiements,
+            key=lambda p: _as_datetime_safe(p.get("date")),
+            reverse=True
     )[:8]
 
 

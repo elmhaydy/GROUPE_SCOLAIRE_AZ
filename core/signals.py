@@ -43,11 +43,15 @@ def creer_periodes_auto(sender, instance, created: bool, **kwargs):
     Periode.objects.get_or_create(annee=instance, ordre=1)
     Periode.objects.get_or_create(annee=instance, ordre=2)
 
-
 # =========================================================
 # 3) Inscription -> créer les échéances (Sep -> Jun = 10 mois)
-# (Echeances indépendantes de Inscription)
 # =========================================================
+from datetime import date as date_cls
+from decimal import Decimal
+from django.apps import apps
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+
 MONTHS_COUNT = 10
 
 def first_day_of_month(d: date_cls) -> date_cls:
@@ -64,29 +68,20 @@ def creer_echeances_sep_juin(sender, instance, created: bool, **kwargs):
         return
 
     EcheanceMensuelle = apps.get_model("core", "EcheanceMensuelle")
-    FraisNiveau = apps.get_model("core", "FraisNiveau")
 
     mensuel = instance.frais_scolarite_mensuel or Decimal("0.00")
-
-    # sécurité : si mensuel pas rempli, on prend depuis FraisNiveau
-    if instance.annee_id and instance.groupe_id:
-        fn = FraisNiveau.objects.filter(
-            annee_id=instance.annee_id,
-            niveau_id=instance.groupe.niveau_id
-        ).first()
-        if fn:
-            mensuel = fn.frais_scolarite_mensuel or Decimal("0.00")
-
     start_school = first_day_of_month(instance.annee.date_debut)  # ex: 2025-09-01
 
     for i in range(1, MONTHS_COUNT + 1):  # 1..10
         d_ech = add_months_first_day(start_school, i - 1)
 
+        # ✅ conforme DB + conforme modèle
         EcheanceMensuelle.objects.get_or_create(
-            eleve_id=instance.eleve_id,
-            annee_id=instance.annee_id,
+            inscription=instance,
             mois_index=i,
             defaults={
+                "eleve_id": instance.eleve_id,
+                "annee_id": instance.annee_id,
                 "groupe_id": instance.groupe_id,
                 "date_echeance": d_ech,
                 "montant_du": mensuel,
@@ -94,6 +89,12 @@ def creer_echeances_sep_juin(sender, instance, created: bool, **kwargs):
                 "statut": "A_PAYER",
             },
         )
+
+
+
+
+
+
 
 # =========================================================
 # 4) Parent -> rien

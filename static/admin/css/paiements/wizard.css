@@ -320,3 +320,47 @@ html[data-theme="dark"] .az-btn{
   .az-card{ padding:14px; }
   .az-table{ min-width:520px; }
 }
+/* TomSelect: hauteur proche az-select */
+.ts-control{
+  min-height: 44px;
+  padding: 10px 12px;
+}
+
+/* Dark dropdown (si tu es en dark theme) */
+html[data-theme="dark"] .ts-dropdown,
+html[data-theme="dark"] .ts-dropdown .option,
+html[data-theme="dark"] .ts-dropdown .optgroup-header{
+  background: #0b1220;
+  color: #e5e7eb;
+}
+html[data-theme="dark"] .ts-dropdown .active{
+  background: rgba(114, 9, 183, .18);
+}
+// TomSelect instance (global du script)
+let eleveTS = null;
+
+function initEleveTomSelect() {
+  if (typeof TomSelect === "undefined") return;
+  if (!eleveSelect) return;
+
+  // évite double init
+  if (eleveTS) return;
+
+  eleveTS = new TomSelect(eleveSelect, {
+    create: false,
+    sortField: { field: "text", direction: "asc" },
+    searchField: ["text"],
+    placeholder: "— Choisir —",
+    allowEmptyOption: true,
+    maxOptions: 5000,
+    render: {
+      option: function (data, escape) {
+        return `<div>${escape(data.text)}</div>`;
+      }
+    }
+  });
+
+  // classe pour notre skin CSS
+  eleveTS.wrapper.classList.add("az-ts");
+}
+

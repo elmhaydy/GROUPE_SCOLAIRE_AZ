@@ -13,30 +13,40 @@ from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-ENV_FILE = os.getenv("DJANGO_ENV_FILE", ".env")
+# =============================
+# ENV (.env)
+# =============================
+# Support: DJANGO_ENV_FILE=prod.env (optionnel) sinon .env
+ENV_FILE = os.getenv("DJANGO_ENV_FILE", ".env").strip() or ".env"
 load_dotenv(BASE_DIR / ENV_FILE, override=True)
 
-# Charger .env (à la racine du projet : /var/www/az/.env)
-load_dotenv(BASE_DIR / ".env", override=True)
-
-
 # =============================
-# SECURITY
+# SECURITY (core)
 # =============================
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "CHANGE_ME")
-DEBUG = os.getenv("DJANGO_DEBUG", "False").lower() in ("1", "true", "yes", "on")
 
-# ALLOWED_HOSTS sous forme CSV: "ip,domain.com,www.domain.com"
-ALLOWED_HOSTS = [h.strip() for h in os.getenv("DJANGO_ALLOWED_HOSTS", "").split(",") if h.strip()]
+DEBUG = os.getenv("DJANGO_DEBUG", "False").strip().lower() in ("1", "true", "yes", "on")
 
-# CSRF trusted origins: "https://domain.com,https://www.domain.com"
-CSRF_TRUSTED_ORIGINS = [o.strip() for o in os.getenv("DJANGO_CSRF_TRUSTED_ORIGINS", "").split(",") if o.strip()]
+# ALLOWED_HOSTS CSV: "ip,domain.com,www.domain.com"
+ALLOWED_HOSTS = [
+    "groupescolaireaz.com",
+    "www.groupescolaireaz.com",
+    "127.0.0.1",
+    "localhost",
+]
+CSRF_TRUSTED_ORIGINS = [
+    "https://groupescolaireaz.com",
+    "https://www.groupescolaireaz.com",
+]
 
-# Sécurité basique
+
+# Security headers (baseline)
 X_FRAME_OPTIONS = "DENY"
 SECURE_CONTENT_TYPE_NOSNIFF = True
 SECURE_REFERRER_POLICY = "same-origin"
 
+# (legacy header, harmless)
+SECURE_BROWSER_XSS_FILTER = True
 
 # =============================
 # APPLICATIONS
@@ -58,7 +68,7 @@ INSTALLED_APPS = [
 # =============================
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
-    # WhiteNoise doit être juste après SecurityMiddleware
+    # ✅ WhiteNoise juste après SecurityMiddleware
     "whitenoise.middleware.WhiteNoiseMiddleware",
 
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -135,7 +145,7 @@ USE_TZ = True
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
-# Si tu as un dossier /static (assets custom), on l’ajoute.
+# Dossier static dev (si existe)
 STATIC_DIR = BASE_DIR / "static"
 STATICFILES_DIRS = [STATIC_DIR] if STATIC_DIR.exists() else []
 
@@ -148,9 +158,7 @@ STORAGES = {
     "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
 }
 
-# WhiteNoise : cache + compression
 WHITENOISE_MAX_AGE = int(os.getenv("WHITENOISE_MAX_AGE", "31536000"))  # 1 an
-
 
 # =============================
 # AUTH REDIRECTIONS
@@ -158,76 +166,86 @@ WHITENOISE_MAX_AGE = int(os.getenv("WHITENOISE_MAX_AGE", "31536000"))  # 1 an
 LOGIN_URL = "accounts:login"
 LOGIN_REDIRECT_URL = "/"
 LOGOUT_REDIRECT_URL = "accounts:login"
+
+# =============================
+# OPTIONAL: TWILIO (SMS)
+# =============================
+TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID", "")
+TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN", "")
+TWILIO_FROM = os.getenv("TWILIO_FROM", "")
+
+# =============================
+# OPTIONAL: EMAIL
+# =============================
+EMAIL_BACKEND = os.getenv("DJANGO_EMAIL_BACKEND", "django.core.mail.backends.smtp.EmailBackend")
+EMAIL_HOST = os.getenv("EMAIL_HOST", "")
+EMAIL_PORT = int(os.getenv("EMAIL_PORT", "587"))
+EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS", "True").strip().lower() in ("1", "true", "yes", "on")
+EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "")
+EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")
+DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", EMAIL_HOST_USER or "no-reply@az.local")
+
 # =========================
-# LOGGING (tracebacks dans journalctl)
+# LOGGING (journalctl)
 # =========================
+LOG_LEVEL_DJANGO = os.getenv("DJANGO_LOG_LEVEL", "INFO").upper()
+LOG_LEVEL_APPS = os.getenv("APPS_LOG_LEVEL", "DEBUG" if DEBUG else "INFO").upper()
+
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
-
     "formatters": {
         "verbose": {
             "format": "[{asctime}] {levelname} {name} {message}",
             "style": "{",
         },
     },
-
     "handlers": {
-        "console": {
-            "class": "logging.StreamHandler",
-            "formatter": "verbose",
-        },
+        "console": {"class": "logging.StreamHandler", "formatter": "verbose"},
     },
-
     "loggers": {
-        # ✅ Exceptions HTTP 500 + tracebacks
-        "django.request": {
-            "handlers": ["console"],
-            "level": "ERROR",
-            "propagate": False,
-        },
+        "django.request": {"handlers": ["console"], "level": "ERROR", "propagate": False},
+        "django": {"handlers": ["console"], "level": LOG_LEVEL_DJANGO, "propagate": True},
 
-        # ✅ Erreurs générales Django
-        "django": {
-            "handlers": ["console"],
-            "level": "INFO",
-            "propagate": True,
-        },
-
-        # ✅ Tes apps (core/prof/accounts/...)
-        "core": {"handlers": ["console"], "level": "DEBUG", "propagate": True},
-        "prof": {"handlers": ["console"], "level": "DEBUG", "propagate": True},
-        "accounts": {"handlers": ["console"], "level": "DEBUG", "propagate": True},
+        # tes apps
+        "core": {"handlers": ["console"], "level": LOG_LEVEL_APPS, "propagate": True},
+        "prof": {"handlers": ["console"], "level": LOG_LEVEL_APPS, "propagate": True},
+        "accounts": {"handlers": ["console"], "level": LOG_LEVEL_APPS, "propagate": True},
     },
 }
+
 # =============================
 # DEFAULT PK
 # =============================
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-
 # =============================
 # SECURITY (PROD)
 # =============================
+# Defaults (dev / debug)
 SECURE_PROXY_SSL_HEADER = None
 SECURE_SSL_REDIRECT = False
 SESSION_COOKIE_SECURE = False
 CSRF_COOKIE_SECURE = False
 
+# SameSite (recommandé)
+SESSION_COOKIE_SAMESITE = os.getenv("DJANGO_SESSION_COOKIE_SAMESITE", "Lax")
+CSRF_COOKIE_SAMESITE = os.getenv("DJANGO_CSRF_COOKIE_SAMESITE", "Lax")
+
 SECURE_HSTS_SECONDS = 0
 SECURE_HSTS_INCLUDE_SUBDOMAINS = False
 SECURE_HSTS_PRELOAD = False
 
-# Active seulement en PROD (DEBUG=False)
 if not DEBUG:
-    # Nginx reverse proxy -> indique à Django que la requête originale était en HTTPS
+    # Nginx reverse proxy : indique à Django que la requête originale était en HTTPS
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
-    SECURE_SSL_REDIRECT = True
-    SESSION_COOKIE_SECURE = os.getenv("DJANGO_SESSION_COOKIE_SECURE", "True").lower() in ("1", "true", "yes", "on")
-    CSRF_COOKIE_SECURE = os.getenv("DJANGO_CSRF_COOKIE_SECURE", "True").lower() in ("1", "true", "yes", "on")
+    SECURE_SSL_REDIRECT = os.getenv("DJANGO_SECURE_SSL_REDIRECT", "True").strip().lower() in ("1", "true", "yes", "on")
+    SESSION_COOKIE_SECURE = os.getenv("DJANGO_SESSION_COOKIE_SECURE", "True").strip().lower() in ("1", "true", "yes", "on")
+    CSRF_COOKIE_SECURE = os.getenv("DJANGO_CSRF_COOKIE_SECURE", "True").strip().lower() in ("1", "true", "yes", "on")
 
-    # HSTS (recommandé si HTTPS OK)
+    # HSTS (active uniquement si HTTPS OK)
     SECURE_HSTS_SECONDS = int(os.getenv("DJANGO_HSTS_SECONDS", "31536000"))  # 1 an
-    SECURE_HSTS_INCLUDE_SUBDOMAINS = os.getenv("DJANGO_HSTS_INCLUDE_SUBDOMAINS", "True").lower() in ("1", "true", "yes", "on")
-    SECURE_HSTS_PRELOAD = os.getenv("DJANGO_HSTS_PRELOAD", "True").lower() in ("1", "true", "yes", "on")
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = os.getenv("DJANGO_HSTS_INCLUDE_SUBDOMAINS", "True").strip().lower() in ("1", "true", "yes", "on")
+    SECURE_HSTS_PRELOAD = os.getenv("DJANGO_HSTS_PRELOAD", "True").strip().lower() in ("1", "true", "yes", "on")
+

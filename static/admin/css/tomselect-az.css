@@ -1,0 +1,115 @@
+/* ===============================
+   TOM SELECT – AZ NEBULA DARK
+   =============================== */
+
+/* wrapper */
+.ts-wrapper {
+  width: 100%;
+}
+
+/* control (input visible) */
+.ts-control {
+  background: #0b1220 !important;
+  border: 1px solid #1f2a44 !important;
+  color: #e5e7eb !important;
+  border-radius: 12px;
+  min-height: 44px;
+  padding: 8px 12px;
+  box-shadow: none;
+}
+
+.ts-control input {
+  color: #e5e7eb !important;
+  font-size: 14px;
+}
+
+/* placeholder */
+.ts-control .placeholder {
+  color: #94a3b8 !important;
+}
+
+/* dropdown */
+.ts-dropdown {
+  background: #0b1220 !important;
+  border: 1px solid #1f2a44 !important;
+  border-radius: 12px;
+  margin-top: 6px;
+  overflow: hidden;
+  z-index: 9999;
+}
+
+/* option */
+.ts-dropdown .option {
+  padding: 10px 12px;
+  font-size: 14px;
+  color: #e5e7eb;
+  cursor: pointer;
+}
+
+/* hover */
+.ts-dropdown .option:hover,
+.ts-dropdown .option.active {
+  background: linear-gradient(135deg, #7209b7, #4361ee);
+  color: #ffffff;
+}
+
+/* selected item */
+.ts-control .item {
+  background: transparent;
+  color: #e5e7eb;
+}
+
+/* disabled */
+.ts-wrapper.disabled .ts-control {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* remove border glow bug */
+.ts-control:focus {
+  box-shadow: 0 0 0 2px rgba(114,9,183,0.35);
+  border-color: #7209b7 !important;
+}
+
+/* ===== PATCH: alignement + hauteur + flèche ===== */
+
+/* même feeling que .az-select */
+.ts-wrapper.single .ts-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 46px;          /* ajuste si ton az-select est 48/50 */
+  padding: 0 44px 0 14px;/* espace à droite pour la flèche */
+}
+
+/* placeholder centré */
+.ts-wrapper.single .ts-control .placeholder,
+.ts-wrapper.single .ts-control .item {
+  line-height: 46px;
+}
+
+/* flèche dropdown (TomSelect) */
+.ts-wrapper.single .ts-control::after {
+  content: "";
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  width: 0;
+  height: 0;
+  transform: translateY(-35%);
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 7px solid #94a3b8; /* gris clair */
+  opacity: 0.9;
+}
+
+/* quand ouvert */
+.ts-wrapper.single.dropdown-active .ts-control::after {
+  transform: translateY(-65%) rotate(180deg);
+}
+
+/* évite que les chips collent au select */
+#eleveSelect,
+.ts-wrapper {
+  margin-bottom: 10px;
+}

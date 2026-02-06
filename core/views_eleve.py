@@ -14,10 +14,12 @@ from dataclasses import dataclass
 from django.db.models import Sum, DecimalField
 from django.db.models.functions import Coalesce
 from django.shortcuts import render
-
+from django.db.models import F
 from django.db.models import Sum, DecimalField
 from django.db.models.functions import Coalesce
 from django.utils import timezone
+from django.db.models import Sum, DecimalField
+from django.db.models.functions import Coalesce
 
 from django.utils.dateparse import parse_date
 from core.models import CahierTexte, CoursResumePDF, Matiere
@@ -51,6 +53,32 @@ from datetime import datetime, date as date_cls
 from accounts.decorators import eleve_required
 from core.models import Seance
 from django.shortcuts import render
+def _mois_index_courant_annee_scolaire(today, annee_active):
+    """
+    Convertit la date du jour en mois_index scolaire (1..10 : Sep..Jun)
+    en se basant sur annee_active.date_debut (ex: 2025-09-01).
+    """
+    if not annee_active or not annee_active.date_debut:
+        return None
+
+    start_year = annee_active.date_debut.year
+    # mapping mois calendrier -> mois_index scolaire
+    # Sep(9)=1 ... Dec(12)=4 ... Jan(1)=5 ... Jun(6)=10
+    cal_to_index = {9: 1, 10: 2, 11: 3, 12: 4, 1: 5, 2: 6, 3: 7, 4: 8, 5: 9, 6: 10}
+
+    idx = cal_to_index.get(today.month)
+    if idx is None:
+        # Juillet/Août hors période scolaire => on peut retourner 10 (fin) ou None
+        return None
+
+    # Sécurise l'année : Sep->Dec doivent être sur start_year, Jan->Jun sur start_year+1
+    if today.month in (9, 10, 11, 12) and today.year != start_year:
+        # si ton annee_active n'est pas cohérente avec today, on laisse quand même
+        pass
+    if today.month in (1, 2, 3, 4, 5, 6) and today.year not in (start_year, start_year + 1):
+        pass
+
+    return idx
 
 def _get_eleve_or_forbidden(request):
     eleve = Eleve.objects.filter(user=request.user).first()
@@ -835,28 +863,30 @@ def eleve_dashboard(request):
 
     today = timezone.localdate()
 
-    if inscription:
-        echeances_retard = (
-            EcheanceMensuelle.objects
-            .filter(
-                eleve_id=inscription.eleve_id,
-                annee_id=inscription.annee_id,
-                date_echeance__lt=today,   # seulement passé
+    if inscription and annee_active:
+        mois_idx_courant = _mois_index_courant_annee_scolaire(today, annee_active)
+
+        if mois_idx_courant:
+            echeances_retard = (
+                EcheanceMensuelle.objects
+                .filter(
+                    eleve_id=inscription.eleve_id,
+                    annee_id=inscription.annee_id,
+                    mois_index__lt=mois_idx_courant,
+                )
+                .order_by("mois_index", "date_echeance", "id")
             )
-            .order_by("date_echeance", "mois_index")
-        )
 
-        for e in echeances_retard:
-            r = e.reste or Decimal("0.00")
-            if r > 0:
-                total_impaye_retard += r
-                mois_retard.append({
-                    "mois_nom": e.mois_nom,   # ✅ Septembre, Octobre, etc.
-                    "date": e.date_echeance,
-                    "reste": r,
-                    "statut": e.statut,
-                })
-
+            for e in echeances_retard:
+                r = e.reste or Decimal("0.00")
+                if r > 0:
+                    total_impaye_retard += r
+                    mois_retard.append({
+                        "mois_nom": e.mois_nom,
+                        "date": e.date_echeance,
+                        "reste": r,
+                        "statut": e.statut,
+                    })
 
     # =============================
     # ABSENCES

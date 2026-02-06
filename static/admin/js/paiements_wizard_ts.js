@@ -59,6 +59,9 @@
   const packTrDisabled = $("packTrDisabled");
   const packTrTableWrap = $("packTrTableWrap");
 
+  // TomSelect instance
+  let eleveTS = null;
+
   // ===== state =====
   let state = {
     inscription_id: null,
@@ -95,7 +98,43 @@
   }
 
   // =========================
-  // ✅ TRANSPORT GUARD (NEW)
+  // TOMSELECT (ÉLÈVE)
+  // =========================
+  function initEleveTomSelect() {
+    // Si TomSelect n’est pas chargé, on ignore sans crash
+    if (typeof TomSelect === "undefined") return;
+    if (!eleveSelect) return;
+
+    // éviter double init
+    if (eleveTS) {
+      try { eleveTS.destroy(); } catch (e) {}
+      eleveTS = null;
+    }
+
+    eleveTS = new TomSelect(eleveSelect, {
+      create: false,
+      allowEmptyOption: true,
+      maxOptions: 5000,
+      placeholder: "— Choisir —",
+      sortField: [{ field: "text", direction: "asc" }],
+    });
+
+    // si le select est disabled au départ
+    if (eleveSelect.disabled) {
+      try { eleveTS.disable(); } catch (e) {}
+    }
+  }
+
+  function syncEleveTSDisabled() {
+    if (!eleveTS) return;
+    try {
+      if (eleveSelect.disabled) eleveTS.disable();
+      else eleveTS.enable();
+    } catch (e) {}
+  }
+
+  // =========================
+  // ✅ TRANSPORT GUARD
   // =========================
   function clearTransportSelection() {
     state.tr_selected = new Set();
@@ -139,7 +178,7 @@
   // TYPE SWITCH
   // =========================
   function setType(type) {
-    // ✅ empêcher TRANSPORT si désactivé
+    // empêcher TRANSPORT si désactivé
     if (type === "TRANSPORT" && !state.tr_enabled) {
       if (transportHint) transportHint.style.display = "";
       type = "SCOLARITE";
@@ -223,35 +262,107 @@
 
     eleveSelect.innerHTML = `<option value="">—</option>`;
     eleveSelect.disabled = true;
+    syncEleveTSDisabled();
+
+    // vider TomSelect options
+    if (eleveTS) {
+      try {
+        eleveTS.clear(true);
+        eleveTS.clearOptions();
+        eleveTS.refreshOptions(false);
+      } catch (e) {}
+    }
 
     resetFinanceUI();
     if (!niveauId) return;
 
     const data = await fetchJSON(`${cfg.groupesUrl}?niveau_id=${encodeURIComponent(niveauId)}`);
-    const items = data.results || [];
+    const items = data.results || data.items || data.groupes || data.data || (Array.isArray(data) ? data : []);
 
     groupeSelect.innerHTML =
       `<option value="">— Choisir —</option>` +
-      items.map(x => `<option value="${x.id}">${esc(x.label)}</option>`).join("");
+      (items || []).map(x => `<option value="${x.id}">${esc(x.label || x.nom || x.text || x.name)}</option>`).join("");
 
     groupeSelect.disabled = false;
   }
 
   async function loadEleves(groupeId) {
+    // reset select
     eleveSelect.innerHTML = `<option value="">—</option>`;
     eleveSelect.disabled = true;
+    syncEleveTSDisabled();
+
+    // TomSelect off pendant chargement
+    if (eleveTS) {
+      try {
+        eleveTS.clear(true);
+        eleveTS.clearOptions();
+        eleveTS.disable();
+      } catch (e) {}
+    }
 
     resetFinanceUI();
     if (!groupeId) return;
 
-    const data = await fetchJSON(`${cfg.elevesUrl}?groupe_id=${encodeURIComponent(groupeId)}`);
-    const items = data.results || [];
+    // ✅ on envoie groupe_id ET groupe (compat endpoints)
+    const url = `${cfg.elevesUrl}?groupe_id=${encodeURIComponent(groupeId)}&groupe=${encodeURIComponent(groupeId)}`;
+    const data = await fetchJSON(url);
 
+    // ✅ support toutes les formes possibles
+    const items =
+      data.results ||
+      data.items ||
+      data.eleves ||
+      data.data ||
+      (Array.isArray(data) ? data : []);
+
+    const finalItems = Array.isArray(items) ? items : (Array.isArray(data) ? data : []);
+
+    // build options (HTML select normal)
     eleveSelect.innerHTML =
       `<option value="">— Choisir —</option>` +
-      items.map(x => `<option value="${x.id}">${esc(x.label)}</option>`).join("");
+      finalItems.map(x => {
+        const id = x.id ?? x.pk ?? x.value;
+        const label =
+          x.label ??
+          x.nom ??
+          x.text ??
+          x.name ??
+          `${x.matricule || ""} ${x.prenom || ""} ${x.nom_famille || ""}`.trim();
+        return `<option value="${esc(id)}">${esc(label)}</option>`;
+      }).join("");
 
     eleveSelect.disabled = false;
+
+    // ✅ TomSelect: refresh options proprement
+    if (typeof TomSelect !== "undefined") {
+      if (!eleveTS) initEleveTomSelect();
+
+      if (eleveTS) {
+        try {
+          eleveTS.clear(true);
+          eleveTS.clearOptions();
+
+          finalItems.forEach(x => {
+            const id = String(x.id ?? x.pk ?? x.value);
+            const label =
+              String(
+                x.label ??
+                x.nom ??
+                x.text ??
+                x.name ??
+                `${x.matricule || ""} ${x.prenom || ""} ${x.nom_famille || ""}`.trim()
+              );
+            eleveTS.addOption({ value: id, text: label });
+          });
+
+          eleveTS.refreshOptions(false);
+          eleveTS.enable();
+        } catch (e) {}
+      }
+    }
+
+    syncEleveTSDisabled();
   }
 
   function renderTableGeneric(tbody, echeances, selectedSet, pricesMap) {
@@ -420,7 +531,11 @@
       `;
       fratrieBox.querySelectorAll("button[data-eid]").forEach(btn => {
         btn.addEventListener("click", async () => {
+          // select value + TomSelect sync
           eleveSelect.value = btn.dataset.eid;
+          if (eleveTS) {
+            try { eleveTS.setValue(btn.dataset.eid, true); } catch (e) {}
+          }
           await loadInscriptionAndAll(btn.dataset.eid);
         });
       });
@@ -445,7 +560,7 @@
     maxInscriptionTxt.textContent = maxTxt;
     if (packInsMax) packInsMax.textContent = maxTxt;
 
-    // ✅ INSCRIPTION input: default = reste, max = reste
+    // INSCRIPTION input: default = reste, max = reste
     const maxN = toNum(state.max_inscription);
     if (montantInscription) {
       montantInscription.value = (maxN > 0 ? maxN.toFixed(2) : "");
@@ -468,7 +583,7 @@
     renderTableGeneric(moisTbody, state.sco_echeances, state.sco_selected, state.sco_prices);
     renderTableGeneric(packScoTbody, state.sco_echeances, state.sco_selected, state.sco_prices);
 
-    // transport display
+    // transport display + blocage
     if (!state.tr_enabled) {
       transportHint.style.display = "";
       transportTableWrap.style.display = "none";
@@ -476,7 +591,6 @@
       packTrDisabled.style.display = "";
       packTrTableWrap.style.display = "none";
 
-      // ✅ force off
       if (packTrOn) packTrOn.checked = false;
       clearTransportSelection();
     } else {
@@ -497,7 +611,15 @@
   // events
   niveauSelect.addEventListener("change", () => loadGroupes(niveauSelect.value));
   groupeSelect.addEventListener("change", () => loadEleves(groupeSelect.value));
-  eleveSelect.addEventListener("change", () => loadInscriptionAndAll(eleveSelect.value));
+
+  // ✅ important: change event doit fonctionner TomSelect et select normal
+  eleveSelect.addEventListener("change", () => {
+    const v = eleveSelect.value;
+    if (v) loadInscriptionAndAll(v);
+  });
+
+  // init tomselect (si dispo)
+  initEleveTomSelect();
 
   // Prefill
   const p = window.__PREFILL__ || {};
@@ -509,6 +631,9 @@
         loadEleves(p.groupe_id).then(() => {
           if (p.eleve_id) {
             eleveSelect.value = p.eleve_id;
+            if (eleveTS) {
+              try { eleveTS.setValue(String(p.eleve_id), true); } catch (e) {}
+            }
             loadInscriptionAndAll(p.eleve_id);
           }
         });
