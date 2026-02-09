@@ -6,15 +6,14 @@
 {% block breadcrumb %}Finance / Paiements / Wizard{% endblock %}
 
 {% block extra_css %}
-  <link rel="stylesheet" href="{% static 'admin/css/paiements/wizard.css' %}?v=4">
+  <link rel="stylesheet" href="{% static 'admin/css/paiements/wizard.css' %}?v=6">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css">
   <link rel="stylesheet" href="{% static 'admin/css/tomselect-az.css' %}?v=1">
 {% endblock %}
 
 {% block extra_js %}
   <script defer src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
-  <script defer src="{% static 'admin/js/paiements_wizard_ts.js' %}?v=12"></script>
-
+  <script defer src="{% static 'admin/js/paiements/wizard_parent.js' %}?v=1"></script>
 {% endblock %}
 
 {% block content %}
@@ -23,48 +22,39 @@
   <header class="az-head">
     <div>
       <h1 class="az-title">Paiements</h1>
-      <p class="az-sub">Scolarité / Inscription / Transport + Pack </p>
+      <p class="az-sub">Mode Parent → enfants • Scolarité / Inscription / Transport + Pack</p>
     </div>
   </header>
 
   <div class="az-card">
 
-    <!-- Filters -->
+    <!-- PARENT + ENFANT -->
     <div class="az-row az-row-2">
       <div>
-        <label class="az-label">Niveau</label>
-        <select id="niveauSelect" class="az-select">
-          <option value="">— Choisir —</option>
-          {% for n in niveaux %}
-            <option value="{{ n.id }}">{{ n.degre.nom }} • {{ n.nom }}</option>
-          {% endfor %}
+        <label class="az-label">Parent</label>
+        <select id="parentSelect" class="az-select">
+          <option value=""></option>
         </select>
+        <div class="az-muted" style="margin-top:6px;">
+          Tape nom / CIN / téléphone…
+        </div>
       </div>
 
       <div>
-        <label class="az-label">Groupe</label>
-        <select id="groupeSelect" class="az-select" disabled>
-          <option value="">—</option>
-        </select>
-      </div>
-    </div>
-
-    <div class="az-row">
-      <div>
-        <label class="az-label">Élève</label>
+        <label class="az-label">Enfant</label>
         <select id="eleveSelect" class="az-select" disabled>
-          <option value="">— Choisir groupe d’abord —</option>
+          <option value="">— Choisir un parent d’abord —</option>
         </select>
-        <div id="fratrieBox" class="az-fratrie" style="display:none;"></div>
+        <div class="az-muted" id="eleveHint" style="margin-top:6px;"></div>
       </div>
     </div>
 
     <!-- Switch -->
-    <div class="az-switch">
+    <div class="az-switch" style="margin-top:12px;">
       <button type="button" class="az-chip is-active" data-type="SCOLARITE" id="btnSco">Scolarité</button>
       <button type="button" class="az-chip" data-type="INSCRIPTION" id="btnIns">Inscription</button>
       <button type="button" class="az-chip" data-type="TRANSPORT" id="btnTr">Transport</button>
-      <button type="button" class="az-chip" data-type="PACK" id="btnPack">Pack </button>
+      <button type="button" class="az-chip" data-type="PACK" id="btnPack">Pack</button>
     </div>
 
     <form method="post" action="{% url 'core:transaction_create' %}" class="az-form" id="txForm" novalidate>
@@ -75,6 +65,7 @@
       <input type="hidden" name="echeances_payload" id="echeancesPayload" value="">
       <input type="hidden" name="transport_payload" id="transportPayload" value="">
       <input type="hidden" name="pack_payload" id="packPayload" value="">
+      <input type="hidden" name="batch_payload" id="batchPayload" value="">
 
       <!-- SCOLARITE -->
       <section id="blocScolarite">
@@ -88,7 +79,7 @@
               </tr>
             </thead>
             <tbody id="moisTbody">
-              <tr><td colspan="3" class="az-muted">Choisis un élève…</td></tr>
+              <tr><td colspan="3" class="az-muted">Choisis un parent puis un enfant…</td></tr>
             </tbody>
           </table>
         </div>
@@ -121,7 +112,7 @@
               </tr>
             </thead>
             <tbody id="transportTbody">
-              <tr><td colspan="3" class="az-muted">Choisis un élève…</td></tr>
+              <tr><td colspan="3" class="az-muted">Choisis un enfant…</td></tr>
             </tbody>
           </table>
         </div>
@@ -165,7 +156,7 @@
                   <th style="width:220px;">Montant</th>
                 </tr>
               </thead>
-              <tbody id="packScoTbody"><tr><td colspan="3" class="az-muted">Choisis un élève…</td></tr></tbody>
+              <tbody id="packScoTbody"><tr><td colspan="3" class="az-muted">Choisis un enfant…</td></tr></tbody>
             </table>
           </div>
         </div>
@@ -186,8 +177,29 @@
                   <th style="width:220px;">Montant</th>
                 </tr>
               </thead>
-              <tbody id="packTrTbody"><tr><td colspan="3" class="az-muted">Choisis un élève…</td></tr></tbody>
+              <tbody id="packTrTbody"><tr><td colspan="3" class="az-muted">Choisis un enfant…</td></tr></tbody>
             </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- PANIER (FRATRIE/BATCH) -->
+      <div class="az-hr" style="margin:12px 0;"></div>
+
+      <section class="az-fratrie-cart">
+        <div class="az-row az-row-2" style="align-items:end;">
+          <div>
+            <div class="az-muted">Paiement parent (un seul reçu)</div>
+            <div id="cartBox" class="az-pill az-pill-soft" style="display:none;margin-top:8px;"></div>
+          </div>
+
+          <div style="text-align:right;">
+            <button type="button" class="az-btn az-btn-secondary" id="btnAddToCart" disabled>
+              + Ajouter cet enfant au panier
+            </button>
+            <button type="button" class="az-btn" id="btnClearCart" style="margin-left:8px; display:none;">
+              Vider
+            </button>
           </div>
         </div>
       </section>
@@ -234,12 +246,14 @@
 
 <script>
   window.AZ_WIZ = {
-    groupesUrl: "{% url 'core:api_groupes_par_niveau' %}",
-    elevesUrl: "{% url 'core:api_eleves_par_groupe' %}",
-    inscByEleveUrl: "{% url 'core:ajax_inscription_by_eleve' %}",
+    parentsSearchUrl: "{% url 'core:ajax_parents_search' %}",
+    enfantsByParentUrl: "{% url 'core:ajax_enfants_by_parent' %}",
+
     echeancesUrl: "{% url 'core:ajax_echeances' %}",
-    transportEcheancesUrl: "{% url 'core:ajax_transport_echeances' %}"
+    transportEcheancesUrl: "{% url 'core:ajax_transport_echeances' %}",
+
+    // optionnel si tu veux un label parent
   };
-  window.__PREFILL__ = {{ prefill|default:"{}"|safe }};
 </script>
+
 {% endblock %}

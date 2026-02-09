@@ -1,112 +1,264 @@
 {% extends "admin/base_admin.html" %}
 {% load static %}
 
-{% block title %}Remboursement | AZ{% endblock %}
+{% block title %}Remboursement | Paiement | AZ{% endblock %}
 {% block page_title %}Remboursement{% endblock %}
 {% block current_page %}Finance / Paiements / Rembourser{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'admin/css/paiements/remboursement.css' %}?v=2">
+{% endblock %}
+
 {% block content %}
-<div class="az-card">
-  <div class="az-card-head">
-    <h3 class="az-card-title">
-      <i class="fa-solid fa-rotate-left"></i>
-      {% if is_zero_tx %}
-        Annuler / Corriger une transaction (0 MAD)
-      {% else %}
-        Rembourser une transaction
-      {% endif %}
-    </h3>
-  </div>
+<div class="az-refund">
 
-  <div class="az-card-body">
-    <div class="az-pill">
-      <i class="fa-solid fa-user-graduate"></i>
-      <span>
-        <b>{{ tx.inscription.eleve.matricule }}</b> — {{ tx.inscription.eleve.nom }} {{ tx.inscription.eleve.prenom }}
-      </span>
-    </div>
-
-    <div class="az-pill" style="margin-top:8px;">
-      <i class="fa-solid fa-coins"></i>
-      <span>
-        Transaction : <b>{{ tx.montant_total }}</b> MAD — Type : <b>{{ tx.get_type_transaction_display }}</b>
-      </span>
-    </div>
-
-    <div class="az-pill" style="margin-top:8px;">
-      <i class="fa-solid fa-circle-info"></i>
-      <span>
-        {% if is_zero_tx %}
-          Cette transaction est à <b>0 MAD</b>. Tu peux l’<b>annuler / corriger</b> (montant = 0).
-        {% else %}
-          Max remboursable : <b>{{ max_remb }}</b> MAD
-        {% endif %}
-      </span>
-    </div>
-
-    <form method="post" style="margin-top:16px;">
-      {% csrf_token %}
-
-      <div class="az-grid" style="display:grid; gap:12px; max-width:520px;">
-
-        <div class="az-field">
-          <div class="az-field-label">
-            {% if is_zero_tx %}Montant (annulation){% else %}Montant à rembourser{% endif %}
-          </div>
-
-          <input
-            class="az-input"
-            type="number"
-            step="0.01"
-            min="0"
-            name="montant"
-            {% if is_zero_tx %}
-              value="0"
-              readonly
-            {% endif %}
-            required
-          >
-
-          <div class="az-help">
-            {% if is_zero_tx %}
-              Montant forcé à 0 MAD (annulation / correction).
+  <!-- =========================
+       HEADER
+  ========================== -->
+  <div class="az-refund-head">
+    <div class="az-refund-head-left">
+      <div class="az-refund-title">
+        <i class="fa-solid fa-rotate-left"></i>
+        <div>
+          <h2>Remboursement par paiement</h2>
+          <p class="az-muted">
+            {% if batch_token %}
+              Paiement batch : <b class="az-mono">{{ batch_token }}</b>
             {% else %}
-              Ne dépasse pas {{ max_remb }} MAD.
+              Paiement unique : <b class="az-mono">{{ group_key }}</b>
             {% endif %}
-          </div>
-        </div>
-
-        <div class="az-field">
-          <div class="az-field-label">Mode</div>
-          <select class="az-select" name="mode">
-            {% for value, label in modes %}
-              <option value="{{ value }}">{{ label }}</option>
-            {% endfor %}
-          </select>
-        </div>
-
-        <div class="az-field">
-          <div class="az-field-label">Raison (optionnel)</div>
-          <input
-            class="az-input"
-            name="raison"
-            placeholder="{% if is_zero_tx %}Annulation transaction 0 (erreur de saisie){% else %}Erreur, désinscription, geste commercial...{% endif %}"
-          >
-        </div>
-
-        <div style="display:flex; gap:10px;">
-          <button class="az-btn az-btn-primary" type="submit">
-            <i class="fa-solid fa-check"></i>
-            {% if is_zero_tx %}Confirmer l’annulation{% else %}Confirmer le remboursement{% endif %}
-          </button>
-
-          <a class="az-btn az-btn-ghost" href="{% url 'core:paiement_list' %}">
-            <i class="fa-solid fa-arrow-left"></i> Retour
-          </a>
+          </p>
         </div>
       </div>
-    </form>
+    </div>
 
+    <div class="az-refund-head-right">
+      <a class="az-btn az-btn-ghost" href="{% url 'core:paiement_list' %}">
+        <i class="fa-solid fa-arrow-left"></i> Retour liste
+      </a>
+    </div>
   </div>
+
+  <!-- =========================
+       KPIs
+  ========================== -->
+  <div class="az-refund-kpis">
+    <div class="az-pill">
+      <i class="fa-solid fa-user-group"></i>
+      <span>Parent : <b>{{ parent_label }}</b></span>
+    </div>
+
+    <div class="az-pill">
+      <i class="fa-solid fa-calendar-days"></i>
+      <span>Année : <b>{{ annee_label }}</b></span>
+    </div>
+
+    <div class="az-pill az-pill-total">
+      <i class="fa-solid fa-sack-dollar"></i>
+      <span>Brut : <b>{{ total_brut }}</b> MAD</span>
+    </div>
+
+    <div class="az-pill">
+      <i class="fa-solid fa-rotate-left"></i>
+      <span>Déjà remboursé : <b>{{ total_deja }}</b> MAD</span>
+    </div>
+
+    <div class="az-pill az-pill-soft">
+      <i class="fa-solid fa-circle-info"></i>
+      <span>Restant remboursable : <b>{{ total_restant }}</b> MAD</span>
+    </div>
+
+    {% if zero_annulables and zero_annulables > 0 %}
+      <div class="az-pill az-pill-warn">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        <span>{{ zero_annulables }} transaction(s) à 0 MAD seront <b>annulées</b> automatiquement.</span>
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- =========================
+       FORM CARD
+  ========================== -->
+  <div class="az-card az-refund-card">
+    <div class="az-card-head">
+      <h3 class="az-card-title">
+        <i class="fa-solid fa-pen-to-square"></i>
+        Confirmer le remboursement
+      </h3>
+    </div>
+
+    <div class="az-card-body">
+
+      {% if not can_refund %}
+        <div class="az-alert az-alert-danger">
+          <i class="fa-solid fa-ban"></i>
+          Ce paiement est déjà totalement remboursé / annulé.
+        </div>
+      {% else %}
+        <div class="az-alert az-alert-info">
+          <i class="fa-solid fa-circle-info"></i>
+          <b>Remboursement total</b> :
+          {% if total_restant and total_restant > 0 %}
+            le système va rembourser automatiquement <b>{{ total_restant }}</b> MAD
+            (distribution auto sur les transactions du paiement).
+          {% else %}
+            aucun montant &gt; 0 restant. Le système va seulement <b>annuler</b> les transactions à <b>0 MAD</b> si elles existent.
+          {% endif %}
+        </div>
+      {% endif %}
+
+      <form method="post" class="az-refund-form" novalidate>
+        {% csrf_token %}
+
+        <div class="az-grid">
+
+          <!-- Mode -->
+          <div class="az-field">
+            <div class="az-field-label">Mode</div>
+            <select class="az-select" name="mode" {% if not can_refund %}disabled{% endif %}>
+              {% for value, label in modes %}
+                <option value="{{ value }}">{{ label }}</option>
+              {% endfor %}
+            </select>
+            <div class="az-help">Mode de remboursement appliqué à toutes les transactions remboursées.</div>
+          </div>
+
+          <!-- Raison -->
+          <div class="az-field az-field-full">
+            <div class="az-field-label">Raison (optionnel)</div>
+            <input
+              class="az-input"
+              name="raison"
+              placeholder="Erreur, désinscription, geste commercial..."
+              {% if not can_refund %}disabled{% endif %}
+            >
+          </div>
+
+        </div>
+
+        <div class="az-actions az-refund-actions">
+          <button class="az-btn az-btn-primary" type="submit" {% if not can_refund %}disabled{% endif %}>
+            <i class="fa-solid fa-check"></i>
+            Confirmer le remboursement total
+          </button>
+
+          <a class="az-btn az-btn-secondary" href="{% url 'core:paiement_list' %}">
+            <i class="fa-solid fa-list"></i> Retour à la liste
+          </a>
+        </div>
+
+      </form>
+
+    </div>
+  </div>
+
+  <!-- =========================
+       DETAILS TABLE
+  ========================== -->
+  <div class="az-card az-refund-card" style="margin-top:14px;">
+    <div class="az-card-head">
+      <h3 class="az-card-title">
+        <i class="fa-solid fa-layer-group"></i>
+        Détails des transactions du paiement
+      </h3>
+    </div>
+
+    <div class="az-table">
+      <div class="az-thead">
+        <div>ID</div>
+        <div>Élève</div>
+        <div>Groupe</div>
+        <div>Total</div>
+        <div>Déjà</div>
+        <div>Restant</div>
+        <div>Statut</div>
+      </div>
+
+      <div class="az-tbody">
+        {% for it in items %}
+          <div class="az-row">
+            <div class="az-cell">
+              <span class="az-badge az-badge-muted az-mono">
+                <i class="fa-solid fa-hashtag"></i> {{ it.tx.id }}
+              </span>
+            </div>
+
+            <div class="az-cell">
+                <span class="az-strong">
+                  {% if it.tx.parent %}
+                    {{ it.tx.parent.nom }} {{ it.tx.parent.prenom }}
+                  {% else %}
+                    —
+                  {% endif %}
+                </span>
+
+                <div class="az-muted az-row-sub">
+                  <span class="az-badge az-badge-muted">
+                    <i class="fa-solid fa-user-graduate"></i>
+                    {{ it.tx.inscription.eleve }}
+                  </span>
+                </div>
+              <div class="az-muted az-row-sub">
+                <span class="az-badge az-badge-muted">
+                  <i class="fa-solid fa-id-card"></i> {{ it.tx.inscription.eleve.matricule }}
+                </span>
+              </div>
+            </div>
+
+            <div class="az-cell">
+              <span class="az-badge az-badge-muted">
+                <i class="fa-solid fa-users"></i>
+                {{ it.tx.inscription.groupe.nom|default:"—" }}
+              </span>
+            </div>
+
+            <div class="az-cell">
+              <span class="az-badge az-badge-money">
+                <i class="fa-solid fa-sack-dollar"></i> <b>{{ it.total }}</b> MAD
+              </span>
+            </div>
+
+            <div class="az-cell">
+              <span class="az-badge az-badge-muted">
+                <i class="fa-solid fa-rotate-left"></i> {{ it.deja }}
+              </span>
+            </div>
+
+            <div class="az-cell">
+              <span class="az-badge az-badge-muted">
+                <i class="fa-solid fa-circle-dollar-to-slot"></i> {{ it.restant }}
+              </span>
+            </div>
+
+            <div class="az-cell">
+              {% if it.status_code == "ANNULE" %}
+                <span class="az-badge az-badge-danger">
+                  <i class="fa-solid fa-ban"></i> {{ it.status_label }}
+                </span>
+              {% elif it.status_code == "REMBOURSE" %}
+                <span class="az-badge az-badge-danger">
+                  <i class="fa-solid fa-rotate-left"></i> {{ it.status_label }}
+                </span>
+              {% elif it.status_code == "PARTIEL" %}
+                <span class="az-badge az-badge-warning">
+                  <i class="fa-solid fa-rotate-left"></i> {{ it.status_label }}
+                </span>
+              {% else %}
+                <span class="az-badge az-badge-success">
+                  <i class="fa-solid fa-circle-check"></i> {{ it.status_label }}
+                </span>
+              {% endif %}
+            </div>
+          </div>
+        {% empty %}
+          <div class="az-empty">
+            <i class="fa-solid fa-inbox"></i>
+            <div>Aucune transaction.</div>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
 </div>
 {% endblock %}

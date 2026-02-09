@@ -72,6 +72,11 @@
       <div class="az-help">Le groupe dépend de l’année sélectionnée.</div>
       {% for err in form.groupe.errors %}<div class="az-error">{{ err }}</div>{% endfor %}
     </div>
+<div class="az-field">
+  <label for="{{ form.dernier_etablissement.id_for_label }}">Dernier établissement</label>
+  {{ form.dernier_etablissement }}
+  <div class="az-help">Ex : École / Collège / Lycée précédent</div>
+</div>
 
     <div class="az-insc-actions">
       <button class="az-btn az-btn-gradient" type="submit" id="saveBtn">

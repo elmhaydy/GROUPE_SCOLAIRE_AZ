@@ -1,576 +1,1191 @@
-/* =========================================================
-   AZ • SUPER ADMIN DASHBOARD (NEBULA / Premium)
-   Dark/Light via html[data-theme]
-   ========================================================= */
+/*
+ * AZ • Super Admin Dashboard — AZ NEBULA compatible
+ * Dark/Light via html[data-theme]
+ * Premium grid, chips "Filtres", glow violet focus, responsive.
+ */
 
+/* =========================
+   THEME TOKENS
+========================= */
 :root{
-  --azsa-primary:#6366f1;
-  --azsa-primary2:#a855f7;
-  --azsa-success:#10b981;
-  --azsa-warn:#f59e0b;
-  --azsa-danger:#ef4444;
-  --azsa-info:#3b82f6;
+  /* LIGHT */
+  --az-bg:#f8fafc;
+  --az-surface:#ffffff;
+  --az-surface-soft:#f1f5f9;
+  --az-surface-2:#eef2ff;
+  --az-border:rgba(15,23,42,.10);
+  --az-text-main:#0f172a;
+  --az-text-muted:#64748b;
 
-  --azsa-bg:#ffffff;
-  --azsa-surface:#ffffff;
-  --azsa-surface2:#f8fafc;
-  --azsa-surface3:#f1f5f9;
+  --az-primary:#6366f1;
+  --az-primary-2:#a855f7;
+  --az-primary-soft:rgba(99,102,241,.10);
+  --az-primary-glow:rgba(168,85,247,.22);
 
-  --azsa-text:#0f172a;
-  --azsa-muted:#64748b;
-  --azsa-border:rgba(15,23,42,.10);
+  --az-success:#10b981;
+  --az-warning:#f59e0b;
+  --az-danger:#ef4444;
 
-  --azsa-shadow: 0 10px 25px rgba(2,6,23,.06);
-  --azsa-shadow2: 0 16px 40px rgba(2,6,23,.10);
-  --azsa-radius: 18px;
-  --azsa-radius2: 24px;
+  --az-radius-sm:10px;
+  --az-radius-md:14px;
+  --az-radius-lg:22px;
 
-  --azsa-tr: all .25s cubic-bezier(.2,.8,.2,1);
+  --az-shadow: 0 10px 25px rgba(2,6,23,.06);
+  --az-shadow-lg: 0 18px 50px rgba(2,6,23,.12);
+
+  --az-tr: all .25s cubic-bezier(.2,.8,.2,1);
+  --az-transition: var(--az-tr); /* compat avec ancien patch */
 }
 
 html[data-theme="dark"]{
-  --azsa-bg:#070b14;
-  --azsa-surface:#0b1220;
-  --azsa-surface2:#0f172a;
-  --azsa-surface3:#111c33;
+  --az-bg:#070b14;
+  --az-surface:#0b1220;
+  --az-surface-soft:#0f172a;
+  --az-surface-2:#111c33;
+  --az-border:rgba(148,163,184,.16);
+  --az-text-main:#e5e7eb;
+  --az-text-muted:#94a3b8;
 
-  --azsa-text:#e5e7eb;
-  --azsa-muted:#94a3b8;
-  --azsa-border:rgba(148,163,184,.16);
+  --az-primary-soft:rgba(99,102,241,.14);
+  --az-primary-glow:rgba(168,85,247,.25);
 
-  --azsa-shadow: 0 18px 50px rgba(0,0,0,.45);
-  --azsa-shadow2: 0 28px 80px rgba(0,0,0,.55);
+  --az-shadow: 0 18px 55px rgba(0,0,0,.45);
+  --az-shadow-lg: 0 28px 85px rgba(0,0,0,.60);
 }
 
+/* =========================
+   BASE
+========================= */
 .azsa{
-  display:flex;
-  flex-direction:column;
-  gap:18px;
-  animation: azsaIn .35s ease-out;
+  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  color: var(--az-text-main);
+  line-height: 1.5;
+  padding: 1.25rem;
+  background: transparent;
 }
-@keyframes azsaIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 
-/* HERO */
+/* Option: fond local dashboard (si tu veux) */
+.azsa.is-bg{
+  background: var(--az-bg);
+  border-radius: var(--az-radius-lg);
+  border: 1px solid var(--az-border);
+  box-shadow: var(--az-shadow);
+}
+
+/* =========================
+   HERO
+========================= */
 .azsa-hero{
   position:relative;
-  overflow:hidden;
-  border:1px solid var(--azsa-border);
-  border-radius: var(--azsa-radius2);
-  background:
-    radial-gradient(900px 200px at 10% 0%, rgba(99,102,241,.18), transparent 60%),
-    radial-gradient(900px 240px at 90% 0%, rgba(168,85,247,.16), transparent 60%),
-    var(--azsa-surface);
-  box-shadow: var(--azsa-shadow);
-  padding: 18px 18px;
   display:flex;
-  gap:16px;
   justify-content:space-between;
-  align-items:flex-start;
+  gap:16px;
+  align-items:flex-end;
+  padding: 1.6rem;
+  border:1px solid var(--az-border);
+  border-radius: var(--az-radius-lg);
+  background:
+    radial-gradient(900px 220px at 10% 0%, rgba(99,102,241,.14), transparent 60%),
+    radial-gradient(900px 260px at 90% 0%, rgba(168,85,247,.12), transparent 60%),
+    var(--az-surface);
+  box-shadow: var(--az-shadow);
+  overflow:hidden;
+  margin-bottom: 1.2rem;
 }
+
 .azsa-hero-glow{
   pointer-events:none;
   position:absolute;
   inset:-2px;
-  opacity:.65;
-  background:
-    radial-gradient(600px 220px at 20% 0%, rgba(99,102,241,.18), transparent 60%),
-    radial-gradient(600px 220px at 80% 0%, rgba(168,85,247,.16), transparent 60%);
+  opacity:.7;
+  background: radial-gradient(520px 260px at 80% 0%, var(--az-primary-glow), transparent 65%);
   filter: blur(10px);
 }
+
 .azsa-hero-left{position:relative; z-index:1; max-width: 780px;}
-.azsa-hero-right{position:relative; z-index:1; display:flex; flex-direction:column; gap:10px; align-items:flex-end;}
+.azsa-hero-right{position:relative; z-index:1; display:flex; flex-direction:column; align-items:flex-end; gap:12px;}
 
 .azsa-pill{
   display:inline-flex;
   align-items:center;
-  gap:10px;
-  padding:8px 12px;
-  border-radius:999px;
-  border:1px solid var(--azsa-border);
+  gap:.55rem;
+  padding:.45rem .9rem;
+  border-radius: 999px;
+  border:1px solid var(--az-border);
   background: linear-gradient(180deg, rgba(255,255,255,.9), rgba(255,255,255,.6));
-  color: var(--azsa-muted);
-  font-weight:700;
-  font-size:.85rem;
+  color: var(--az-text-muted);
+  font-weight: 800;
+  font-size: .85rem;
 }
 html[data-theme="dark"] .azsa-pill{
   background: linear-gradient(180deg, rgba(17,28,51,.9), rgba(11,18,32,.75));
 }
-.azsa-pill i{color: var(--azsa-primary);}
-.azsa-pill-sep{opacity:.6}
+.azsa-pill i{color: var(--az-primary);}
 
 .azsa-title{
-  margin:10px 0 6px;
-  font-size: 1.55rem;
+  margin:.6rem 0 .35rem;
+  font-size: 1.75rem;
+  font-weight: 900;
+  letter-spacing: -0.02em;
   display:flex;
   align-items:center;
-  gap:10px;
-  color: var(--azsa-text);
+  gap:.7rem;
 }
-.azsa-title i{color: var(--azsa-primary);}
+.azsa-title i{color: var(--az-primary);}
+
 .azsa-subtitle{
   margin:0;
-  color: var(--azsa-muted);
-  line-height:1.4;
-  font-size:.95rem;
+  color: var(--az-text-muted);
+  max-width: 640px;
+  font-weight: 600;
+  font-size: .98rem;
 }
 
 .azsa-date{
-  display:inline-flex;
+  display:flex;
   align-items:center;
-  gap:10px;
-  padding:10px 12px;
-  border-radius: 12px;
-  border:1px solid var(--azsa-border);
-  background: var(--azsa-surface2);
-  color: var(--azsa-muted);
-  font-weight:700;
+  gap:.55rem;
+  color: var(--az-text-muted);
+  font-weight: 800;
+  padding:.55rem .8rem;
+  border-radius: 14px;
+  border:1px solid var(--az-border);
+  background: var(--az-surface-soft);
 }
-.azsa-date i{color: var(--azsa-primary);}
+.azsa-date i{color: var(--az-primary);}
 
-.azsa-actions{display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end;}
+.azsa-actions{display:flex; gap:.6rem; flex-wrap:wrap; justify-content:flex-end;}
+
+/* =========================
+   BUTTONS
+========================= */
 .azsa-btn{
   display:inline-flex;
   align-items:center;
-  gap:10px;
-  padding:10px 14px;
+  gap:.55rem;
+  padding:.6rem 1rem;
   border-radius: 14px;
-  border:1px solid var(--azsa-border);
-  background: var(--azsa-surface2);
-  color: var(--azsa-text);
-  font-weight:800;
-  font-size:.9rem;
+  font-weight: 900;
+  font-size: .92rem;
+  cursor: pointer;
+  transition: var(--az-tr);
+  border: 1px solid var(--az-border);
   text-decoration:none;
-  cursor:pointer;
-  transition: var(--azsa-tr);
-  white-space:nowrap;
+  background: var(--az-surface-soft);
+  color: var(--az-text-main);
+  white-space: nowrap;
 }
-.azsa-btn:hover{transform: translateY(-1px); box-shadow: var(--azsa-shadow);}
+.azsa-btn:hover{
+  transform: translateY(-1px);
+  box-shadow: var(--az-shadow);
+  border-color: rgba(99,102,241,.35);
+}
+
 .azsa-btn-primary{
   border-color: rgba(99,102,241,.35);
   background: linear-gradient(135deg, rgba(99,102,241,.95), rgba(168,85,247,.92));
   color:#fff;
 }
 .azsa-btn-primary:hover{filter: brightness(1.03);}
+
 .azsa-btn-soft{
   background: linear-gradient(180deg, rgba(99,102,241,.10), rgba(168,85,247,.06));
   border-color: rgba(99,102,241,.22);
 }
-.azsa-btn-ghost{
-  background: transparent;
+
+.azsa-btn-ghost{ background: transparent; }
+
+/* Focus Nebula */
+.azsa-btn:focus,
+.azsa-chip:focus,
+.azsa-tab:focus,
+.azsa-select:focus{
+  outline: none;
+  border-color: rgba(168,85,247,.55);
+  box-shadow: 0 0 0 3px rgba(168,85,247,.18);
 }
 
-/* KPI GRID */
+/* =========================
+   KPI HEAD + FILTER CHIPS
+========================= */
+.azsa-kpi-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  flex-wrap:wrap;
+  margin: 1rem 0 1rem;
+}
+
+.azsa-kpi-title{
+  display:flex;
+  align-items:center;
+  gap:.7rem;
+  font-weight: 950;
+  font-size: 1.05rem;
+  color: var(--az-text-main);
+}
+.azsa-kpi-title i{color: var(--az-primary);}
+
+.azsa-kpi-range{
+  font-size: .85rem;
+  color: var(--az-text-muted);
+  font-weight: 800;
+}
+
+.azsa-kpi-filter{
+  display:flex;
+  gap:8px;
+  padding: 6px;
+  border-radius: 999px;
+  border:1px solid var(--az-border);
+  background: var(--az-surface);
+}
+
+.azsa-chip{
+  padding: .45rem .9rem;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--az-text-muted);
+  font-weight: 950;
+  cursor:pointer;
+  transition: var(--az-tr);
+}
+.azsa-chip:hover{
+  background: var(--az-surface-soft);
+  border-color: var(--az-border);
+}
+
+.azsa-chip.is-active{
+  color:#fff;
+  border-color: rgba(99,102,241,.35);
+  background: linear-gradient(135deg, rgba(99,102,241,.95), rgba(168,85,247,.92));
+}
+
+/* =========================
+   KPI GRID
+========================= */
 .azsa-kpi-grid{
   display:grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap:12px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 1.25rem;
 }
 @media (max-width: 1200px){
-  .azsa-kpi-grid{grid-template-columns: repeat(3, minmax(0, 1fr));}
+  .azsa-kpi-grid{grid-template-columns: repeat(2, minmax(0, 1fr));}
 }
 @media (max-width: 680px){
   .azsa-kpi-grid{grid-template-columns: 1fr;}
 }
 
 .azsa-kpi{
-  border:1px solid var(--azsa-border);
-  background: var(--azsa-surface);
-  border-radius: var(--azsa-radius);
-  box-shadow: var(--azsa-shadow);
-  padding:14px;
+  background: var(--az-surface);
+  padding: 14px;
+  border-radius: var(--az-radius-lg);
+  border: 1px solid var(--az-border);
   display:flex;
-  gap:12px;
-  align-items:center;
-  transition: var(--azsa-tr);
+  gap: 12px;
+  transition: var(--az-tr);
+  box-shadow: var(--az-shadow);
   position:relative;
   overflow:hidden;
 }
-.azsa-kpi:hover{transform: translateY(-2px); box-shadow: var(--azsa-shadow2); border-color: rgba(99,102,241,.35);}
+.azsa-kpi:hover{
+  transform: translateY(-2px);
+  box-shadow: var(--az-shadow-lg);
+  border-color: rgba(99,102,241,.35);
+}
 .azsa-kpi::before{
   content:"";
-  position:absolute; left:0; top:0; right:0; height:3px;
+  position:absolute;
+  left:0; top:0; right:0;
+  height:3px;
   background: linear-gradient(90deg, rgba(99,102,241,.9), rgba(168,85,247,.0));
-  opacity:.0;
-  transition: var(--azsa-tr);
+  opacity:0;
+  transition: var(--az-tr);
 }
 .azsa-kpi:hover::before{opacity:1;}
 
 .azsa-kpi-ic{
   width:52px; height:52px;
   border-radius: 16px;
-  display:flex; align-items:center; justify-content:center;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size: 1.15rem;
+  flex: 0 0 auto;
   color:#fff;
-  font-size:1.2rem;
-  flex:0 0 auto;
   box-shadow: 0 10px 22px rgba(2,6,23,.14);
 }
-.azsa-ic-grad.a{background: linear-gradient(135deg, #6366f1, #8b5cf6);}
-.azsa-ic-grad.b{background: linear-gradient(135deg, #3b82f6, #60a5fa);}
-.azsa-ic-grad.c{background: linear-gradient(135deg, #10b981, #34d399);}
-.azsa-ic-grad.d{background: linear-gradient(135deg, #f59e0b, #fbbf24);}
-.azsa-ic-grad.e{background: linear-gradient(135deg, #a855f7, #d946ef);}
-.azsa-ic-grad.f{background: linear-gradient(135deg, #0ea5e9, #22c55e);}
+
+/* gradients */
+.azsa-ic-grad.a{background: linear-gradient(135deg, #6366f1, #a855f7);}
+.azsa-ic-grad.c{background: linear-gradient(135deg, #10b981, #3b82f6);}
+.azsa-ic-grad.f{background: linear-gradient(135deg, #f59e0b, #ef4444);}
+.azsa-ic-grad.d{background: linear-gradient(135deg, #ef4444, #991b1b);}
 
 .azsa-kpi-meta{display:flex; flex-direction:column; gap:4px; min-width:0;}
 .azsa-kpi-val{
-  font-size: 1.35rem;
+  font-size: 1.45rem;
+  font-weight: 950;
+  line-height: 1.1;
+  margin:0;
+  color: var(--az-text-main);
+}
+.azsa-kpi-unit{
+  font-size: .82rem;
+  opacity: .75;
   font-weight: 900;
-  color: var(--azsa-text);
-  line-height:1.1;
+  color: var(--az-text-muted);
 }
-.azsa-kpi-unit{font-size:.85rem; opacity:.75; font-weight:900;}
 .azsa-kpi-label{
-  font-weight:800;
-  color: var(--azsa-muted);
-  font-size:.85rem;
+  font-weight: 900;
+  color: var(--az-text-muted);
+  font-size: .88rem;
+  margin:0;
 }
-.azsa-kpi-trend{display:flex; align-items:center; gap:8px; flex-wrap:wrap;}
-.azsa-tr{
-  display:inline-flex; align-items:center; gap:7px;
-  padding:6px 10px;
-  border-radius: 999px;
-  border:1px solid var(--azsa-border);
-  background: var(--azsa-surface2);
-  font-weight:900;
-  font-size:.82rem;
+.azsa-kpi-sub{
+  font-size: .82rem;
+  color: var(--az-text-muted);
+  font-weight: 800;
 }
-.azsa-tr-sub{color: var(--azsa-muted); font-weight:800; font-size:.8rem;}
-.azsa-tr.up{border-color: rgba(16,185,129,.35); color: var(--azsa-success);}
-.azsa-tr.down{border-color: rgba(245,158,11,.35); color: var(--azsa-warn);}
-.azsa-tr.warn{border-color: rgba(245,158,11,.35); color: var(--azsa-warn);}
-.azsa-tr.flat{opacity:.9;}
 
-.azsa-kpi-warn{background: radial-gradient(800px 200px at 0% 0%, rgba(245,158,11,.10), transparent 55%), var(--azsa-surface);}
-.azsa-kpi-soft{background: radial-gradient(800px 200px at 0% 0%, rgba(59,130,246,.10), transparent 55%), var(--azsa-surface);}
+.azsa-kpi-warn{
+  background: radial-gradient(800px 220px at 0% 0%, rgba(245,158,11,.12), transparent 55%), var(--az-surface);
+}
+.azsa-kpi-soft{
+  background: radial-gradient(800px 220px at 0% 0%, rgba(59,130,246,.10), transparent 55%), var(--az-surface);
+}
 
-/* PANELS */
+/* =========================
+   PANELS + CARDS (FIX OVERLAP)
+========================= */
+
+/* ✅ IMPORTANT: pas de colonne fixe "420px" qui casse en écrans moyens.
+   On utilise minmax() + breakpoint plus tôt. */
 .azsa-panels{
   display:grid;
-  grid-template-columns: 1.3fr 1fr;
-  gap:12px;
+  grid-template-columns: minmax(360px, 460px) minmax(0, 1fr);
+  gap:16px;
+  align-items: stretch;
+  margin-bottom: 1.25rem;
 }
-@media (max-width: 1100px){
-  .azsa-panels{grid-template-columns: 1fr;}
+
+/* ✅ breakpoint plus tôt pour éviter l’overlap (comme ta capture en light) */
+@media (max-width: 1180px){
+  .azsa-panels{ grid-template-columns: 1fr; }
 }
 
 .azsa-card{
-  border:1px solid var(--azsa-border);
-  background: var(--azsa-surface);
-  border-radius: var(--azsa-radius2);
-  box-shadow: var(--azsa-shadow);
-  padding:14px;
+  background: var(--az-surface);
+  border-radius: var(--az-radius-lg);
+  border: 1px solid var(--az-border);
+  padding: 14px;
+  box-shadow: var(--az-shadow);
+  display:flex;
+  flex-direction: column;
+  min-width: 0;
 }
+
 .azsa-card-head{
   display:flex;
-  align-items:center;
   justify-content:space-between;
+  align-items:center;
   gap:10px;
-  padding-bottom:12px;
-  border-bottom:1px solid var(--azsa-border);
-  margin-bottom:12px;
+  padding-bottom: 12px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--az-border);
 }
 .azsa-card-head h3{
   margin:0;
-  font-size:1.02rem;
-  font-weight:900;
-  color: var(--azsa-text);
-  display:flex; align-items:center; gap:10px;
+  font-size: 1.02rem;
+  font-weight: 950;
+  display:flex;
+  align-items:center;
+  gap:.55rem;
 }
-.azsa-card-head h3 i{color: var(--azsa-primary);}
+.azsa-card-head h3 i{color: var(--az-primary);}
+
 .azsa-badge{
-  padding:6px 10px;
-  border-radius:999px;
-  border:1px solid var(--azsa-border);
-  background: var(--azsa-surface2);
-  color: var(--azsa-muted);
-  font-weight:900;
-  font-size:.82rem;
-}
-.azsa-card-actions{display:flex; gap:10px; align-items:center;}
-.azsa-select{
-  padding:8px 10px;
-  border-radius:12px;
-  border:1px solid var(--azsa-border);
-  background: var(--azsa-surface2);
-  color: var(--azsa-text);
-  font-weight:800;
-}
-.azsa-select:focus{
-  outline:none;
-  border-color: rgba(168,85,247,.55);
-  box-shadow: 0 0 0 3px rgba(168,85,247,.18);
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--az-border);
+  background: var(--az-surface-soft);
+  color: var(--az-text-muted);
+  font-weight: 950;
+  font-size: .82rem;
 }
 
-/* HEALTH */
+/* Select (chartPeriod etc.) */
+.azsa-select{
+  padding: .55rem .7rem;
+  border-radius: 12px;
+  border: 1px solid var(--az-border);
+  background: var(--az-surface-soft);
+  color: var(--az-text-main);
+  font-weight: 900;
+  height: 38px;
+  min-width: 120px;
+}
+
+/* Fix dropdown select dark (AZ NEBULA) */
+html[data-theme="dark"] select,
+html[data-theme="dark"] .azsa-select{
+  color-scheme: dark;
+}
+html[data-theme="dark"] option,
+html[data-theme="dark"] optgroup{
+  background: #0b1220;
+  color: #e5e7eb;
+}
+
+/* =========================
+   SANTÉ & ALERTES (FIX GRID)
+========================= */
+
+/* ✅ Le vrai fix de ta capture:
+   - en écran moyen, 3 colonnes ne rentrent pas -> on passe en 2 colonnes puis 1
+*/
 .azsa-health-grid{
   display:grid;
-  grid-template-columns: repeat(3, minmax(0,1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap:12px;
+  margin-bottom:14px;
+}
+
+/* si la carte gauche est un peu serrée -> 2 colonnes */
+@media (max-width: 520px){
+  .azsa-health-grid{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+/* très petit -> 1 colonne */
+@media (max-width: 380px){
+  .azsa-health-grid{ grid-template-columns: 1fr; }
+}
+
+.azsa-health{
+  border:1px solid var(--az-border);
+  background: var(--az-surface-soft);
+  border-radius: 14px;
+  padding:12px;
+  min-height: 92px;
+  display:flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.azsa-health-top{
+  display:flex;
+  justify-content:space-between;
+  align-items:baseline;
   gap:10px;
-  margin-bottom:12px;
+}
+
+.azsa-health-label{
+  font-size: .82rem;
+  font-weight: 950;
+  color: var(--az-text-muted);
+}
+
+.azsa-health-val{
+  font-weight: 950;
+  color: var(--az-text-main);
+  white-space: nowrap;
+}
+
+.azsa-health-sub{
+  margin-top: 8px;
+  font-size: .85rem;
+  color: var(--az-text-muted);
+  display:flex;
+  align-items:center;
+  gap:.45rem;
+  font-weight: 900;
+}
+
+.azsa-health-warn{
+  background: radial-gradient(700px 160px at 0% 0%, rgba(245,158,11,.14), transparent 55%), var(--az-surface-soft);
+  border-color: rgba(245,158,11,.25);
+}
+
+/* =========================
+   QUICK LINKS (3 cartes)
+========================= */
+.azsa-quick{
+  display:grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap:12px;
+  margin-top: auto;
 }
 @media (max-width: 780px){
-  .azsa-health-grid{grid-template-columns: 1fr;}
+  .azsa-quick{ grid-template-columns: 1fr; }
 }
-.azsa-health{
-  border:1px solid var(--azsa-border);
-  background: var(--azsa-surface2);
-  border-radius: 16px;
-  padding:12px;
-}
-.azsa-health-top{display:flex; justify-content:space-between; gap:10px; align-items:baseline;}
-.azsa-health-label{color: var(--azsa-muted); font-weight:900; font-size:.82rem;}
-.azsa-health-val{color: var(--azsa-text); font-weight:900;}
-.azsa-health-sub{margin-top:8px; color: var(--azsa-muted); display:flex; gap:8px; align-items:center; font-weight:800; font-size:.85rem;}
-.azsa-health-warn{background: radial-gradient(700px 160px at 0% 0%, rgba(245,158,11,.14), transparent 55%), var(--azsa-surface2);}
 
-/* QUICK LINKS */
-.azsa-quick{display:grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap:10px;}
-@media (max-width: 780px){.azsa-quick{grid-template-columns:1fr;}}
 .azsa-q{
-  display:flex; align-items:center; gap:12px;
-  padding:12px;
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding: 14px;
+  background: var(--az-surface);
+  border: 1px solid var(--az-border);
   border-radius: 18px;
-  border:1px solid var(--azsa-border);
-  background: var(--azsa-surface);
   text-decoration:none;
   color: inherit;
-  transition: var(--azsa-tr);
+  transition: var(--az-tr);
+  min-height: 86px;
+  min-width: 0;
 }
-.azsa-q:hover{transform: translateY(-2px); border-color: rgba(99,102,241,.35); box-shadow: var(--azsa-shadow2);}
-.azsa-q i{color: var(--azsa-primary); font-size:1.05rem;}
-.azsa-q-title{font-weight:900; color: var(--azsa-text);}
-.azsa-q-sub{font-weight:800; color: var(--azsa-muted); font-size:.85rem;}
-.azsa-q-go{margin-left:auto; opacity:.7}
+.azsa-q:hover{
+  transform: translateY(-2px);
+  box-shadow: var(--az-shadow-lg);
+  border-color: rgba(99,102,241,.35);
+  background: var(--az-surface-2);
+}
+.azsa-q i:first-child{color: var(--az-primary); font-size: 1.10rem;}
+.azsa-q-title{font-weight: 950;}
+.azsa-q-sub{font-weight: 900; color: var(--az-text-muted); font-size: .85rem;}
+.azsa-q-go{margin-left:auto; opacity:.7;}
 
-/* CHART */
-.azsa-chart{position:relative; height: 320px;}
+/* =========================
+   CHART
+========================= */
+.azsa-card-actions{
+  display:flex;
+  gap:10px;
+  align-items:center;
+}
+.azsa-chart{
+  height: 320px;
+  min-height: 320px;
+  position: relative;
+}
+@media (max-width: 1100px){
+  .azsa-chart{ height: 280px; min-height: 280px; }
+}
+@media (max-width: 520px){
+  .azsa-chart{ height: 240px; min-height: 240px; }
+}
 
-/* ACTIVITY */
+/* =========================
+   ACTIVITY / TABS / LIST
+========================= */
 .azsa-activity{
   display:grid;
   grid-template-columns: 1.6fr 1fr;
   gap:12px;
 }
-@media (max-width: 1100px){.azsa-activity{grid-template-columns:1fr;}}
-.azsa-tabs{display:flex; gap:8px; flex-wrap:wrap;}
-.azsa-tab{
-  border:none;
-  cursor:pointer;
-  padding:8px 12px;
+@media (max-width: 1100px){
+  .azsa-activity{grid-template-columns:1fr;}
+}
+
+.azsa-tabs{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  padding: 6px;
   border-radius: 999px;
-  font-weight:900;
-  color: var(--azsa-muted);
-  background: var(--azsa-surface2);
-  border:1px solid var(--azsa-border);
-  transition: var(--azsa-tr);
+  border: 1px solid var(--az-border);
+  background: var(--az-surface-soft);
+}
+.azsa-tab{
+  padding: .45rem .85rem;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: transparent;
+  font-weight: 950;
+  cursor:pointer;
+  color: var(--az-text-muted);
+  transition: var(--az-tr);
+}
+.azsa-tab:hover{
+  background: var(--az-surface);
+  border-color: var(--az-border);
 }
 .azsa-tab.active{
   color:#fff;
   border-color: rgba(99,102,241,.35);
   background: linear-gradient(135deg, rgba(99,102,241,.95), rgba(168,85,247,.92));
 }
-.azsa-tabpanel{display:none;}
-.azsa-tabpanel.active{display:block;}
 
 .azsa-table-head{
   display:flex;
-  align-items:center;
   justify-content:space-between;
+  align-items:center;
   gap:10px;
-  padding:10px 0 12px;
+  padding: 10px 0 12px;
+  border-bottom: 1px solid var(--az-border);
+  margin-bottom: 10px;
+  font-weight: 950;
 }
+
 .azsa-link{
+  color: var(--az-primary);
   text-decoration:none;
-  font-weight:900;
-  color: var(--azsa-primary);
+  font-weight: 950;
+  font-size: .85rem;
   display:inline-flex;
   align-items:center;
-  gap:8px;
+  gap:.4rem;
 }
-.azsa-link:hover{filter:brightness(1.05);}
+.azsa-link:hover{filter: brightness(1.05);}
 
 .azsa-list{display:flex; flex-direction:column; gap:10px;}
+
 .azsa-row{
   display:flex;
   justify-content:space-between;
-  gap:12px;
   align-items:center;
-  padding:12px;
-  border:1px solid var(--azsa-border);
+  gap:12px;
+  padding: 12px;
   border-radius: 18px;
-  background: var(--azsa-surface2);
-  transition: var(--azsa-tr);
+  border: 1px solid var(--az-border);
+  background: var(--az-surface-soft);
+  transition: var(--az-tr);
+  min-width: 0;
 }
-.azsa-row:hover{background: var(--azsa-surface3); border-color: rgba(99,102,241,.30);}
-
+.azsa-row:hover{
+  background: var(--az-surface-2);
+  border-color: rgba(99,102,241,.30);
+}
 .azsa-row-left{display:flex; align-items:center; gap:12px; min-width:0;}
+
 .azsa-avatar{
   width:40px; height:40px;
   border-radius: 14px;
-  display:flex; align-items:center; justify-content:center;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight: 950;
   background: linear-gradient(135deg, rgba(99,102,241,.95), rgba(168,85,247,.90));
   color:#fff;
-  font-weight:900;
-  flex:0 0 auto;
 }
 .azsa-avatar-warn{
   background: linear-gradient(135deg, rgba(245,158,11,.95), rgba(239,68,68,.85));
 }
+
 .azsa-row-info{min-width:0;}
 .azsa-row-title{
-  font-weight:900;
-  color: var(--azsa-text);
+  font-weight: 950;
   white-space:nowrap;
   overflow:hidden;
   text-overflow:ellipsis;
 }
 .azsa-row-sub{
-  margin-top:2px;
-  color: var(--azsa-muted);
-  font-weight:800;
-  font-size:.85rem;
+  font-size: .85rem;
+  font-weight: 900;
+  color: var(--az-text-muted);
   white-space:nowrap;
   overflow:hidden;
   text-overflow:ellipsis;
 }
 
-.azsa-row-right{display:flex; gap:12px; align-items:center;}
+.azsa-row-right{display:flex; align-items:center; gap:12px; min-width:0;}
 .azsa-amt{display:flex; flex-direction:column; align-items:flex-end;}
-.azsa-amt-val{font-weight:900; color: var(--azsa-text);}
-.azsa-amt-warn{color: var(--azsa-warn);}
-.azsa-amt-sub{font-weight:800; color: var(--azsa-muted); font-size:.82rem;}
+.azsa-amt-val{font-weight: 950;}
+.azsa-amt-warn{color: var(--az-danger);}
+.azsa-amt-sub{font-size: .82rem; font-weight: 900; color: var(--az-text-muted);}
 
-.azsa-badges{display:flex; gap:8px;}
+.azsa-badges{display:flex; gap:8px; flex-wrap:wrap;}
 .azsa-badge-mode{
-  display:inline-flex;
-  align-items:center;
-  gap:8px;
-  padding:7px 10px;
+  padding: 7px 10px;
   border-radius: 999px;
-  border:1px solid var(--azsa-border);
-  background: var(--azsa-surface);
-  font-weight:900;
-  font-size:.82rem;
-  color: var(--azsa-muted);
-}
-.azsa-badge-mode.especes,
-.azsa-badge-mode.cheque,
-.azsa-badge-mode.virement,
-.azsa-badge-mode.carte{
-  color: var(--azsa-primary);
-  border-color: rgba(99,102,241,.25);
-  background: linear-gradient(180deg, rgba(99,102,241,.12), rgba(168,85,247,.06));
-}
-
-.azsa-badge-ok{
-  padding:7px 10px;
-  border-radius:999px;
-  border:1px solid rgba(16,185,129,.35);
-  background: rgba(16,185,129,.10);
-  color: var(--azsa-success);
-  font-weight:900;
-  font-size:.82rem;
-}
-.azsa-badge-warn{
-  padding:7px 10px;
-  border-radius:999px;
-  border:1px solid rgba(245,158,11,.35);
-  background: rgba(245,158,11,.12);
-  color: var(--azsa-warn);
-  font-weight:900;
-  font-size:.82rem;
-}
-.azsa-badge-soft{
-  padding:7px 10px;
-  border-radius:999px;
-  border:1px solid var(--azsa-border);
-  background: var(--azsa-surface);
-  color: var(--azsa-muted);
-  font-weight:900;
-  font-size:.82rem;
-}
-
-.azsa-actions-mini{display:flex; gap:8px;}
-.azsa-icbtn{
-  width:38px; height:38px;
-  border-radius: 12px;
-  border:1px solid var(--azsa-border);
-  background: var(--azsa-surface);
-  display:flex; align-items:center; justify-content:center;
-  color: var(--azsa-muted);
-  text-decoration:none;
-  transition: var(--azsa-tr);
-}
-.azsa-icbtn:hover{background: linear-gradient(135deg, rgba(99,102,241,.95), rgba(168,85,247,.92)); color:#fff; border-color: rgba(99,102,241,.35);}
-
-.azsa-empty{
-  padding:26px 10px;
-  display:flex; flex-direction:column;
-  align-items:center;
-  justify-content:center;
-  gap:10px;
-  color: var(--azsa-muted);
-  font-weight:900;
-}
-.azsa-empty i{font-size:1.5rem; opacity:.6;}
-
-/* PRESENCE */
-.azsa-pres-grid{
-  display:grid;
-  grid-template-columns: repeat(4, minmax(0,1fr));
-  gap:10px;
-}
-@media (max-width: 780px){.azsa-pres-grid{grid-template-columns: repeat(2, minmax(0,1fr));}}
-@media (max-width: 520px){.azsa-pres-grid{grid-template-columns: 1fr;}}
-.azsa-pres{
-  border:1px solid var(--azsa-border);
-  background: var(--azsa-surface2);
-  border-radius: 18px;
-  padding:12px;
-  text-align:center;
-}
-.azsa-pres-top{
-  font-weight:900;
-  display:flex; gap:8px; align-items:center; justify-content:center;
-  padding-bottom:10px;
-  border-bottom:1px solid var(--azsa-border);
-  margin-bottom:10px;
-  color: var(--azsa-muted);
-}
-.azsa-pres-top.ok{color: var(--azsa-success);}
-.azsa-pres-top.bad{color: var(--azsa-danger);}
-.azsa-pres-top.warn{color: var(--azsa-warn);}
-.azsa-pres-top.soft{color: var(--azsa-primary);}
-.azsa-pres-val{font-size:1.4rem; font-weight:900; color: var(--azsa-text);}
-.azsa-pres-sub{margin-top:6px; font-weight:900; color: var(--azsa-muted);}
-
-.azsa-pres-actions{display:flex; gap:10px; margin-top:12px;}
-@media (max-width: 520px){.azsa-pres-actions{flex-direction:column;}}
-.azsa-pres-actions .azsa-btn{justify-content:center; flex:1;}
-.azsa-tr.new{
+  border: 1px solid var(--az-border);
+  background: var(--az-surface);
+  font-weight: 950;
+  font-size: .78rem;
+  color: var(--az-text-muted);
   display:inline-flex;
   align-items:center;
-  gap:.4rem;
-  padding:.25rem .6rem;
-  border-radius:999px;
-  font-weight:700;
-  font-size:.85rem;
-  border:1px solid rgba(167,139,250,.35);
-  background:rgba(167,139,250,.12);
-  color:#c4b5fd;
-}
-.azsa-btn.is-loading {
-  opacity: .75;
-  pointer-events: none;
-  filter: saturate(.9);
+  gap:.45rem;
 }
 .azsa-badge-mode.tx{
   background: rgba(99,102,241,.12);
-  border: 1px solid rgba(99,102,241,.25);
+  border-color: rgba(99,102,241,.25);
   color: #a5b4fc;
 }
 .azsa-badge-mode.old{
   background: rgba(16,185,129,.10);
-  border: 1px solid rgba(16,185,129,.22);
+  border-color: rgba(16,185,129,.22);
   color: #6ee7b7;
+}
+
+/* =========================
+   PRESENCE GRID
+========================= */
+.azsa-pres-grid{
+  display:grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap:10px;
+  margin-bottom: 12px;
+}
+@media (max-width: 780px){
+  .azsa-pres-grid{grid-template-columns: repeat(2, minmax(0, 1fr));}
+}
+@media (max-width: 520px){
+  .azsa-pres-grid{grid-template-columns:1fr;}
+}
+.azsa-pres{
+  padding: 12px;
+  background: var(--az-surface-soft);
+  border-radius: 18px;
+  border: 1px solid var(--az-border);
+  text-align:center;
+}
+.azsa-pres-top{
+  font-size: .82rem;
+  font-weight: 950;
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--az-border);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:.4rem;
+  color: var(--az-text-muted);
+}
+.azsa-pres-top.ok{color: var(--az-success);}
+.azsa-pres-top.bad{color: var(--az-danger);}
+.azsa-pres-top.warn{color: var(--az-warning);}
+.azsa-pres-top.soft{color: var(--az-primary);}
+
+.azsa-pres-val{font-size: 1.45rem; font-weight: 950;}
+.azsa-pres-sub{font-size:.82rem; font-weight: 900; color: var(--az-text-muted);}
+
+.azsa-pres-actions{
+  display:flex;
+  gap:10px;
+  margin-top: 12px;
+}
+@media (max-width: 520px){
+  .azsa-pres-actions{flex-direction:column;}
+}
+.azsa-pres-actions .azsa-btn{justify-content:center; flex:1;}
+
+/* =========================
+   RESPONSIVE GLOBAL
+========================= */
+@media (max-width: 900px){
+  .azsa-hero{flex-direction:column; align-items:flex-start;}
+  .azsa-hero-right{align-items:flex-start; width:100%;}
+  .azsa-actions{width:100%; justify-content:flex-start;}
+  .azsa-btn{flex:1; justify-content:center;}
+  .azsa-title{font-size: 1.55rem;}
+}
+
+@media (max-width: 768px){
+  .azsa{padding: 1rem;}
+  .azsa-row{flex-direction:column; align-items:flex-start;}
+  .azsa-row-right{width:100%; justify-content:space-between;}
+  .azsa-amt{align-items:flex-start;}
+}
+
+/* =========================
+   EMPTY
+========================= */
+.azsa-empty{
+  padding: 26px 10px;
+  text-align:center;
+  color: var(--az-text-muted);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:10px;
+  font-weight: 950;
+}
+.azsa-empty i{font-size: 2.2rem; opacity:.35;}
+
+/* =========================
+   TABS: show/hide panels
+========================= */
+.azsa-tabpanel{ display:none; }
+.azsa-tabpanel.active{
+  display:block;
+  animation: azsaFadeIn .18s ease-out;
+}
+@keyframes azsaFadeIn{
+  from{ opacity:0; transform: translateY(4px); }
+  to{ opacity:1; transform: translateY(0); }
+}
+/* =========================================================
+   FINAL FIX — Santé & alertes (valeurs coupées) + Panels width
+   Colle tout en bas de superadmin.css
+   ========================================================= */
+
+/* 1) Colonne gauche un peu plus large (évite le cut “2025/20…”) */
+.azsa-panels{
+  grid-template-columns: clamp(460px, 36vw, 560px) 1fr; /* + large, reste responsive */
+  gap: 16px;
+  align-items: stretch;
+}
+@media (max-width: 1100px){
+  .azsa-panels{ grid-template-columns: 1fr; }
+}
+
+/* 2) Empêche les enfants flex/grid de “déborder” (cause #1 des textes coupés) */
+.azsa-card,
+.azsa-health-grid,
+.azsa-health{
+  min-width: 0;
+}
+
+/* 3) Santé: autoriser le wrap + alignement propre */
+.azsa-health-top{
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;          /* ✅ si ça manque de place, ça passe à la ligne */
+}
+
+/* 4) Valeurs: pas de coupe, taille fluide, wrap autorisé */
+.azsa-health-val{
+  font-size: clamp(1.02rem, 1.15vw, 1.18rem);
+  font-weight: 950;
+  line-height: 1.15;
+  white-space: normal;      /* ✅ au lieu de forcer une seule ligne */
+  overflow: visible;
+  text-overflow: clip;
+  word-break: break-word;
+  text-align: right;
+}
+
+/* 5) Labels: un peu plus compacts pour gagner de la place */
+.azsa-health-label{
+  font-size: .82rem;
+  font-weight: 950;
+  line-height: 1.2;
+}
+
+/* 6) Sous-ligne (Config scolaire / 100% atteint / Relances…) */
+.azsa-health-sub{
+  margin-top: 8px;
+  font-size: .84rem;
+  font-weight: 900;
+  line-height: 1.25;
+  white-space: normal;      /* ✅ wrap autorisé */
+}
+
+/* 7) Cartes santé: hauteur stable + padding cohérent */
+.azsa-health{
+  padding: 14px;
+  min-height: 104px;        /* ✅ évite le “saut” entre cartes */
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+/* 8) Sur petits écrans: empilement propre */
+@media (max-width: 900px){
+  .azsa-health-grid{ grid-template-columns: 1fr; }
+  .azsa-quick{ grid-template-columns: 1fr; }
+}
+
+/* 9) Bonus: si tu veux éviter que la valeur “MAD” casse mal */
+.azsa-health-val,
+.azsa-kpi-val{
+  font-variant-numeric: tabular-nums; /* chiffres alignés (pro) */
+}
+/* =========================================================
+   FINAL FIX — Quick cards (Paiements / Impayés mensuels / Recouvrement)
+   Objectif: icône à gauche, texte au centre, flèche alignée à droite
+   ========================================================= */
+
+.azsa-quick{
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+@media (max-width: 780px){
+  .azsa-quick{ grid-template-columns: 1fr; }
+}
+
+/* La carte */
+.azsa-q{
+  position: relative;
+  display: grid;
+  grid-template-columns: 44px 1fr 28px; /* icône | texte | flèche */
+  align-items: center;
+  gap: 12px;
+
+  padding: 14px 14px;
+  border-radius: 18px;
+  border: 1px solid var(--az-border);
+  background: linear-gradient(180deg, var(--az-surface), var(--az-surface-soft));
+  box-shadow: none;
+  min-height: 84px;
+
+  text-decoration: none;
+  color: inherit;
+  transition: var(--az-tr);
+  min-width: 0;
+}
+
+.azsa-q:hover{
+  transform: translateY(-2px);
+  border-color: rgba(99,102,241,.35);
+  box-shadow: var(--az-shadow-lg);
+}
+
+/* Icône gauche (le 1er <i>) */
+.azsa-q i:first-child{
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  font-size: 1.1rem;
+  color: #fff;
+  background: linear-gradient(135deg, rgba(99,102,241,.95), rgba(168,85,247,.90));
+  box-shadow: 0 12px 26px rgba(2,6,23,.18);
+}
+
+/* Texte au milieu */
+.azsa-q > div{
+  min-width: 0;
+}
+
+.azsa-q-title{
+  font-weight: 950;
+  font-size: .98rem;
+  line-height: 1.15;
+  margin: 0;
+}
+
+.azsa-q-sub{
+  margin-top: 6px;
+  font-weight: 900;
+  font-size: .85rem;
+  color: var(--az-text-muted);
+  line-height: 1.2;
+}
+
+/* Flèche à droite (le .azsa-q-go) */
+.azsa-q-go{
+  justify-self: end;
+  width: 28px;
+  height: 28px;
+  border-radius: 10px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  color: var(--az-text-muted);
+  background: rgba(148,163,184,.12);
+  border: 1px solid var(--az-border);
+  transition: var(--az-tr);
+}
+
+.azsa-q:hover .azsa-q-go{
+  color: #fff;
+  background: linear-gradient(135deg, rgba(99,102,241,.95), rgba(168,85,247,.90));
+  border-color: rgba(99,102,241,.35);
+}
+
+/* Dark: un peu plus profond */
+html[data-theme="dark"] .azsa-q{
+  background: linear-gradient(180deg, rgba(11,18,32,.95), rgba(15,23,42,.92));
+}
+html[data-theme="dark"] .azsa-q-go{
+  background: rgba(148,163,184,.10);
+}
+/* =========================================================
+   PATCH FINAL — QUICK CARDS (Light + Dark) ✅
+   Fix conflits anciens blocs .azsa-q / .azsa-q-go / i:first-child
+   Colle tout en bas de superadmin.css
+   ========================================================= */
+
+.azsa-quick{
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 12px !important;
+}
+
+@media (max-width: 780px){
+  .azsa-quick{ grid-template-columns: 1fr !important; }
+}
+
+/* Carte */
+.azsa-quick .azsa-q{
+  display: grid !important;
+  grid-template-columns: 44px 1fr 32px !important; /* icône | texte | flèche */
+  align-items: center !important;
+  column-gap: 12px !important;
+
+  padding: 14px !important;
+  min-height: 86px !important;
+  border-radius: 18px !important;
+
+  border: 1px solid var(--az-border) !important;
+  background: linear-gradient(180deg, var(--az-surface), var(--az-surface-soft)) !important;
+
+  text-decoration: none !important;
+  color: inherit !important;
+  transition: var(--az-tr) !important;
+
+  min-width: 0 !important;
+  box-shadow: none !important;
+}
+
+.azsa-quick .azsa-q:hover{
+  transform: translateY(-2px) !important;
+  border-color: rgba(99,102,241,.35) !important;
+  box-shadow: var(--az-shadow-lg) !important;
+}
+
+/* Icône gauche (1er i) */
+.azsa-quick .azsa-q > i:first-child{
+  width: 44px !important;
+  height: 44px !important;
+  border-radius: 14px !important;
+
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  font-size: 1.1rem !important;
+  color: #fff !important;
+
+  background: linear-gradient(135deg, rgba(99,102,241,.95), rgba(168,85,247,.90)) !important;
+  box-shadow: 0 12px 26px rgba(2,6,23,.12) !important;
+}
+
+/* Bloc texte (le div du milieu) */
+.azsa-quick .azsa-q > div{
+  min-width: 0 !important;
+  text-align: left !important;
+}
+
+.azsa-quick .azsa-q-title{
+  margin: 0 !important;
+  font-weight: 950 !important;
+  font-size: .98rem !important;
+  line-height: 1.15 !important;
+}
+
+.azsa-quick .azsa-q-sub{
+  margin-top: 6px !important;
+  font-weight: 900 !important;
+  font-size: .85rem !important;
+  line-height: 1.2 !important;
+  color: var(--az-text-muted) !important;
+}
+
+/* Flèche à droite (i.azsa-q-go) */
+.azsa-quick .azsa-q-go{
+  margin-left: 0 !important;          /* ✅ annule l'ancien "margin-left:auto" */
+  justify-self: end !important;
+
+  width: 32px !important;
+  height: 32px !important;
+  border-radius: 12px !important;
+
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  color: var(--az-text-muted) !important;
+  background: rgba(148,163,184,.14) !important;
+  border: 1px solid var(--az-border) !important;
+
+  transition: var(--az-tr) !important;
+}
+
+.azsa-quick .azsa-q:hover .azsa-q-go{
+  color: #fff !important;
+  background: linear-gradient(135deg, rgba(99,102,241,.95), rgba(168,85,247,.90)) !important;
+  border-color: rgba(99,102,241,.35) !important;
+}
+
+/* Dark: fond plus profond */
+html[data-theme="dark"] .azsa-quick .azsa-q{
+  background: linear-gradient(180deg, rgba(11,18,32,.95), rgba(15,23,42,.92)) !important;
+}
+html[data-theme="dark"] .azsa-quick .azsa-q-go{
+  background: rgba(148,163,184,.10) !important;
+}
+/* =========================================================
+   PATCH FINAL — SANTÉ (3 mini-cards du haut) ✅
+   Fix cut/overlap + responsive (3 -> 2 -> 1)
+   Colle tout en bas de superadmin.css
+   ========================================================= */
+
+/* 1) La grille Santé devient auto-fit (elle s’adapte toute seule) */
+.azsa-card .azsa-health-grid{
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)) !important;
+  gap: 12px !important;
+  margin-bottom: 14px !important;
+  min-width: 0 !important;
+}
+
+/* 2) La mini-card */
+.azsa-card .azsa-health{
+  min-width: 0 !important; /* ✅ évite le cut dans grid */
+  border: 1px solid var(--az-border) !important;
+  background: var(--az-surface-soft) !important;
+  border-radius: 16px !important;
+  padding: 14px !important;
+
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+
+  min-height: 104px !important;
+}
+
+/* 3) Ligne du haut (label + valeur) : autorise le retour à la ligne */
+.azsa-card .azsa-health-top{
+  display: flex !important;
+  align-items: baseline !important;
+  justify-content: space-between !important;
+  gap: 10px !important;
+  flex-wrap: wrap !important; /* ✅ */
+  min-width: 0 !important;
+}
+
+/* 4) Label */
+.azsa-card .azsa-health-label{
+  font-size: .82rem !important;
+  font-weight: 900 !important;
+  color: var(--az-text-muted) !important;
+  line-height: 1.2 !important;
+}
+
+/* 5) Valeur (ex: 14800,00 MAD / 2025/2026) : plus jamais coupée */
+.azsa-card .azsa-health-val{
+  font-weight: 950 !important;
+  color: var(--az-text-main) !important;
+  line-height: 1.15 !important;
+
+  /* ✅ le vrai fix : on enlève tout ce qui coupe */
+  white-space: normal !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  word-break: break-word !important;
+
+  /* ✅ taille fluide (évite “14800,00” trop grand en light) */
+  font-size: clamp(1.02rem, 1.1vw, 1.18rem) !important;
+
+  /* si tu veux aligner à droite quand ça wrap */
+  text-align: right !important;
+}
+
+/* 6) Sous-ligne (Config / 100% atteint / Relances) */
+.azsa-card .azsa-health-sub{
+  margin-top: 8px !important;
+  font-size: .84rem !important;
+  font-weight: 900 !important;
+  color: var(--az-text-muted) !important;
+  line-height: 1.25 !important;
+
+  white-space: normal !important; /* ✅ wrap autorisé */
+}
+
+/* 7) Bonus pro: chiffres alignés */
+.azsa-card .azsa-health-val{
+  font-variant-numeric: tabular-nums !important;
 }

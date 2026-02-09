@@ -1,54 +1,217 @@
 # core/views_finance.py
-# ✅ Version alignée avec ton wizard + impayés mensuels + fratrie + endpoints AJAX
+# ✅ FINAL — Finance AZ (Wizard + Impayés + Fratrie + Batch) + FILTRE ÉLÈVES INACTIFS (AJAX)
+from __future__ import annotations
 
-from decimal import Decimal
-
-from django.contrib.auth.decorators import login_required
-from django.db.models import Q, Sum, F, DecimalField, ExpressionWrapper
-from django.db.models.functions import Coalesce
-from django.http import JsonResponse
-from django.shortcuts import render, get_object_or_404
-from django.utils import timezone
-import json, uuid
-from decimal import Decimal
-from django.contrib import messages
-from django.db import transaction
-from django.shortcuts import get_object_or_404, redirect
-from django.contrib.auth.decorators import login_required
-from accounts.decorators import group_required
+import json
+import uuid
 from decimal import Decimal, InvalidOperation
+
 from django.contrib import messages
-from django.shortcuts import redirect
+from django.contrib.auth.decorators import login_required, permission_required
+from django.db import transaction
+from django.db.models import (
+    Q, Sum, F, Value, Exists, OuterRef,
+    DecimalField, BooleanField, Case, When
+)
+from django.db.models.functions import Coalesce
+from django.http import JsonResponse, HttpResponse
+from django.shortcuts import get_object_or_404, redirect, render
+
+from accounts.permissions import group_required
+from core.services.parents import get_primary_parent_for_eleve
 
 from core.models import (
-    Inscription, EcheanceMensuelle,
-    EcheanceTransportMensuelle, EleveTransport,
-    TransactionFinance, TransactionLigne
+    AnneeScolaire,
+    Niveau, Groupe,
+    Eleve, Inscription,
+    EcheanceMensuelle,
+    EleveTransport, EcheanceTransportMensuelle,
+    Parent, ParentEleve,
+    TransactionFinance, TransactionLigne,
+    RemboursementFinance,
 )
-from accounts.permissions import group_required  # ✅ IMPORTANT (pas core.permissions)
-
-from core.models import (
-    AnneeScolaire, Inscription, EcheanceMensuelle, Paiement, PaiementLigne,
-    Niveau, Groupe, Periode, Eleve
-)
-
-# si tu as ParentEleve dans core.models, laisse comme ça
-from core.models import ParentEleve
-
-from .forms import PaiementForm
 
 
+# =========================================================
+# Helpers
+# =========================================================
+def _D(x, default=Decimal("0.00")) -> Decimal:
+    """
+    Decimal safe:
+    - accepte "1200", "1200,50", "1 200,50"
+    - refuse NaN/Inf
+    """
+    if x is None:
+        return default
+    s = str(x).strip()
+    if s == "":
+        return default
+    s_lower = s.lower()
+    if s_lower in {"nan", "+nan", "-nan", "inf", "+inf", "-inf", "infinity", "+infinity", "-infinity"}:
+        return default
+    s = s.replace(" ", "").replace("\u202f", "").replace("\u00a0", "")
+    s = s.replace(",", ".")
+    try:
+        return Decimal(s)
+    except (InvalidOperation, ValueError):
+        return default
 
+
+def _has_field(model, field_name: str) -> bool:
+    try:
+        model._meta.get_field(field_name)
+        return True
+    except Exception:
+        return False
+
+
+def _eleve_active_filter_q() -> Q:
+    """
+    ✅ Filtre robuste des élèves actifs selon ton modèle.
+    Champs essayés (dans cet ordre) :
+    - is_active (bool)
+    - actif (bool)
+    - is_actif (bool)
+    - statut (str) attendu "ACTIF"/"INACTIF" (si tu l’utilises)
+    """
+    if _has_field(Eleve, "is_active"):
+        return Q(eleve__is_active=True)
+    if _has_field(Eleve, "actif"):
+        return Q(eleve__actif=True)
+    if _has_field(Eleve, "is_actif"):
+        return Q(eleve__is_actif=True)
+    if _has_field(Eleve, "statut"):
+        # adapte si tu as "A"/"I" etc.
+        return Q(eleve__statut__in=["ACTIF", "Actif", "active", "ACTIVE"])
+    # si aucun champ trouvé -> on ne filtre pas (mais au moins ça ne casse pas)
+    return Q()
+
+
+def _eleve_is_active_obj(e: Eleve) -> bool:
+    """Même logique mais côté objet."""
+    if hasattr(e, "is_active"):
+        return bool(getattr(e, "is_active"))
+    if hasattr(e, "actif"):
+        return bool(getattr(e, "actif"))
+    if hasattr(e, "is_actif"):
+        return bool(getattr(e, "is_actif"))
+    if hasattr(e, "statut"):
+        return str(getattr(e, "statut") or "").upper() in {"ACTIF", "ACTIVE"}
+    return True
+
+
+def _parent_full_name(parent_obj) -> str:
+    """Parent peut être Parent(nom/prenom) ou User(first_name/last_name)."""
+    if not parent_obj:
+        return ""
+
+    nom = (getattr(parent_obj, "nom", "") or "").strip()
+    prenom = (getattr(parent_obj, "prenom", "") or "").strip()
+    if nom or prenom:
+        return f"{nom} {prenom}".strip()
+
+    first = (getattr(parent_obj, "first_name", "") or "").strip()
+    last = (getattr(parent_obj, "last_name", "") or "").strip()
+    if first or last:
+        return f"{last} {first}".strip()
+
+    return ""
+
+
+def _build_parent_map_from_eleve_ids(eleve_ids):
+    """Retourne { eleve_id: 'NOM Prénom' } en 1 requête."""
+    if not eleve_ids:
+        return {}
+
+    qs = (
+        ParentEleve.objects
+        .filter(eleve_id__in=list(set(eleve_ids)))
+        .select_related("parent")
+    )
+
+    mp = {}
+    for pe in qs:
+        label = _parent_full_name(getattr(pe, "parent", None))
+        if label:
+            mp[pe.eleve_id] = label
+    return mp
+
+
+def _annotate_refund_flags(qs):
+    """
+    Ajoute:
+    - montant_rembourse
+    - is_rembourse
+    - is_rembourse_partiel
+    - is_annulee_zero
+    """
+    qs = qs.prefetch_related("remboursements").annotate(
+        montant_rembourse=Coalesce(
+            Sum("remboursements__montant"),
+            Value(Decimal("0.00")),
+            output_field=DecimalField(max_digits=10, decimal_places=2),
+        ),
+        has_annulation=Exists(
+            RemboursementFinance.objects.filter(
+                transaction_id=OuterRef("pk"),
+                is_annulation=True
+            )
+        ),
+    ).annotate(
+        is_rembourse=Case(
+            When(
+                montant_total__gt=Value(Decimal("0.00")),
+                montant_rembourse__gte=F("montant_total"),
+                then=Value(True),
+            ),
+            default=Value(False),
+            output_field=BooleanField(),
+        ),
+        is_rembourse_partiel=Case(
+            When(
+                montant_total__gt=Value(Decimal("0.00")),
+                montant_rembourse__gt=Value(Decimal("0.00")),
+                montant_rembourse__lt=F("montant_total"),
+                then=Value(True),
+            ),
+            default=Value(False),
+            output_field=BooleanField(),
+        ),
+        is_annulee_zero=Case(
+            When(
+                montant_total=Value(Decimal("0.00")),
+                has_annulation=True,
+                then=Value(True),
+            ),
+            default=Value(False),
+            output_field=BooleanField(),
+        ),
+    )
+    return qs
+
+
+# =========================================================
+# 1) Détail finance inscription
+# =========================================================
 @login_required
 @group_required("SUPER_ADMIN", "ADMIN", "COMPTABLE")
 def inscription_finance_detail(request, inscription_id: int):
     insc = get_object_or_404(
-        Inscription.objects.select_related("eleve", "annee", "groupe", "groupe__niveau", "groupe__niveau__degre", "periode"),
+        Inscription.objects.select_related(
+            "eleve", "annee", "groupe", "groupe__niveau", "groupe__niveau__degre", "periode"
+        ),
         pk=inscription_id
     )
 
-    echeances = EcheanceMensuelle.objects.filter(eleve_id=insc.eleve_id, annee_id=insc.annee_id).order_by("mois_index")
-    paiements = insc.paiements.select_related("echeance").all()
+    echeances = (
+        EcheanceMensuelle.objects
+        .filter(eleve_id=insc.eleve_id, annee_id=insc.annee_id)
+        .order_by("mois_index")
+    )
+
+    # si tu as insc.paiements (relation), garde; sinon enlève
+    paiements = getattr(insc, "paiements", None)
+    paiements = paiements.select_related("echeance").all() if paiements is not None else []
 
     total_mensuel_du = sum((e.montant_du or Decimal("0.00")) for e in echeances)
     total_mensuel_paye = sum((e.montant_paye or Decimal("0.00")) for e in echeances)
@@ -56,7 +219,7 @@ def inscription_finance_detail(request, inscription_id: int):
 
     total_insc_du = insc.frais_inscription_du or Decimal("0.00")
     total_insc_paye = insc.frais_inscription_paye or Decimal("0.00")
-    total_insc_reste = insc.reste_inscription
+    total_insc_reste = getattr(insc, "reste_inscription", total_insc_du - total_insc_paye)
 
     total_global_du = total_insc_du + total_mensuel_du
     total_global_paye = total_insc_paye + total_mensuel_paye
@@ -80,9 +243,9 @@ def inscription_finance_detail(request, inscription_id: int):
     })
 
 
-# =========================
-# AJAX — Echeances pour wizard (format attendu par ton JS)
-# =========================
+# =========================================================
+# 2) AJAX — échéances pour wizard
+# =========================================================
 @login_required
 @group_required("SUPER_ADMIN", "ADMIN", "COMPTABLE", "SCOLARITE")
 def ajax_echeances(request):
@@ -99,6 +262,10 @@ def ajax_echeances(request):
         pk=int(insc_id)
     )
 
+    # ✅ sécurité: si élève inactif -> on renvoie vide
+    if not _eleve_is_active_obj(insc.eleve):
+        return JsonResponse({"items": [], "tarifs": {}}, status=200)
+
     qs = (
         EcheanceMensuelle.objects
         .filter(eleve_id=insc.eleve_id, annee_id=insc.annee_id)
@@ -112,7 +279,7 @@ def ajax_echeances(request):
         items.append({
             "id": e.id,
             "mois_index": int(e.mois_index),
-            "mois_nom": e.mois_nom,
+            "mois_nom": getattr(e, "mois_nom", str(e.mois_index)),
             "du": str(du),
             "is_paye": bool(is_paye),
             "statut": e.statut,
@@ -120,17 +287,17 @@ def ajax_echeances(request):
         })
 
     tarifs = {
-        "frais_scolarite_mensuel": str(insc.frais_scolarite_mensuel or Decimal("0.00")),
-        "reste_inscription": str(insc.reste_inscription or Decimal("0.00")),
-        "tarif_override": bool(insc.tarif_override),
+        "frais_scolarite_mensuel": str(getattr(insc, "frais_scolarite_mensuel", Decimal("0.00")) or Decimal("0.00")),
+        "reste_inscription": str(getattr(insc, "reste_inscription", Decimal("0.00")) or Decimal("0.00")),
+        "tarif_override": bool(getattr(insc, "tarif_override", False)),
     }
 
     return JsonResponse({"items": items, "tarifs": tarifs}, status=200)
 
 
-# =========================
-# API — Groupes par niveau (année active)
-# =========================
+# =========================================================
+# 3) API — groupes par niveau (année active)
+# =========================================================
 @login_required
 @group_required("SUPER_ADMIN", "ADMIN", "COMPTABLE", "SCOLARITE")
 def api_groupes_par_niveau(request):
@@ -161,15 +328,16 @@ def api_groupes_par_niveau(request):
     return JsonResponse({"results": results})
 
 
-# =========================
-# AJAX — Inscription by élève + fratrie
-# =========================
+# =========================================================
+# 4) AJAX — inscription by élève + fratrie (FILTRÉ actifs)
+# =========================================================
 @login_required
 @group_required("SUPER_ADMIN", "ADMIN", "COMPTABLE", "SCOLARITE")
 def ajax_inscription_by_eleve(request):
     """
     GET ?eleve_id=XX
     -> retourne inscription année active + fratrie (même parent)
+    ✅ Ne renvoie JAMAIS un élève inactif dans la fratrie
     """
     eleve_id = (request.GET.get("eleve_id") or "").strip()
     if not eleve_id.isdigit():
@@ -179,28 +347,51 @@ def ajax_inscription_by_eleve(request):
     if not annee_active:
         return JsonResponse({"inscription_id": None, "fratrie": []})
 
-    insc = (Inscription.objects
-            .select_related("groupe")
-            .filter(eleve_id=int(eleve_id), annee_id=annee_active.id)
-            .first())
+    # ✅ si l'élève est inactif -> rien
+    eleve = Eleve.objects.filter(id=int(eleve_id)).first()
+    if not eleve or not _eleve_is_active_obj(eleve):
+        return JsonResponse({"inscription_id": None, "fratrie": []})
 
-    parent_ids = ParentEleve.objects.filter(eleve_id=int(eleve_id)).values_list("parent_id", flat=True)
-    fratrie_ids = (ParentEleve.objects
-                   .filter(parent_id__in=parent_ids)
-                   .exclude(eleve_id=int(eleve_id))
-                   .values_list("eleve_id", flat=True)
-                   .distinct())
+    insc = (
+        Inscription.objects
+        .select_related("groupe")
+        .filter(eleve_id=int(eleve_id), annee_id=annee_active.id)
+        .first()
+    )
 
-    fratrie_qs = (Eleve.objects
-                  .filter(id__in=fratrie_ids)
-                  .order_by("nom", "prenom"))
+    parent_ids = (
+        ParentEleve.objects
+        .filter(eleve_id=int(eleve_id))
+        .values_list("parent_id", flat=True)
+    )
 
+    fratrie_ids = (
+        ParentEleve.objects
+        .filter(parent_id__in=parent_ids)
+        .exclude(eleve_id=int(eleve_id))
+        .values_list("eleve_id", flat=True)
+        .distinct()
+    )
+
+    fratrie_qs = (
+        Eleve.objects
+        .filter(id__in=fratrie_ids)
+        .order_by("nom", "prenom")
+    )
+
+    # ✅ filtre actifs
     fratrie = []
     for e in fratrie_qs:
-        insc2 = (Inscription.objects
-                 .filter(eleve_id=e.id, annee_id=annee_active.id)
-                 .select_related("groupe")
-                 .first())
+        if not _eleve_is_active_obj(e):
+            continue
+
+        insc2 = (
+            Inscription.objects
+            .filter(eleve_id=e.id, annee_id=annee_active.id)
+            .select_related("groupe")
+            .first()
+        )
+
         fratrie.append({
             "id": e.id,
             "matricule": e.matricule,
@@ -215,21 +406,27 @@ def ajax_inscription_by_eleve(request):
     })
 
 
-# =========================
-# API — Fratrie (liste simple)
-# =========================
+# =========================================================
+# 5) API — fratrie (FILTRÉ actifs)
+# =========================================================
 @login_required
 @group_required("SUPER_ADMIN", "ADMIN", "COMPTABLE", "SCOLARITE")
 def api_fratrie(request):
     """
     GET /core/api/fratrie/?eleve_id=XX
-    Retourne les élèves partageant au moins 1 parent.
+    -> {results:[{id,label,groupe}]}
+    ✅ Ne renvoie JAMAIS un élève inactif
     """
     eleve_id = (request.GET.get("eleve_id") or "").strip()
     if not eleve_id.isdigit():
         return JsonResponse({"results": []})
 
     eleve_id = int(eleve_id)
+
+    # ✅ refuse si élève inactif
+    e0 = Eleve.objects.filter(id=eleve_id).first()
+    if not e0 or not _eleve_is_active_obj(e0):
+        return JsonResponse({"results": []})
 
     parent_ids = list(
         ParentEleve.objects
@@ -263,6 +460,9 @@ def api_fratrie(request):
 
     results = []
     for e in Eleve.objects.filter(id__in=sib_ids).order_by("nom", "prenom"):
+        if not _eleve_is_active_obj(e):
+            continue
+
         insc = insc_map.get(e.id)
         groupe_label = ""
         if insc and insc.groupe:
@@ -277,9 +477,9 @@ def api_fratrie(request):
     return JsonResponse({"results": results})
 
 
-# =========================
-# Page raccourci — ouvrir wizard pré-rempli
-# =========================
+# =========================================================
+# 6) Page raccourci — ouvrir wizard pré-rempli
+# =========================================================
 @login_required
 @group_required("SUPER_ADMIN", "ADMIN", "COMPTABLE", "SCOLARITE")
 def paiements_eleve(request, eleve_id: int):
@@ -308,35 +508,16 @@ def paiements_eleve(request, eleve_id: int):
     })
 
 
-import json
-import uuid
-from decimal import Decimal
-
-from django.contrib import messages
-from django.contrib.auth.decorators import login_required
-from django.db import transaction
-from django.http import JsonResponse, HttpResponse
-from django.shortcuts import get_object_or_404, redirect, render
-
-from accounts.permissions import group_required
-
-from core.models import (
-    AnneeScolaire, Niveau, Groupe, Eleve, Inscription,
-    EcheanceMensuelle, ParentEleve,
-    TransactionFinance, TransactionLigne
-)
-
-from core.forms import PaiementForm  # on le garde pour validation payload (réutilisable)
-
-
+# =========================================================
+# 7) Wizard
+# =========================================================
 @login_required
-@group_required("SUPER_ADMIN", "ADMIN", "COMPTABLE", "SCOLARITE")
+@permission_required("core.view_transactionfinance", raise_exception=True)
 def transaction_wizard(request):
     niveaux = Niveau.objects.select_related("degre").order_by("degre__ordre", "ordre", "nom")
 
-    # ✅ NEW: prefill via inscription_id
     inscription_id = (request.GET.get("inscription_id") or "").strip()
-    type_pref = (request.GET.get("type") or "").strip().upper()  # INSCRIPTION/SCOLARITE/TRANSPORT/PACK
+    type_pref = (request.GET.get("type") or "").strip().upper()
 
     prefill = {
         "eleve_id": request.GET.get("eleve_id", ""),
@@ -347,67 +528,197 @@ def transaction_wizard(request):
     }
 
     if inscription_id.isdigit():
-        insc = (Inscription.objects
-                .select_related("eleve", "groupe", "groupe__niveau")
-                .filter(id=int(inscription_id))
-                .first())
-        if insc:
+        insc = (
+            Inscription.objects
+            .select_related("eleve", "groupe", "groupe__niveau")
+            .filter(id=int(inscription_id))
+            .first()
+        )
+        if insc and _eleve_is_active_obj(insc.eleve):
             prefill.update({
                 "eleve_id": str(insc.eleve_id),
                 "niveau_id": str(insc.groupe.niveau_id),
                 "groupe_id": str(insc.groupe_id),
             })
+        else:
+            # élève inactif => on ne préremplit pas
+            prefill.update({"eleve_id": "", "niveau_id": "", "groupe_id": "", "inscription_id": ""})
 
-    return render(request, "admin/paiements/wizard.html", {
-        "niveaux": niveaux,
-        "prefill": prefill
-    })
-
-
-# core/views_finance.py
-
-import json, uuid
-from decimal import Decimal, InvalidOperation
-
-from django.contrib import messages
-from django.contrib.auth.decorators import login_required
-from django.db import transaction
-from django.shortcuts import get_object_or_404, redirect
-
-from accounts.permissions import group_required
-
-from core.models import (
-    Inscription,
-    EcheanceMensuelle,
-    EleveTransport,
-    EcheanceTransportMensuelle,
-    TransactionFinance,
-    TransactionLigne,
-)
-
-def _D(x, default=Decimal("0.00")):
-    if x is None:
-        return default
-    s = str(x).strip()
-    if s == "":
-        return default
-    s_lower = s.lower()
-    if s_lower in {"nan", "+nan", "-nan", "inf", "+inf", "-inf", "infinity", "+infinity", "-infinity"}:
-        return default
-    s = s.replace(" ", "").replace("\u202f", "").replace("\u00a0", "")
-    s = s.replace(",", ".")
-    try:
-        return Decimal(s)
-    except (InvalidOperation, ValueError):
-        return default
+    return render(request, "admin/paiements/wizard.html", {"niveaux": niveaux, "prefill": prefill})
 
 
+# =========================================================
+# 8) APPLY HELPERS (partagés single/batch)
+# =========================================================
+def _apply_scolarite_for_insc(insc: Inscription, tx: TransactionFinance, payload_obj: dict) -> Decimal:
+    selected_ids = payload_obj.get("selected_ids") or []
+    prices = payload_obj.get("prices") or {}
+
+    ids_int = []
+    for x in selected_ids:
+        try:
+            ids_int.append(int(str(x).strip()))
+        except Exception:
+            pass
+    ids_int = list(dict.fromkeys(ids_int))
+    if not ids_int:
+        raise ValueError("Sélectionne au moins un mois scolarité.")
+
+    echeances = list(
+        EcheanceMensuelle.objects.select_for_update()
+        .filter(id__in=ids_int, eleve_id=insc.eleve_id, annee_id=insc.annee_id)
+        .order_by("mois_index")
+    )
+    if len(echeances) != len(ids_int):
+        raise ValueError("Certaines échéances scolarité ne correspondent pas à cet élève / année.")
+
+    total = Decimal("0.00")
+    for e in echeances:
+        if (e.montant_paye or Decimal("0.00")) > Decimal("0.00") or e.statut == "PAYE":
+            raise ValueError(f"{getattr(e, 'mois_nom', e.mois_index)} a déjà un paiement. (Pas de reprise)")
+
+        key = str(e.id)
+        m = _D(prices.get(key, e.montant_du), default=Decimal("0.00"))
+        if m < 0:
+            raise ValueError(f"Montant invalide pour {getattr(e, 'mois_nom', e.mois_index)}.")
+
+        TransactionLigne.objects.create(
+            transaction=tx,
+            echeance=e,
+            libelle=f"Scolarité — {getattr(e, 'mois_nom', e.mois_index)}",
+            montant=m
+        )
+
+        # ✅ m=0 accepté
+        e.montant_du = m
+        e.montant_paye = m
+        if hasattr(e, "refresh_statut"):
+            e.refresh_statut(save=False)
+        e.save(update_fields=["montant_du", "montant_paye", "statut"])
+
+        total += m
+
+    return total
+
+
+def _apply_transport_for_insc(insc: Inscription, tx: TransactionFinance, payload_obj: dict) -> Decimal:
+    cfg = EleveTransport.objects.filter(eleve_id=insc.eleve_id).first()
+    if not cfg or not cfg.enabled:
+        raise ValueError("Transport désactivé pour cet élève.")
+
+    selected_ids = payload_obj.get("selected_ids") or []
+    prices = payload_obj.get("prices") or {}
+
+    ids_int = []
+    for x in selected_ids:
+        try:
+            ids_int.append(int(str(x).strip()))
+        except Exception:
+            pass
+    ids_int = list(dict.fromkeys(ids_int))
+    if not ids_int:
+        raise ValueError("Sélectionne au moins un mois transport.")
+
+    echeances = list(
+        EcheanceTransportMensuelle.objects.select_for_update()
+        .filter(id__in=ids_int, eleve_id=insc.eleve_id, annee_id=insc.annee_id)
+        .order_by("mois_index")
+    )
+    if len(echeances) != len(ids_int):
+        raise ValueError("Certaines échéances transport ne correspondent pas à cet élève / année.")
+
+    total = Decimal("0.00")
+    for e in echeances:
+        if (e.montant_paye or Decimal("0.00")) > Decimal("0.00") or e.statut == "PAYE":
+            raise ValueError(f"Transport {getattr(e, 'mois_nom', e.mois_index)} a déjà un paiement. (Pas de reprise)")
+
+        key = str(e.id)
+        m = _D(prices.get(key, e.montant_du), default=Decimal("0.00"))
+        if m < 0:
+            raise ValueError(f"Montant invalide pour Transport {getattr(e, 'mois_nom', e.mois_index)}.")
+
+        TransactionLigne.objects.create(
+            transaction=tx,
+            echeance_transport=e,
+            libelle=f"Transport — {getattr(e, 'mois_nom', e.mois_index)}",
+            montant=m
+        )
+
+        # ✅ m=0 accepté
+        e.montant_du = m
+        e.montant_paye = m
+        if hasattr(e, "refresh_statut"):
+            e.refresh_statut(save=False)
+        e.save(update_fields=["montant_du", "montant_paye", "statut"])
+
+        total += m
+
+    return total
+
+
+def _apply_inscription_for_insc(insc: Inscription, tx: TransactionFinance, montant: Decimal) -> Decimal:
+    max_rest = getattr(insc, "reste_inscription", Decimal("0.00")) or Decimal("0.00")
+
+    if (getattr(insc, "frais_inscription_paye", Decimal("0.00")) or Decimal("0.00")) > Decimal("0.00"):
+        raise ValueError("Inscription déjà encaissée. Pas de reprise.")
+    if montant < 0 or montant > max_rest:
+        raise ValueError(f"Montant inscription invalide. Max = {max_rest} MAD.")
+
+    # ✅ protège: ne jamais mettre mensuel à 0 par erreur
+    current_mensuel = getattr(insc, "frais_scolarite_mensuel", Decimal("0.00")) or Decimal("0.00")
+    if hasattr(insc, "override_frais_scolarite_mensuel"):
+        if (getattr(insc, "override_frais_scolarite_mensuel") or Decimal("0.00")) <= Decimal("0.00"):
+            insc.override_frais_scolarite_mensuel = current_mensuel
+
+    insc.tarif_override = True
+    if hasattr(insc, "override_frais_inscription_du"):
+        insc.override_frais_inscription_du = montant
+    insc.frais_inscription_du = montant
+    insc.frais_inscription_paye = montant  # one-shot même 0
+    insc.save()
+
+    TransactionLigne.objects.create(
+        transaction=tx,
+        echeance=None,
+        libelle="Frais d'inscription",
+        montant=montant
+    )
+    return montant
+
+
+def _apply_pack_for_insc(insc: Inscription, tx: TransactionFinance, pack: dict) -> Decimal:
+    ins_on = bool(pack.get("ins_on", True))
+    sco_on = bool(pack.get("sco_on", True))
+    tr_on = bool(pack.get("tr_on", True))
+
+    total = Decimal("0.00")
+
+    if ins_on:
+        amt = _D(pack.get("ins_amount"), default=Decimal("0.00"))
+        total += _apply_inscription_for_insc(insc, tx, amt)
+
+    if sco_on:
+        total += _apply_scolarite_for_insc(insc, tx, pack.get("sco") or {})
+
+    if tr_on:
+        total += _apply_transport_for_insc(insc, tx, pack.get("tr") or {})
+
+    return total
+
+
+# =========================================================
+# 9) CREATE — Single ou Batch (fratrie)
+# =========================================================
 @login_required
-@group_required("SUPER_ADMIN", "ADMIN", "COMPTABLE", "SCOLARITE")
+@permission_required("core.add_transactionfinance", raise_exception=True)
 @transaction.atomic
 def transaction_create(request):
     if request.method != "POST":
         return redirect("core:transaction_wizard")
+
+    batch_raw = (request.POST.get("batch_payload") or "").strip()
+    if batch_raw:
+        return _transaction_create_batch(request, batch_raw)
 
     tx_type = (request.POST.get("type_transaction") or "SCOLARITE").strip().upper()
     inscription_id = (request.POST.get("inscription_id") or "").strip()
@@ -420,321 +731,327 @@ def transaction_create(request):
         return redirect("core:transaction_wizard")
 
     insc = get_object_or_404(
-        Inscription.objects.select_related(
-            "eleve", "annee", "groupe", "groupe__niveau", "groupe__niveau__degre"
-        ),
+        Inscription.objects.select_related("eleve", "annee", "groupe", "groupe__niveau", "groupe__niveau__degre"),
         pk=int(inscription_id)
     )
 
+    # ✅ stop net si élève inactif
+    if not _eleve_is_active_obj(insc.eleve):
+        messages.error(request, "Élève inactif : paiement impossible.")
+        return redirect("core:transaction_wizard")
+
+    parent_owner = get_primary_parent_for_eleve(insc.eleve_id)
     batch_token = str(uuid.uuid4())
 
-    def create_tx(total: Decimal, type_label: str) -> TransactionFinance:
-        return TransactionFinance.objects.create(
+    tx = TransactionFinance.objects.create(
+        parent=parent_owner,
+        inscription=insc,
+        type_transaction=tx_type,
+        montant_total=Decimal("0.00"),
+        mode=mode,
+        reference=reference,
+        note=note,
+        batch_token=batch_token,
+    )
+
+    try:
+        if tx_type == "INSCRIPTION":
+            montant = _D(request.POST.get("montant_inscription"), default=Decimal("0.00"))
+            total = _apply_inscription_for_insc(insc, tx, montant)
+
+        elif tx_type == "SCOLARITE":
+            payload = json.loads(request.POST.get("echeances_payload") or "{}")
+            total = _apply_scolarite_for_insc(insc, tx, payload)
+
+        elif tx_type == "TRANSPORT":
+            payload = json.loads(request.POST.get("transport_payload") or "{}")
+            total = _apply_transport_for_insc(insc, tx, payload)
+
+        elif tx_type == "PACK":
+            pack = json.loads(request.POST.get("pack_payload") or "{}")
+            total = _apply_pack_for_insc(insc, tx, pack)
+
+        else:
+            raise ValueError("Type de transaction invalide.")
+
+    except ValueError as e:
+        messages.error(request, str(e))
+        return redirect("core:transaction_wizard")
+    except Exception:
+        messages.error(request, "Erreur payload transaction.")
+        return redirect("core:transaction_wizard")
+
+    tx.montant_total = total
+    tx.save(update_fields=["montant_total"])
+
+    messages.success(request, "Transaction enregistrée ✅")
+    return redirect("core:transaction_success", tx_id=tx.id)
+
+
+def _transaction_create_batch(request, batch_raw: str):
+    """
+    batch_raw attendu:
+    {
+      "type_transaction": "SCOLARITE|TRANSPORT|PACK|INSCRIPTION",
+      "items": [
+        {
+          "inscription_id": 12,
+          "echeances_payload": {...},
+          "transport_payload": {...},
+          "pack_payload": {...},
+          "montant_inscription": "0.00"
+        }
+      ]
+    }
+
+    ✅ Si 1 item -> redirect SINGLE success
+    ✅ Si >=2 -> redirect BATCH success
+    """
+    try:
+        batch = json.loads(batch_raw)
+        if not isinstance(batch, dict):
+            batch = {}
+    except Exception:
+        batch = {}
+
+    tx_type = (batch.get("type_transaction") or "SCOLARITE").strip().upper()
+    items = batch.get("items") or []
+    if not isinstance(items, list) or not items:
+        messages.error(request, "Batch vide.")
+        return redirect("core:transaction_wizard")
+
+    # normaliser
+    clean_items = []
+    for it in items:
+        if not isinstance(it, dict):
+            continue
+        try:
+            insc_id = int(it.get("inscription_id"))
+        except Exception:
+            continue
+        it["_insc_id"] = insc_id
+        clean_items.append(it)
+
+    if not clean_items:
+        messages.error(request, "Batch vide.")
+        return redirect("core:transaction_wizard")
+
+    mode = (request.POST.get("mode") or "ESPECES").strip()
+    reference = (request.POST.get("reference") or "").strip()
+    note = (request.POST.get("note") or "").strip()
+
+    # ✅ SINGLE direct
+    if len(clean_items) == 1:
+        it = clean_items[0]
+        insc = get_object_or_404(
+            Inscription.objects.select_related("eleve", "annee", "groupe", "groupe__niveau", "groupe__niveau__degre"),
+            pk=it["_insc_id"]
+        )
+        if not _eleve_is_active_obj(insc.eleve):
+            messages.error(request, "Élève inactif : paiement impossible.")
+            return redirect("core:transaction_wizard")
+
+        parent_owner = get_primary_parent_for_eleve(insc.eleve_id)
+        batch_token = str(uuid.uuid4())
+
+        tx = TransactionFinance.objects.create(
+            parent=parent_owner,
             inscription=insc,
-            type_transaction=type_label,
-            montant_total=total,
+            type_transaction=tx_type,
+            montant_total=Decimal("0.00"),
             mode=mode,
             reference=reference,
             note=note,
             batch_token=batch_token
         )
 
-    # ✅ protège : ne JAMAIS écraser mensuel par 0 à cause d’une réduction inscription
-    def apply_inscription_override(amount: Decimal) -> None:
-        current_mensuel = insc.frais_scolarite_mensuel or Decimal("0.00")
-
-        # si override mensuel vide/0 => on le remet au mensuel actuel
-        if (getattr(insc, "override_frais_scolarite_mensuel", None) is not None):
-            if (insc.override_frais_scolarite_mensuel or Decimal("0.00")) <= Decimal("0.00"):
-                insc.override_frais_scolarite_mensuel = current_mensuel
-
-        insc.tarif_override = True
-        insc.override_frais_inscription_du = amount
-        insc.frais_inscription_du = amount
-        insc.frais_inscription_paye = amount  # one-shot (même 0)
-        insc.save()  # pas update_fields
-
-    # =========================
-    # INSCRIPTION (0 autorisé)
-    # =========================
-    if tx_type == "INSCRIPTION":
-        max_rest = insc.reste_inscription or Decimal("0.00")
-
-        if (insc.frais_inscription_paye or Decimal("0.00")) > Decimal("0.00"):
-            messages.error(request, "❌ Inscription déjà encaissée (partiellement ou totalement). Pas de reprise.")
-            return redirect("core:transaction_wizard")
-
-        montant = _D(request.POST.get("montant_inscription"), default=Decimal("0.00"))
-        if montant < 0:
-            messages.error(request, "Montant inscription invalide.")
-            return redirect("core:transaction_wizard")
-
-        if montant > max_rest:
-            messages.error(request, f"Montant trop élevé. Max = {max_rest} MAD.")
-            return redirect("core:transaction_wizard")
-
-        apply_inscription_override(montant)
-
-        tx = create_tx(montant, "INSCRIPTION")
-        TransactionLigne.objects.create(
-            transaction=tx,
-            echeance=None,
-            libelle="Frais d'inscription",
-            montant=montant
-        )
-
-        messages.success(request, "Transaction inscription enregistrée ✅")
-        return redirect("core:transaction_success", tx_id=tx.id)
-
-    # =========================
-    # SCOLARITE (0 autorisé)
-    # =========================
-    def handle_scolarite(payload_raw: str, tx: TransactionFinance) -> Decimal:
         try:
-            payload = json.loads(payload_raw) if payload_raw else {}
-        except Exception:
-            payload = {}
-
-        selected_ids = payload.get("selected_ids") or []
-        prices = payload.get("prices") or {}
-
-        ids_int = []
-        for x in selected_ids:
-            try:
-                ids_int.append(int(str(x).strip()))
-            except Exception:
-                pass
-        ids_int = list(dict.fromkeys(ids_int))
-
-        if not ids_int:
-            raise ValueError("Sélectionne au moins un mois scolarité.")
-
-        echeances = list(
-            EcheanceMensuelle.objects.select_for_update()
-            .filter(id__in=ids_int, eleve_id=insc.eleve_id, annee_id=insc.annee_id)
-            .order_by("mois_index")
-        )
-        if len(echeances) != len(ids_int):
-            raise ValueError("Certaines échéances scolarité ne correspondent pas à cet élève / année.")
-
-        total = Decimal("0.00")
-
-        for e in echeances:
-            # pas de reprise si déjà encaissé > 0
-            if (e.montant_paye or Decimal("0.00")) > Decimal("0.00") or e.statut == "PAYE":
-                raise ValueError(f"{e.mois_nom} a déjà un paiement. (Pas de reprise)")
-
-            key = str(e.id)
-            m = _D(prices.get(key, e.montant_du), default=Decimal("0.00"))
-            if m < 0:
-                raise ValueError(f"Montant invalide pour {e.mois_nom}.")
-
-            TransactionLigne.objects.create(
-                transaction=tx,
-                echeance=e,
-                libelle=f"Scolarité — {e.mois_nom}",
-                montant=m
-            )
-
-            # ✅ mois gratuit si m=0 => du=0 paye=0 statut=A_PAYER
-            e.montant_du = m
-            e.montant_paye = m
-            e.refresh_statut(save=False)
-            e.save(update_fields=["montant_du", "montant_paye", "statut"])
-
-            total += m
-
-        return total
-
-    # =========================
-    # TRANSPORT (0 autorisé)
-    # =========================
-    def handle_transport(payload_raw: str, tx: TransactionFinance) -> Decimal:
-        cfg = EleveTransport.objects.filter(eleve_id=insc.eleve_id).first()
-        if not cfg or not cfg.enabled:
-            raise ValueError("Transport désactivé pour cet élève.")
-
-        try:
-            payload = json.loads(payload_raw) if payload_raw else {}
-        except Exception:
-            payload = {}
-
-        selected_ids = payload.get("selected_ids") or []
-        prices = payload.get("prices") or {}
-
-        ids_int = []
-        for x in selected_ids:
-            try:
-                ids_int.append(int(str(x).strip()))
-            except Exception:
-                pass
-        ids_int = list(dict.fromkeys(ids_int))
-
-        if not ids_int:
-            raise ValueError("Sélectionne au moins un mois transport.")
-
-        echeances = list(
-            EcheanceTransportMensuelle.objects.select_for_update()
-            .filter(id__in=ids_int, eleve_id=insc.eleve_id, annee_id=insc.annee_id)
-            .order_by("mois_index")
-        )
-        if len(echeances) != len(ids_int):
-            raise ValueError("Certaines échéances transport ne correspondent pas à cet élève / année.")
-
-        total = Decimal("0.00")
-
-        for e in echeances:
-            if (e.montant_paye or Decimal("0.00")) > Decimal("0.00") or e.statut == "PAYE":
-                raise ValueError(f"Transport {e.mois_nom} a déjà un paiement. (Pas de reprise)")
-
-            key = str(e.id)
-            m = _D(prices.get(key, e.montant_du), default=Decimal("0.00"))
-            if m < 0:
-                raise ValueError(f"Montant invalide pour Transport {e.mois_nom}.")
-
-            TransactionLigne.objects.create(
-                transaction=tx,
-                echeance_transport=e,
-                libelle=f"Transport — {e.mois_nom}",
-                montant=m
-            )
-
-            e.montant_du = m
-            e.montant_paye = m
-            e.refresh_statut(save=False)
-            e.save(update_fields=["montant_du", "montant_paye", "statut"])
-
-            total += m
-
-        return total
-
-    # =========================
-    # PACK (0 autorisé partout)
-    # =========================
-    if tx_type == "PACK":
-        raw_pack = (request.POST.get("pack_payload") or "").strip()
-        try:
-            pack = json.loads(raw_pack) if raw_pack else {}
-            if not isinstance(pack, dict):
-                pack = {}
-        except Exception:
-            pack = {}
-
-        ins_on = bool(pack.get("ins_on", True))
-        sco_on = bool(pack.get("sco_on", True))
-        tr_on = bool(pack.get("tr_on", True))
-
-        total = Decimal("0.00")
-        tx = create_tx(Decimal("0.00"), "PACK")
-
-        if ins_on:
-            max_rest = insc.reste_inscription or Decimal("0.00")
-
-            if (insc.frais_inscription_paye or Decimal("0.00")) > Decimal("0.00"):
-                messages.error(request, "❌ Inscription déjà encaissée. Pas de reprise.")
-                return redirect("core:transaction_wizard")
-
-            amt = _D(pack.get("ins_amount"), default=Decimal("0.00"))
-            if amt < 0:
-                messages.error(request, "Montant inscription (pack) invalide.")
-                return redirect("core:transaction_wizard")
-
-            if amt > max_rest:
-                messages.error(request, f"Montant inscription trop élevé. Max = {max_rest} MAD.")
-                return redirect("core:transaction_wizard")
-
-            apply_inscription_override(amt)
-
-            TransactionLigne.objects.create(
-                transaction=tx,
-                echeance=None,
-                libelle="Frais d'inscription",
-                montant=amt
-            )
-            total += amt
-
-        if sco_on:
-            try:
-                total += handle_scolarite(json.dumps(pack.get("sco") or {}), tx)
-            except ValueError as e:
-                messages.error(request, str(e))
-                return redirect("core:transaction_wizard")
-
-        if tr_on:
-            try:
-                total += handle_transport(json.dumps(pack.get("tr") or {}), tx)
-            except ValueError as e:
-                messages.error(request, str(e))
-                return redirect("core:transaction_wizard")
-
-        tx.montant_total = total
-        tx.save(update_fields=["montant_total"])
-
-        messages.success(request, "Pack enregistré ✅")
-        return redirect("core:transaction_success", tx_id=tx.id)
-
-    # =========================
-    # SCOLARITE simple
-    # =========================
-    if tx_type == "SCOLARITE":
-        tx = create_tx(Decimal("0.00"), "SCOLARITE")
-        try:
-            total = handle_scolarite((request.POST.get("echeances_payload") or ""), tx)
+            if tx_type == "SCOLARITE":
+                total = _apply_scolarite_for_insc(insc, tx, it.get("echeances_payload") or {})
+            elif tx_type == "TRANSPORT":
+                total = _apply_transport_for_insc(insc, tx, it.get("transport_payload") or {})
+            elif tx_type == "INSCRIPTION":
+                total = _apply_inscription_for_insc(insc, tx, _D(it.get("montant_inscription"), default=Decimal("0.00")))
+            elif tx_type == "PACK":
+                total = _apply_pack_for_insc(insc, tx, it.get("pack_payload") or {})
+            else:
+                raise ValueError("Type batch invalide.")
         except ValueError as e:
             messages.error(request, str(e))
             return redirect("core:transaction_wizard")
 
         tx.montant_total = total
         tx.save(update_fields=["montant_total"])
-        messages.success(request, "Transaction scolarité enregistrée ✅")
+        messages.success(request, "Paiement enregistré ✅")
         return redirect("core:transaction_success", tx_id=tx.id)
 
-    # =========================
-    # TRANSPORT simple
-    # =========================
-    if tx_type == "TRANSPORT":
-        tx = create_tx(Decimal("0.00"), "TRANSPORT")
+    # ✅ BATCH réel
+    batch_token = str(uuid.uuid4())
+    created_ids = []
+
+    for it in clean_items:
+        insc = get_object_or_404(
+            Inscription.objects.select_related("eleve", "annee", "groupe", "groupe__niveau", "groupe__niveau__degre"),
+            pk=it["_insc_id"]
+        )
+        if not _eleve_is_active_obj(insc.eleve):
+            messages.error(request, f"Élève inactif : {insc.eleve.nom} {insc.eleve.prenom} (batch annulé).")
+            return redirect("core:transaction_wizard")
+
+        parent_owner = get_primary_parent_for_eleve(insc.eleve_id)
+
+        tx = TransactionFinance.objects.create(
+            parent=parent_owner,
+            inscription=insc,
+            type_transaction=tx_type,
+            montant_total=Decimal("0.00"),
+            mode=mode,
+            reference=reference,
+            note=note,
+            batch_token=batch_token
+        )
+
         try:
-            total = handle_transport((request.POST.get("transport_payload") or ""), tx)
+            if tx_type == "SCOLARITE":
+                total = _apply_scolarite_for_insc(insc, tx, it.get("echeances_payload") or {})
+            elif tx_type == "TRANSPORT":
+                total = _apply_transport_for_insc(insc, tx, it.get("transport_payload") or {})
+            elif tx_type == "INSCRIPTION":
+                total = _apply_inscription_for_insc(insc, tx, _D(it.get("montant_inscription"), default=Decimal("0.00")))
+            elif tx_type == "PACK":
+                total = _apply_pack_for_insc(insc, tx, it.get("pack_payload") or {})
+            else:
+                raise ValueError("Type batch invalide.")
         except ValueError as e:
             messages.error(request, str(e))
             return redirect("core:transaction_wizard")
 
         tx.montant_total = total
         tx.save(update_fields=["montant_total"])
-        messages.success(request, "Transaction transport enregistrée ✅")
-        return redirect("core:transaction_success", tx_id=tx.id)
+        created_ids.append(tx.id)
 
-    messages.error(request, "Type de transaction invalide.")
+    if not created_ids:
+        messages.error(request, "Aucune transaction créée.")
+        return redirect("core:transaction_wizard")
+
+    messages.success(request, "Paiement fratrie enregistré ✅ (reçu unique)")
+    return redirect("core:transaction_batch_success", batch_token=batch_token)
+
+
+# =========================================================
+# 10) SUCCESS (single/batch)
+# =========================================================
+@login_required
+@permission_required("core.view_transactionfinance", raise_exception=True)
+def transaction_success(request, tx_id=None, batch_token=None):
+    ctx = {
+        "mode": None,
+        "tx": None,
+        "txs": None,
+        "batch_token": None,
+        "total": Decimal("0.00"),
+        "parent_label": "",
+    }
+
+    if batch_token:
+        base = (
+            TransactionFinance.objects
+            .select_related(
+                "inscription", "inscription__eleve", "inscription__annee",
+                "inscription__groupe", "inscription__groupe__niveau",
+                "inscription__groupe__niveau__degre",
+            )
+            .prefetch_related("lignes", "lignes__echeance", "lignes__echeance_transport")
+            .filter(batch_token=batch_token)
+            .order_by("id")
+        )
+
+        txs = _annotate_refund_flags(base)
+        if not txs.exists():
+            messages.error(request, "Paiement introuvable.")
+            return redirect("core:transaction_wizard")
+
+        total = sum((t.montant_total or Decimal("0.00")) for t in txs)
+
+        eleve_ids = list(txs.values_list("inscription__eleve_id", flat=True))
+        parent_map = _build_parent_map_from_eleve_ids(eleve_ids)
+
+        for t in txs:
+            eid = getattr(t.inscription, "eleve_id", None)
+            t.parent_label = parent_map.get(eid, "") if eid else ""
+
+            mt = t.montant_total or Decimal("0.00")
+            if mt == Decimal("0.00"):
+                t.can_refund = (not getattr(t, "is_annulee_zero", False))
+            else:
+                remb = getattr(t, "montant_rembourse", Decimal("0.00")) or Decimal("0.00")
+                t.can_refund = remb < mt
+
+        parent_label = ""
+        for t in txs:
+            if getattr(t, "parent_label", ""):
+                parent_label = t.parent_label
+                break
+
+        ctx.update({
+            "mode": "BATCH",
+            "txs": txs,
+            "batch_token": batch_token,
+            "total": total,
+            "parent_label": parent_label,
+        })
+        return render(request, "admin/paiements/transaction_success.html", ctx)
+
+    if tx_id:
+        base = (
+            TransactionFinance.objects
+            .select_related(
+                "inscription", "inscription__eleve", "inscription__annee",
+                "inscription__groupe", "inscription__groupe__niveau",
+                "inscription__groupe__niveau__degre",
+            )
+            .prefetch_related("lignes", "lignes__echeance", "lignes__echeance_transport")
+        )
+
+        tx = get_object_or_404(_annotate_refund_flags(base), pk=tx_id)
+
+        eleve_id = getattr(tx.inscription, "eleve_id", None)
+        parent_map = _build_parent_map_from_eleve_ids([eleve_id] if eleve_id else [])
+        parent_label = parent_map.get(eleve_id, "") if eleve_id else ""
+
+        mt = tx.montant_total or Decimal("0.00")
+        if mt == Decimal("0.00"):
+            tx.can_refund = (not getattr(tx, "is_annulee_zero", False))
+        else:
+            remb = getattr(tx, "montant_rembourse", Decimal("0.00")) or Decimal("0.00")
+            tx.can_refund = remb < mt
+
+        ctx.update({
+            "mode": "SINGLE",
+            "tx": tx,
+            "total": mt,
+            "parent_label": parent_label,
+        })
+        return render(request, "admin/paiements/transaction_success.html", ctx)
+
     return redirect("core:transaction_wizard")
 
 
-@login_required
-@group_required("SUPER_ADMIN", "ADMIN", "COMPTABLE", "SCOLARITE")
-def transaction_success(request, tx_id: int):
-    tx = get_object_or_404(
-        TransactionFinance.objects.select_related(
-            "inscription", "inscription__eleve", "inscription__annee",
-            "inscription__groupe", "inscription__groupe__niveau", "inscription__groupe__niveau__degre"
-        ).prefetch_related("lignes", "lignes__echeance", "lignes__echeance_transport"),
-        pk=tx_id
-    )
-    return render(request, "admin/paiements/transaction_success.html", {"tx": tx})
-
+# =========================================================
+# 11) PDF single / batch
+# =========================================================
 @login_required
 @group_required("SUPER_ADMIN", "ADMIN", "COMPTABLE", "SCOLARITE")
 def transaction_pdf(request, tx_id: int):
-    """
-    PDF pro: 2 copies sur A4 (même page).
-    """
     tx = get_object_or_404(
-        TransactionFinance.objects.select_related(
+        TransactionFinance.objects
+        .select_related(
             "inscription", "inscription__eleve", "inscription__annee",
             "inscription__groupe", "inscription__groupe__niveau", "inscription__groupe__niveau__degre"
-        ).prefetch_related("lignes", "lignes__echeance", "lignes__echeance_transport"),
+        )
+        .prefetch_related("lignes", "lignes__echeance", "lignes__echeance_transport"),
         pk=tx_id
     )
-
     from core.pdf.transaction import build_transaction_pdf_bytes
     pdf_bytes = build_transaction_pdf_bytes(tx)
     resp = HttpResponse(pdf_bytes, content_type="application/pdf")
@@ -743,6 +1060,33 @@ def transaction_pdf(request, tx_id: int):
 
 
 @login_required
+@permission_required("core.view_transactionfinance", raise_exception=True)
+def transaction_batch_pdf(request, batch_token: str):
+    txs = (
+        TransactionFinance.objects
+        .select_related(
+            "inscription", "inscription__eleve", "inscription__annee",
+            "inscription__groupe", "inscription__groupe__niveau", "inscription__groupe__niveau__degre"
+        )
+        .prefetch_related("lignes", "lignes__echeance", "lignes__echeance_transport")
+        .filter(batch_token=batch_token)
+        .order_by("id")
+    )
+    if not txs.exists():
+        return HttpResponse("Batch introuvable.", status=404)
+
+    from core.pdf.transaction import build_transaction_batch_pdf_bytes
+    pdf_bytes = build_transaction_batch_pdf_bytes(list(txs), batch_token=batch_token)
+
+    resp = HttpResponse(pdf_bytes, content_type="application/pdf")
+    resp["Content-Disposition"] = f'inline; filename="transactions_{batch_token}.pdf"'
+    return resp
+
+
+# =========================================================
+# 12) API — élèves par groupe (FILTRÉ actifs)
+# =========================================================
+@login_required
 @group_required("SUPER_ADMIN", "ADMIN", "COMPTABLE", "SCOLARITE")
 def api_eleves_par_groupe(request):
     groupe_id = (request.GET.get("groupe_id") or "").strip()
@@ -750,11 +1094,14 @@ def api_eleves_par_groupe(request):
         return JsonResponse({"results": []})
 
     g = get_object_or_404(Groupe, pk=int(groupe_id))
-    # élève via inscription année du groupe
-    inscs = (Inscription.objects
-             .filter(groupe_id=g.id, annee_id=g.annee_id)
-             .select_related("eleve")
-             .order_by("eleve__nom", "eleve__prenom"))
+
+    inscs = (
+        Inscription.objects
+        .filter(groupe_id=g.id, annee_id=g.annee_id)
+        .select_related("eleve")
+        .filter(_eleve_active_filter_q())  # ✅ filtre actifs
+        .order_by("eleve__nom", "eleve__prenom")
+    )
 
     results = []
     for i in inscs:
@@ -766,31 +1113,77 @@ def api_eleves_par_groupe(request):
     return JsonResponse({"results": results})
 
 
-def parse_money(value, *, default=None):
-    """
-    Convertit une valeur (str) en Decimal en acceptant:
-    - "1200", "1200.50", "1200,50", "1 200,50"
-    - "" / None -> default
-    Refuse: "NaN", "inf", valeurs non numériques.
-    """
-    if value is None:
-        return default
+# =========================================================
+# 13) AJAX — search parents / enfants by parent (FILTRÉ actifs)
+# =========================================================
+@login_required
+@group_required("SUPER_ADMIN", "ADMIN", "COMPTABLE", "SCOLARITE")
+def ajax_parents_search(request):
+    q = (request.GET.get("q") or "").strip()
+    qs = Parent.objects.all()
 
-    s = str(value).strip()
-    if s == "":
-        return default
+    if q:
+        qs = qs.filter(
+            Q(nom__icontains=q) |
+            Q(prenom__icontains=q) |
+            Q(cin__icontains=q) |
+            Q(telephone__icontains=q)
+        )
 
-    s_lower = s.lower()
-    if s_lower in {"nan", "+nan", "-nan", "inf", "+inf", "-inf", "infinity", "+infinity", "-infinity"}:
-        raise InvalidOperation("NaN/INF interdit")
+    qs = qs.order_by("-id")[:50]
 
-    # enlever espaces (y compris espace insécable)
-    s = s.replace(" ", "").replace("\u202f", "").replace("\u00a0", "")
+    items = []
+    for p in qs:
+        label = f"{getattr(p, 'nom', '')} {getattr(p, 'prenom', '')}".strip()
+        cin = (getattr(p, "cin", "") or "").strip()
+        tel = (getattr(p, "telephone", "") or "").strip()
+        extra = " • ".join([x for x in [cin, tel] if x])
+        if extra:
+            label = f"{label} — {extra}"
+        items.append({"id": p.id, "label": label})
 
-    # virgule -> point
-    s = s.replace(",", ".")
+    return JsonResponse({"items": items})
 
-    try:
-        return Decimal(s)
-    except (InvalidOperation, ValueError):
-        raise
+
+@login_required
+@group_required("SUPER_ADMIN", "ADMIN", "COMPTABLE", "SCOLARITE")
+def ajax_enfants_by_parent(request):
+    parent_id = (request.GET.get("parent_id") or "").strip()
+    if not parent_id.isdigit():
+        return JsonResponse({"items": []})
+
+    annee_active = AnneeScolaire.objects.filter(is_active=True).first()
+    if not annee_active:
+        return JsonResponse({"items": []})
+
+    eleve_ids = list(
+        ParentEleve.objects.filter(parent_id=int(parent_id))
+        .values_list("eleve_id", flat=True)
+        .distinct()
+    )
+    if not eleve_ids:
+        return JsonResponse({"items": []})
+
+    # map inscription active par élève
+    insc_map = {
+        i.eleve_id: i
+        for i in (
+            Inscription.objects
+            .select_related("groupe", "eleve")
+            .filter(annee_id=annee_active.id, eleve_id__in=eleve_ids)
+            .filter(_eleve_active_filter_q())  # ✅ filtre actifs
+        )
+    }
+
+    items = []
+    for e in Eleve.objects.filter(id__in=eleve_ids).order_by("nom", "prenom"):
+        if not _eleve_is_active_obj(e):
+            continue
+        insc = insc_map.get(e.id)
+        items.append({
+            "eleve_id": e.id,
+            "inscription_id": insc.id if insc else None,
+            "label": f"{e.matricule} — {e.nom} {e.prenom}".strip(),
+        })
+
+    return JsonResponse({"items": items})

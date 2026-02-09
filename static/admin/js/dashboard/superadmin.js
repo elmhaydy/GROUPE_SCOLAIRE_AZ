@@ -1,47 +1,45 @@
-/* admin/js/dashboard/superadmin.js */
+/* static/admin/js/dashboard/superadmin.js */
 /* global Chart */
 
 (() => {
   "use strict";
 
-  // =========================
-  // Helpers DOM
-  // =========================
   const $ = (sel, root = document) => root.querySelector(sel);
   const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 
-  const safeJSON = (x, fallback) => {
-    try {
-      if (x == null) return fallback;
-      return x;
-    } catch (e) {
-      return fallback;
-    }
+  const toNumber = (x) => {
+    const n = Number(x);
+    return Number.isFinite(n) ? n : 0;
   };
 
-  // =========================
-  // Date FR (si tu veux forcer un format côté client)
-  // =========================
+  const formatMAD = (v) => {
+    const n = toNumber(v);
+    return n.toLocaleString("fr-FR", { maximumFractionDigits: 0 }) + " MAD";
+  };
+
+  const niceMax = (arr, minMax = 10) => {
+    const max = Math.max(minMax, ...arr.map(toNumber));
+    if (!Number.isFinite(max) || max <= 0) return minMax;
+    const pow = Math.pow(10, String(Math.floor(max)).length - 1);
+    return Math.ceil(max / pow) * pow;
+  };
+
+  // Date FR fallback (si backend vide)
   const setCurrentDateFR = () => {
     const el = $("#currentDate");
     if (!el) return;
-    // si le backend remplit déjà, on ne touche pas
     if ((el.textContent || "").trim().length > 0) return;
 
     const d = new Date();
     const months = [
-      "janvier", "février", "mars", "avril", "mai", "juin",
-      "juillet", "août", "septembre", "octobre", "novembre", "décembre"
+      "janvier","février","mars","avril","mai","juin",
+      "juillet","août","septembre","octobre","novembre","décembre"
     ];
     const dd = String(d.getDate()).padStart(2, "0");
-    const mm = months[d.getMonth()];
-    const yyyy = d.getFullYear();
-    el.textContent = `${dd} ${mm} ${yyyy}`;
+    el.textContent = `${dd} ${months[d.getMonth()]} ${d.getFullYear()}`;
   };
 
-  // =========================
-  // Tabs (Paiements / Inscriptions / Impayés)
-  // =========================
+  // Tabs activité récente
   const initTabs = () => {
     const tabs = $$(".azsa-tab");
     if (!tabs.length) return;
@@ -54,36 +52,51 @@
 
     const setActive = (key) => {
       tabs.forEach((t) => t.classList.toggle("active", t.dataset.tab === key));
-      Object.entries(panels).forEach(([k, p]) => {
-        if (!p) return;
-        p.classList.toggle("active", k === key);
-      });
+      Object.entries(panels).forEach(([k, p]) => p && p.classList.toggle("active", k === key));
     };
 
-    tabs.forEach((btn) => {
-      btn.addEventListener("click", () => setActive(btn.dataset.tab));
+    tabs.forEach((btn) => btn.addEventListener("click", (e) => {
+      e.preventDefault();
+      setActive(btn.dataset.tab);
+    }));
+
+    const current = tabs.find((b) => b.classList.contains("active"));
+    setActive(current ? current.dataset.tab : "paiements");
+  };
+
+  // Refresh
+  const initRefresh = () => {
+    const btn = $("#refreshDashboard");
+    if (!btn) return;
+    btn.addEventListener("click", (e) => {
+      e.preventDefault();
+      btn.disabled = true;
+      btn.classList.add("is-loading");
+      window.location.reload();
     });
   };
 
-  // =========================
-  // Chart (Pilotage 12 mois / 6 mois)
-  // =========================
+  // Chart pilotage (NET / DEPENSES / IMPAYES)
   let chartInstance = null;
 
-  const buildChartData = (period) => {
+  const getChartSource = () => {
     const src = window.AZ_CHART || {};
-    const labels = safeJSON(src.labels, []);
-    const paiements = safeJSON(src.paiements, []);
-    const inscriptions = safeJSON(src.inscriptions, []);
+    return {
+      labels: Array.isArray(src.labels) ? src.labels : [],
+      net: (Array.isArray(src.net) ? src.net : []).map(toNumber),
+      depenses: (Array.isArray(src.depenses) ? src.depenses : []).map(toNumber),
+      impayes: (Array.isArray(src.impayes) ? src.impayes : []).map(toNumber),
+    };
+  };
 
-    const take = period === "6m" ? 6 : 12;
-
-    // on prend les derniers X éléments
-    const L = labels.slice(-take);
-    const P = paiements.slice(-take);
-    const I = inscriptions.slice(-take);
-
-    return { L, P, I };
+  const slicePeriod = (take) => {
+    const s = getChartSource();
+    return {
+      labels: s.labels.slice(-take),
+      net: s.net.slice(-take),
+      depenses: s.depenses.slice(-take),
+      impayes: s.impayes.slice(-take),
+    };
   };
 
   const renderChart = (period = "12m") => {
@@ -93,33 +106,25 @@
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const { L, P, I } = buildChartData(period);
+    const take = period === "6m" ? 6 : 12;
+    const { labels, net, depenses, impayes } = slicePeriod(take);
+    if (!labels.length) return;
 
-    // destroy si existe
     if (chartInstance) {
       chartInstance.destroy();
       chartInstance = null;
     }
 
+    const yMax = niceMax([...net, ...depenses, ...impayes], 10);
+
     chartInstance = new Chart(ctx, {
       type: "line",
       data: {
-        labels: L,
+        labels,
         datasets: [
-          {
-            label: "Paiements (MAD)",
-            data: P,
-            tension: 0.35,
-            pointRadius: 2,
-            borderWidth: 2,
-          },
-          {
-            label: "Inscriptions (nb)",
-            data: I,
-            tension: 0.35,
-            pointRadius: 2,
-            borderWidth: 2,
-          },
+          { label: "Net (MAD)", data: net, tension: 0.35, pointRadius: 2, borderWidth: 2 },
+          { label: "Dépenses (MAD)", data: depenses, tension: 0.35, pointRadius: 2, borderWidth: 2 },
+          { label: "Impayés (MAD)", data: impayes, tension: 0.35, pointRadius: 2, borderWidth: 2 },
         ],
       },
       options: {
@@ -127,20 +132,20 @@
         maintainAspectRatio: false,
         interaction: { mode: "index", intersect: false },
         plugins: {
-          legend: { display: true },
-          tooltip: { enabled: true },
+          legend: { display: true, position: "top", labels: { boxWidth: 26, boxHeight: 10 } },
+          tooltip: {
+            enabled: true,
+            callbacks: { label: (c) => `${c.dataset.label}: ${formatMAD(c.parsed.y)}` },
+          },
         },
         scales: {
           y: {
             beginAtZero: true,
-            ticks: {
-              // pas obligatoire, mais garde lisible
-              precision: 0,
-            },
+            suggestedMax: yMax,
+            ticks: { callback: (v) => toNumber(v).toLocaleString("fr-FR") },
+            grid: { drawBorder: false },
           },
-          x: {
-            ticks: { autoSkip: true, maxRotation: 0 },
-          },
+          x: { ticks: { autoSkip: true, maxRotation: 0 }, grid: { drawBorder: false } },
         },
       },
     });
@@ -148,19 +153,14 @@
 
   const initChartControls = () => {
     const periodSel = $("#chartPeriod");
-    if (periodSel) {
-      periodSel.addEventListener("change", () => {
-        renderChart(periodSel.value || "12m");
-      });
-    }
+    if (periodSel) periodSel.addEventListener("change", () => renderChart(periodSel.value || "12m"));
 
     const exportBtn = $("#exportChart");
     if (exportBtn) {
-      exportBtn.addEventListener("click", () => {
+      exportBtn.addEventListener("click", (e) => {
+        e.preventDefault();
         const canvas = $("#monthlyChart");
         if (!canvas) return;
-
-        // export PNG
         const url = canvas.toDataURL("image/png");
         const a = document.createElement("a");
         a.href = url;
@@ -172,62 +172,16 @@
     }
   };
 
-  // =========================
-  // Actualiser (reload page)
-  // =========================
-  const initRefresh = () => {
-    const btn = $("#refreshDashboard");
-    if (!btn) return;
-
-    btn.addEventListener("click", () => {
-      // animation légère (si tu veux)
-      btn.disabled = true;
-      btn.classList.add("is-loading");
-
-      // reload simple (le backend recalculera tout)
-      window.location.reload();
-    });
-  };
-
-  // =========================
-  // Rappels (placeholder)
-  // =========================
-  const initReminders = () => {
-    const btn = $("#sendReminders");
-    if (!btn) return;
-
-    btn.addEventListener("click", () => {
-      // Ici tu pourras brancher un endpoint AJAX plus tard.
-      // Pour l’instant : feedback simple.
-      btn.disabled = true;
-      btn.classList.add("is-loading");
-
-      setTimeout(() => {
-        btn.disabled = false;
-        btn.classList.remove("is-loading");
-        alert("✅ Rappels : action à brancher (endpoint) — prêt côté UI.");
-      }, 400);
-    });
-  };
-
-  // =========================
-  // Boot
-  // =========================
   const boot = () => {
     setCurrentDateFR();
     initTabs();
     initRefresh();
-    initReminders();
     initChartControls();
 
-    // rendu initial chart
     const periodSel = $("#chartPeriod");
     renderChart(periodSel ? (periodSel.value || "12m") : "12m");
   };
 
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", boot);
-  } else {
-    boot();
-  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
+  else boot();
 })();

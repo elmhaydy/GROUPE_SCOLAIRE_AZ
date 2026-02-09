@@ -1427,3 +1427,164 @@ body {
   border-top: 1px solid var(--az-border-light);
   padding-top: var(--az-spacing-sm);
 }
+/* =========================================================
+   AZ • SIDEBAR COLLAPSED (ICON-ONLY) — PATCH FINAL
+   Colle TOUT en bas de admin.css
+   ========================================================= */
+
+/* largeur sidebar collapsed */
+.az-sidebar.is-collapsed{
+  width: 86px;
+}
+
+/* header: logo centré, texte caché */
+.az-sidebar.is-collapsed .az-sidebar-header{
+  justify-content: center;
+  padding: 16px 12px;
+  gap: 0;
+}
+.az-sidebar.is-collapsed .az-brand{
+  display:none;
+}
+.az-sidebar.is-collapsed .az-logo-container{
+  width: 44px;
+  height: 44px;
+}
+
+/* nav: texte caché + items centrés */
+.az-sidebar.is-collapsed .az-nav{
+  padding: 10px 0;
+}
+.az-sidebar.is-collapsed .az-nav-item{
+  justify-content: center;
+  gap: 0;
+  padding: 12px 10px;
+  margin: 6px 10px;
+}
+.az-sidebar.is-collapsed .az-nav-item span{
+  display:none;
+}
+.az-sidebar.is-collapsed .az-nav-item i{
+  font-size: 1.15rem;
+}
+
+/* indicator active adapté */
+.az-sidebar.is-collapsed .az-nav-indicator{
+  left: 6px;
+}
+
+/* sections dropdown: cacher le texte, garder la flèche */
+.az-sidebar.is-collapsed .az-nav-drop-btn{
+  padding: 10px 12px;
+  justify-content: center;
+}
+.az-sidebar.is-collapsed .az-nav-drop-btn span{
+  display:none;
+}
+.az-sidebar.is-collapsed .az-nav-drop-caret{
+  font-size: .85rem;
+}
+
+/* panel: pas d'indentation en collapsed */
+.az-sidebar.is-collapsed .az-nav-drop-panel .az-nav-item{
+  margin-left: 10px;
+  margin-right: 10px;
+}
+
+/* footer sidebar: version mini */
+.az-sidebar.is-collapsed .az-sidebar-footer{
+  padding: 14px 12px;
+  gap: 10px;
+}
+.az-sidebar.is-collapsed .az-user-info{
+  justify-content: center;
+}
+.az-sidebar.is-collapsed .az-user-details{
+  display:none;
+}
+.az-sidebar.is-collapsed .az-logout-btn{
+  justify-content: center;
+  padding: 10px;
+}
+.az-sidebar.is-collapsed .az-logout-btn span{
+  display:none;
+}
+
+/* ---------------------------------------------------------
+   Tooltip (optionnel) quand collapsed
+   -> utilise data-tooltip sur .az-nav-item
+   --------------------------------------------------------- */
+.az-sidebar.is-collapsed .az-nav-item{
+  position: relative;
+}
+.az-sidebar.is-collapsed .az-nav-item[data-tooltip]::after{
+  content: attr(data-tooltip);
+  position: absolute;
+  left: calc(100% + 10px);
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(15, 23, 42, 0.92);
+  color: #fff;
+  padding: 8px 10px;
+  border-radius: 10px;
+  font-size: 12px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: .15s ease;
+  border: 1px solid rgba(255,255,255,.08);
+  box-shadow: 0 12px 30px rgba(0,0,0,.35);
+  z-index: 9999;
+}
+html[data-theme="light"] .az-sidebar.is-collapsed .az-nav-item[data-tooltip]::after{
+  background: rgba(15, 23, 42, 0.95);
+}
+.az-sidebar.is-collapsed .az-nav-item:hover::after{
+  opacity: 1;
+}
+
+/* ---------------------------------------------------------
+   Desktop: on garde la sidebar visible (flex), mobile inchangé
+   --------------------------------------------------------- */
+@media (max-width: 768px){
+  /* Sur mobile: PAS de mode collapsed (on garde drawer) */
+  .az-sidebar.is-collapsed{
+    width: 280px;
+  }
+}
+/* =========================
+   AZ • TOPBAR TOGGLE (DESKTOP + MOBILE) — FIX
+   Colle ceci TOUT en bas de admin.css
+   ========================= */
+
+/* le bouton doit exister aussi en desktop */
+.az-sidebar-toggle{
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  background: transparent;
+  border-radius: 12px;
+  cursor: pointer;
+  color: var(--az-text-primary) !important;
+  transition: var(--az-transition-fast);
+}
+
+.az-sidebar-toggle:hover{
+  background: var(--az-bg-secondary);
+}
+
+/* l’icône */
+.az-sidebar-toggle i{
+  font-size: 18px;
+  line-height: 1;
+}
+
+/* option : sur mobile tu peux garder le même style (pas besoin de display:flex ici) */
+@media (max-width: 768px){
+  .az-sidebar-toggle{
+    display: inline-flex !important;
+  }
+}

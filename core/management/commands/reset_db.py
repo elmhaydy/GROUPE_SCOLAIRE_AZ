@@ -78,7 +78,7 @@ class Command(BaseCommand):
         self.del_model("core", "FraisNiveau")
         self.del_model("core", "Matiere")
         self.del_model("core", "Periode")
-
+        self.del_model("core", "Depense")
         self.del_model("core", "Groupe")
         self.del_model("core", "Niveau")
         self.del_model("core", "Degre")

@@ -1,9 +1,10 @@
 /* =========================================================
-   AZ NEBULA — Paiements (list.css)
-   - Calqué sur LIST Parents (2026)
-   - Chip "Filtres", focus violet glow
-   - Table grid premium (7 colonnes) + labels mobiles
-   - Dark/Light via thème global (vars base_admin)
+   AZ NEBULA — Paiements Parents (list.css) — FINAL
+   - Chip "Filtres", glow violet focus
+   - Table grid premium (8 colonnes)
+   - Statut + Net + Remboursement
+   - Fix alignement Actions (colonne 8)
+   - Dark/Light via html[data-theme]
    ========================================================= */
 
 /* ===== Page Head ===== */
@@ -38,7 +39,6 @@
   font-weight: 900;
   animation: az-fadeUp .35s ease both;
 }
-
 .az-pill i{ color: var(--az-success); }
 .az-pill-total i{ color: var(--az-warning); }
 
@@ -47,9 +47,7 @@ html[data-theme="dark"] .az-pill{
 }
 
 /* ===== Filter Bar ===== */
-.az-filter-bar{
-  margin-bottom: var(--az-spacing-xl);
-}
+.az-filter-bar{ margin-bottom: var(--az-spacing-xl); }
 
 .az-filter-form{
   display:flex;
@@ -78,12 +76,10 @@ html[data-theme="dark"] .az-pill{
   box-shadow: var(--az-shadow-sm);
   user-select:none;
 }
-
 .az-filter-label i{
   color: #6366f1;
   filter: drop-shadow(0 6px 16px rgba(99,102,241,.25));
 }
-
 html[data-theme="dark"] .az-filter-label{
   background: rgba(15,23,42,.35);
   border-color: rgba(148,163,184,.18);
@@ -97,14 +93,18 @@ html[data-theme="dark"] .az-filter-label{
   gap: 8px;
   min-width: 220px;
 }
-
 .az-field-label{
   font-size: .9rem;
   font-weight: 900;
   color: var(--az-text-secondary);
 }
-
 .az-select-wide{ min-width: 320px; }
+
+.az-help{
+  margin-top: 6px;
+  font-size: .82rem;
+  color: var(--az-text-tertiary);
+}
 
 /* Inputs / selects premium */
 .az-filter-form .az-input,
@@ -137,7 +137,6 @@ html[data-theme="dark"] .az-filter-form .az-select{
     0 10px 22px rgba(99,102,241,.10);
   transform: translateY(-1px);
 }
-
 html[data-theme="dark"] .az-filter-form .az-input:focus,
 html[data-theme="dark"] .az-filter-form .az-select:focus{
   border-color: rgba(129,140,248,.75);
@@ -155,6 +154,18 @@ html[data-theme="dark"] .az-filter-form .az-select:focus{
   flex-wrap:wrap;
 }
 
+/* Date range */
+.az-date-range{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+.az-date-sep{
+  opacity:.6;
+  font-weight:900;
+}
+.az-date-range .az-input{ min-width:150px; }
+
 /* ===== Card ===== */
 .az-paiement-card{
   border-radius: 16px;
@@ -164,7 +175,6 @@ html[data-theme="dark"] .az-filter-form .az-select:focus{
   overflow:hidden;
   animation: az-fadeUp .55s ease both;
 }
-
 .az-card-head{
   display:flex;
   align-items:center;
@@ -172,7 +182,6 @@ html[data-theme="dark"] .az-filter-form .az-select:focus{
   gap: var(--az-spacing-md);
   padding: 16px 16px 10px;
 }
-
 .az-card-title{
   margin:0;
   display:flex;
@@ -182,17 +191,14 @@ html[data-theme="dark"] .az-filter-form .az-select:focus{
   font-size: 1.05rem;
   font-weight: 900;
 }
-
 .az-card-title i{ color: var(--az-primary); }
 
-/* ===== Grid table (7 colonnes) ===== */
-.az-table{
-  padding: 0 14px 14px;
-}
+/* ===== Table (8 colonnes) ===== */
+.az-table{ padding: 0 14px 14px; }
 
 .az-thead{
   display:grid;
-  grid-template-columns: 1.2fr 2.2fr 1.2fr 1.1fr 1.1fr 1.1fr 1.4fr;
+  grid-template-columns: 1.1fr 2.4fr 1.2fr .85fr 1.1fr 1.2fr 1.1fr 1.6fr;
   gap: 10px;
   padding: 10px 12px;
   margin-bottom: 10px;
@@ -205,7 +211,6 @@ html[data-theme="dark"] .az-filter-form .az-select:focus{
   letter-spacing: .08em;
   text-transform: uppercase;
 }
-
 .az-th-actions{ text-align:right; padding-right:4px; }
 
 .az-tbody{
@@ -217,7 +222,7 @@ html[data-theme="dark"] .az-filter-form .az-select:focus{
 /* Row */
 .az-row{
   display:grid;
-  grid-template-columns: 1.2fr 2.2fr 1.2fr 1.1fr 1.1fr 1.1fr 1.4fr;
+  grid-template-columns: 1.1fr 2.4fr 1.2fr .85fr 1.1fr 1.2fr 1.1fr 1.6fr;
   gap: 10px;
   align-items:center;
   padding: 14px 12px;
@@ -229,7 +234,6 @@ html[data-theme="dark"] .az-filter-form .az-select:focus{
   position:relative;
   overflow:hidden;
 }
-
 .az-row:hover{
   background: var(--az-bg-secondary);
   border-color: rgba(99,102,241,.40);
@@ -237,7 +241,7 @@ html[data-theme="dark"] .az-filter-form .az-select:focus{
   transform: translateY(-2px);
 }
 
-/* ✅ Ta barre violette */
+/* Barre violette */
 .az-row::before{
   content:"";
   position:absolute;
@@ -254,13 +258,18 @@ html[data-theme="dark"] .az-filter-form .az-select:focus{
   font-size: .95rem;
   min-width:0;
 }
-
 .az-strong{
   color: var(--az-text-primary);
   font-weight: 900;
 }
-
 .az-muted{ color: var(--az-text-tertiary); }
+
+.az-row-sub{
+  margin-top: 2px;
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+}
 
 /* ===== Badges ===== */
 .az-badge{
@@ -272,7 +281,9 @@ html[data-theme="dark"] .az-filter-form .az-select:focus{
   font-size: .8rem;
   font-weight: 900;
   border: 1px solid transparent;
+  max-width: 100%;
 }
+.az-badge i{ flex: 0 0 auto; }
 
 .az-badge-muted{
   background: rgba(148,163,184,.10);
@@ -285,7 +296,7 @@ html[data-theme="dark"] .az-badge-muted{
   color: rgba(241,245,249,.78);
 }
 
-/* Montant */
+/* Net / money */
 .az-badge-money{
   background: rgba(245,158,11,.14);
   border-color: rgba(245,158,11,.35);
@@ -293,47 +304,76 @@ html[data-theme="dark"] .az-badge-muted{
 }
 .az-badge-money i{ color: var(--az-warning); }
 
-/* ===== Modes de paiement (mapping exact) ===== */
+/* Statut */
+.az-badge-paid{
+  background: rgba(34,197,94,.14);
+  border: 1px solid rgba(34,197,94,.40);
+  color: #22c55e;
+}
+.az-badge-cancel{
+  background: rgba(148,163,184,.10);
+  border: 1px solid rgba(148,163,184,.25);
+  color: var(--az-text-secondary);
+}
+.az-badge-refund-full{
+  background: rgba(239,68,68,.12);
+  border: 1px solid rgba(239,68,68,.35);
+  color: #fecaca;
+}
+.az-badge-refund-partial{
+  background: rgba(245,158,11,.12);
+  border: 1px solid rgba(245,158,11,.35);
+  color: #fde68a;
+}
+
+/* ===== Modes de paiement ===== */
 .az-badge-mode{
   background: rgba(148,163,184,.10);
   border-color: rgba(148,163,184,.20);
   color: var(--az-text-primary);
 }
-
-/* 💵 ESPECES */
 .az-mode-especes{
   background: rgba(34,197,94,.14);
   border-color: rgba(34,197,94,.40);
 }
 .az-mode-especes i{ color: #22c55e; }
 
-/* 💳 CARTE */
 .az-mode-carte{
   background: rgba(99,102,241,.14);
   border-color: rgba(99,102,241,.40);
 }
 .az-mode-carte i{ color: #6366f1; }
 
-/* 🔁 VIREMENT */
 .az-mode-virement{
   background: rgba(249,115,22,.14);
   border-color: rgba(249,115,22,.40);
 }
 .az-mode-virement i{ color: #f97316; }
 
-/* 🧾 CHEQUE */
 .az-mode-cheque{
   background: rgba(59,130,246,.14);
   border-color: rgba(59,130,246,.40);
 }
 .az-mode-cheque i{ color: #3b82f6; }
 
-/* Actions */
+/* ===== Actions ===== */
 .az-actions{
   display:flex;
   gap: 8px;
   justify-content:flex-end;
   flex-wrap:wrap;
+}
+
+/* ✅ FIX ALIGNEMENT ACTIONS (DESKTOP) */
+.az-row .az-actions{
+  grid-column: 8;
+  justify-content:flex-end;
+}
+
+.az-btn-disabled{
+  opacity: .55;
+  pointer-events: none;
+  cursor: not-allowed;
 }
 
 /* Empty */
@@ -371,16 +411,23 @@ html[data-theme="dark"] .az-empty{
     padding: 14px;
   }
 
+  /* actions redevient normal en mobile */
+  .az-row .az-actions{
+    grid-column: auto;
+    justify-content:flex-start;
+  }
+
   .az-actions{ justify-content:flex-start; }
   .az-export{ margin-left:0; }
 
   .az-row .az-cell:nth-child(1)::before{ content:"Date"; }
-  .az-row .az-cell:nth-child(2)::before{ content:"Élève"; }
+  .az-row .az-cell:nth-child(2)::before{ content:"Parent"; }
   .az-row .az-cell:nth-child(3)::before{ content:"Année"; }
-  .az-row .az-cell:nth-child(4)::before{ content:"Groupe"; }
-  .az-row .az-cell:nth-child(5)::before{ content:"Montant"; }
-  .az-row .az-cell:nth-child(6)::before{ content:"Mode"; }
-  .az-row .az-cell:nth-child(7)::before{ content:"Actions"; margin-bottom:8px; }
+  .az-row .az-cell:nth-child(4)::before{ content:"Nb élèves"; }
+  .az-row .az-cell:nth-child(5)::before{ content:"Statut"; }
+  .az-row .az-cell:nth-child(6)::before{ content:"Net"; }
+  .az-row .az-cell:nth-child(7)::before{ content:"Mode"; }
+  .az-row .az-cell:nth-child(8)::before{ content:"Actions"; margin-bottom:8px; }
 
   .az-row .az-cell::before{
     display:block;
@@ -435,32 +482,39 @@ html[data-theme="dark"] .az-select optgroup{
 html[data-theme="dark"] select:-internal-list-box{
   background-color: #0b1220 !important;
 }
-.az-date-range{
-  display:flex;
-  align-items:center;
-  gap:10px;
-}
-.az-date-sep{
-  opacity:.6;
-  font-weight:900;
-}
-.az-date-range .az-input{
-  min-width:150px;
-}
-.az-badge-refund-full{
-  background: rgba(239,68,68,.12);
-  border: 1px solid rgba(239,68,68,.35);
-  color: #fecaca;
+/* =========================================================
+   FIX — Dropdown <select> en DARK
+   (options/optgroup fond + texte)
+========================================================= */
+
+html[data-theme="dark"] select,
+html[data-theme="dark"] .az-select{
+  color-scheme: dark;              /* aide le navigateur */
+  background-color: #0b1220;
+  border-color: rgba(148,163,184,.18);
+  color: #e5e7eb;
 }
 
-.az-badge-refund-partial{
-  background: rgba(245,158,11,.12);
-  border: 1px solid rgba(245,158,11,.35);
-  color: #fde68a;
+/* IMPORTANT: options/optgroup (menu ouvert) */
+html[data-theme="dark"] select option,
+html[data-theme="dark"] .az-select option,
+html[data-theme="dark"] select optgroup,
+html[data-theme="dark"] .az-select optgroup{
+  background-color: #0b1220 !important;
+  color: #e5e7eb !important;
 }
 
-.az-btn-disabled{
-  opacity: .55;
-  pointer-events: none;
-  cursor: not-allowed;
+/* Option hover/selected (selon navigateur) */
+html[data-theme="dark"] select option:checked,
+html[data-theme="dark"] .az-select option:checked{
+  background-color: #111b34 !important;
+  color: #ffffff !important;
+}
+
+/* Sur certains navigateurs, ça améliore la cohérence */
+html[data-theme="dark"] select:focus,
+html[data-theme="dark"] .az-select:focus{
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(114, 9, 183, .22);
+  border-color: rgba(114, 9, 183, .45);
 }

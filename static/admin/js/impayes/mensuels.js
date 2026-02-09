@@ -1,5 +1,5 @@
-/* static/admin/js/impaye.js */
-/* AZ — Impayés mensuels (Admin) */
+/* static/admin/js/impayes/mensuels.js */
+/* AZ — Impayés mensuels (Admin) — FINAL (endpoint Django + refresh groupes) */
 
 (function () {
   "use strict";
@@ -32,8 +32,8 @@
 
   function fillGroupes(selectEl, items, selectedValue = "") {
     if (!selectEl) return;
-    const opts = [`<option value="">Tous</option>`];
 
+    const opts = [`<option value="">Tous</option>`];
     (items || []).forEach((g) => {
       const id = String(g.id);
       const label = escapeHtml(g.label ?? "");
@@ -47,11 +47,16 @@
   function buildParamsFromForm(formEl) {
     const params = {};
     const fd = new FormData(formEl);
-    for (const [k, v] of fd.entries()) params[k] = String(v ?? "").trim();
 
+    for (const [k, v] of fd.entries()) {
+      const val = String(v ?? "").trim();
+      if (val) params[k] = val;
+    }
+
+    // défaut type
     if (!params.type) params.type = "ALL";
 
-    // Auto mois => supprimer "mois"
+    // Auto mois => si vide, on enlève
     if (!params.mois) delete params.mois;
 
     // Nettoyage URL
@@ -80,7 +85,9 @@
     window.location.href = qs ? `${base}?${qs}` : base;
   }
 
+  // =========================
   // DOM
+  // =========================
   const form = $(".az-filter-form");
   if (!form) return;
 
@@ -90,8 +97,17 @@
   const selectNiveau = $("#id_niveau", form);
   const selectGroupe = $("#id_groupe", form);
 
-  // ⚠️ adapte selon ton urls.py
-  const ENDPOINT_GROUPES = "/ajax/groupes/"; // ou "/core/ajax/groupes/"
+  // ✅ Endpoint fourni par le template :
+  // <div id="az-impayes" data-endpoint-groupes="{% url 'core:ajax_groupes' %}"></div>
+  const host = $("#az-impayes");
+  const ENDPOINT_GROUPES = host?.dataset?.endpointGroupes || "";
+
+  if (!ENDPOINT_GROUPES) {
+    console.error(
+      "[AZ] Endpoint groupes manquant. Ajoute dans le template: " +
+        '<div id="az-impayes" data-endpoint-groupes="{% url \'core:ajax_groupes\' %}"></div>'
+    );
+  }
 
   async function fetchGroupes({ anneeId, niveauId }) {
     const url = new URL(ENDPOINT_GROUPES, window.location.origin);
@@ -104,12 +120,19 @@
       credentials: "same-origin",
     });
 
-    if (!res.ok) throw new Error("Erreur AJAX groupes");
-    return await res.json(); // {"results":[...]}
+    if (!res.ok) {
+      const txt = await res.text().catch(() => "");
+      throw new Error(
+        `[AZ] AJAX groupes KO: ${res.status} ${res.statusText} | ${url} | ${txt.slice(0, 160)}`
+      );
+    }
+
+    // attendu: {"results":[{id,label}, ...]}
+    return await res.json();
   }
 
   async function refreshGroupes({ keepSelected = true } = {}) {
-    if (!selectGroupe) return;
+    if (!selectGroupe || !ENDPOINT_GROUPES) return;
 
     const anneeId = selectAnnee ? selectAnnee.value : "";
     const niveauId = selectNiveau ? selectNiveau.value : "";
@@ -118,44 +141,51 @@
     try {
       setSelectLoading(selectGroupe, true, "Chargement des groupes...");
       const data = await fetchGroupes({ anneeId, niveauId });
-      const results = data.results || [];
+      const results = data?.results || [];
       fillGroupes(selectGroupe, results, selectedBefore);
-      setSelectLoading(selectGroupe, false);
-      selectGroupe.disabled = false;
-      selectGroupe.classList.remove("is-loading");
     } catch (err) {
       console.error(err);
       fillGroupes(selectGroupe, [], "");
+    } finally {
       setSelectLoading(selectGroupe, false);
       selectGroupe.disabled = false;
       selectGroupe.classList.remove("is-loading");
     }
   }
 
+  // =========================
+  // Events / Submit intelligent
+  // =========================
   const smartSubmit = debounce(() => {
     const params = buildParamsFromForm(form);
     navigate(params);
   }, 450);
 
-  if (inputQ) inputQ.addEventListener("input", () => smartSubmit());
-  if (selectMois) selectMois.addEventListener("change", () => smartSubmit());
-  if (selectGroupe) selectGroupe.addEventListener("change", () => smartSubmit());
+  if (inputQ) inputQ.addEventListener("input", smartSubmit);
+  if (selectMois) selectMois.addEventListener("change", smartSubmit);
+
+  if (selectGroupe) {
+    selectGroupe.addEventListener("change", smartSubmit);
+  }
 
   if (selectAnnee) {
     selectAnnee.addEventListener("change", async () => {
-      await refreshGroupes({ keepSelected: false });
-      smartSubmit();
+      await refreshGroupes({ keepSelected: false }); // groupes recalculés
+      smartSubmit(); // recharge page avec les filtres
     });
   }
 
   if (selectNiveau) {
     selectNiveau.addEventListener("change", async () => {
-      await refreshGroupes({ keepSelected: false });
+      await refreshGroupes({ keepSelected: false }); // groupes recalculés
       smartSubmit();
     });
   }
 
+  // =========================
+  // Init
+  // =========================
   (async function init() {
-    if (selectGroupe) await refreshGroupes({ keepSelected: true });
+    await refreshGroupes({ keepSelected: true });
   })();
 })();

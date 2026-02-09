@@ -1,3 +1,11 @@
+/* =========================================
+   AZ • Paiements Wizard (FINAL)
+   - ÉLÈVE toujours searchable (TomSelect) même si Niveau/Groupe vides
+   - Niveau/Groupe = filtres OPTIONNELS (ne bloquent jamais l’élève)
+   - Transport guard conservé
+   - Panier fratrie/batch conservé
+   ========================================= */
+
 (function () {
   const $ = (id) => document.getElementById(id);
   const cfg = window.AZ_WIZ || {};
@@ -7,6 +15,13 @@
   const groupeSelect = $("groupeSelect");
   const eleveSelect = $("eleveSelect");
   const fratrieBox = $("fratrieBox");
+
+  // fratrie cart (NEW UI)
+  const fratrieCart = $("fratrieCart");
+  const btnAddToFratrie = $("btnAddToFratrie");
+  const btnClearFratrie = $("btnClearFratrie");
+  const fratriePayload = $("fratriePayload"); // optional
+  const batchPayload = $("batchPayload");     // required
 
   // switch buttons
   const btnSco = $("btnSco");
@@ -78,8 +93,17 @@
     tr_echeances: [],
     tr_selected: new Set(),
     tr_prices: {},
+
+    // fratrie data
+    fratrie: [],
+
+    // ✅ panier fratrie (batch)
+    cartEleves: new Map(), // eleve_id -> snapshot data
+    currentEleveId: null,
+    currentEleveLabel: "",
   };
 
+  // ---------- utils ----------
   function esc(s) {
     return String(s ?? "")
       .replaceAll("&", "&amp;")
@@ -97,40 +121,121 @@
     return await res.json();
   }
 
+  function safeParseJSON(raw, fallback) {
+    try {
+      const x = JSON.parse(raw);
+      return x ?? fallback;
+    } catch (e) {
+      return fallback;
+    }
+  }
+
+  function getSelectedEleveLabel() {
+    // quand TomSelect charge via API, l’option existe côté TS, pas toujours côté <select>.
+    // On garde un fallback sûr.
+    const opt = eleveSelect?.options?.[eleveSelect.selectedIndex];
+    return opt ? opt.textContent.trim() : (state.currentEleveLabel || "");
+  }
+
   // =========================
-  // TOMSELECT (ÉLÈVE)
+  // TOMSELECT (ÉLÈVE) — toujours actif
   // =========================
   function initEleveTomSelect() {
-    // Si TomSelect n’est pas chargé, on ignore sans crash
     if (typeof TomSelect === "undefined") return;
     if (!eleveSelect) return;
 
-    // éviter double init
     if (eleveTS) {
       try { eleveTS.destroy(); } catch (e) {}
       eleveTS = null;
     }
 
+    // ✅ ne jamais désactiver l’élève
+    eleveSelect.disabled = false;
+
     eleveTS = new TomSelect(eleveSelect, {
       create: false,
       allowEmptyOption: true,
-      maxOptions: 5000,
-      placeholder: "— Choisir —",
-      sortField: [{ field: "text", direction: "asc" }],
+      maxOptions: 80,
+      placeholder: "Tape matricule / nom…",
+      valueField: "value",
+      labelField: "text",
+      searchField: ["text"],
+      dropdownParent: "body", // ✅ évite clipping
+      preload: true,
+
+      render: {
+        no_results: () =>
+          `<div class="no-results" style="padding:10px;color:#94a3b8;">Aucun élève</div>`,
+        option: (data, escape) =>
+          `<div class="option">${escape(data.text)}</div>`,
+        item: (data, escape) =>
+          `<div class="item">${escape(data.text)}</div>`,
+      },
+
+      load: async (query, callback) => {
+        try {
+          const q = (query || "").trim();
+          const gid = (groupeSelect?.value || "").trim();
+
+          // ✅ URL de recherche (priorité)
+          const baseUrl = cfg.elevesSearchUrl || cfg.elevesUrl;
+          if (!baseUrl) return callback([]);
+
+          const params = new URLSearchParams();
+          params.set("q", q);
+
+          // ✅ filtre optionnel par groupe
+          if (gid) {
+            params.set("groupe_id", gid);
+            params.set("groupe", gid);
+          }
+
+          const data = await fetchJSON(`${baseUrl}?${params.toString()}`);
+
+          const items =
+            data.results ||
+            data.items ||
+            data.eleves ||
+            data.data ||
+            (Array.isArray(data) ? data : []);
+
+          const list = (Array.isArray(items) ? items : [])
+            .map(x => {
+              const id = String(x.id ?? x.pk ?? x.value ?? "");
+              const label = String(
+                x.label ??
+                x.nom ??
+                x.text ??
+                x.name ??
+                `${x.matricule || ""} ${x.prenom || ""} ${x.nom_famille || ""}`.trim()
+              ).trim();
+              return { value: id, text: label };
+            })
+            .filter(o => o.value && o.text);
+
+          callback(list);
+        } catch (e) {
+          callback([]);
+        }
+      },
+
+      onDropdownOpen: () => {
+        try { eleveTS?.focus(); } catch (e) {}
+      },
+
+      onChange: (val) => {
+        if (!val) return;
+        const id = String(val);
+        // snapshot label depuis TomSelect
+        try {
+          const opt = eleveTS?.options?.[id];
+          if (opt?.text) state.currentEleveLabel = String(opt.text);
+        } catch (e) {}
+
+        eleveSelect.value = id;
+        loadInscriptionAndAll(id);
+      }
     });
-
-    // si le select est disabled au départ
-    if (eleveSelect.disabled) {
-      try { eleveTS.disable(); } catch (e) {}
-    }
-  }
-
-  function syncEleveTSDisabled() {
-    if (!eleveTS) return;
-    try {
-      if (eleveSelect.disabled) eleveTS.disable();
-      else eleveTS.enable();
-    } catch (e) {}
   }
 
   // =========================
@@ -145,19 +250,16 @@
   function applyTransportGuard() {
     const enabled = !!state.tr_enabled;
 
-    // bouton TRANSPORT
     if (btnTr) {
       btnTr.disabled = !enabled;
       btnTr.classList.toggle("is-disabled", !enabled);
       btnTr.title = enabled ? "" : "Transport désactivé pour cet élève";
     }
 
-    // si on est déjà sur TRANSPORT -> retour scolarité
     if (!enabled && typeTransaction.value === "TRANSPORT") {
       setType("SCOLARITE");
     }
 
-    // pack transport checkbox
     if (packTrOn) {
       if (!enabled) {
         packTrOn.checked = false;
@@ -168,7 +270,6 @@
       }
     }
 
-    // bloc pack transport
     if (!enabled && packTrBlock) {
       packTrBlock.style.display = "none";
     }
@@ -178,7 +279,6 @@
   // TYPE SWITCH
   // =========================
   function setType(type) {
-    // empêcher TRANSPORT si désactivé
     if (type === "TRANSPORT" && !state.tr_enabled) {
       if (transportHint) transportHint.style.display = "";
       type = "SCOLARITE";
@@ -186,60 +286,75 @@
 
     typeTransaction.value = type;
 
-    btnSco.classList.toggle("is-active", type === "SCOLARITE");
-    btnIns.classList.toggle("is-active", type === "INSCRIPTION");
-    btnTr.classList.toggle("is-active", type === "TRANSPORT");
-    btnPack.classList.toggle("is-active", type === "PACK");
+    btnSco?.classList.toggle("is-active", type === "SCOLARITE");
+    btnIns?.classList.toggle("is-active", type === "INSCRIPTION");
+    btnTr?.classList.toggle("is-active", type === "TRANSPORT");
+    btnPack?.classList.toggle("is-active", type === "PACK");
 
-    blocScolarite.style.display = (type === "SCOLARITE") ? "" : "none";
-    blocInscription.style.display = (type === "INSCRIPTION") ? "" : "none";
-    blocTransport.style.display = (type === "TRANSPORT") ? "" : "none";
-    blocPack.style.display = (type === "PACK") ? "" : "none";
+    if (blocScolarite) blocScolarite.style.display = (type === "SCOLARITE") ? "" : "none";
+    if (blocInscription) blocInscription.style.display = (type === "INSCRIPTION") ? "" : "none";
+    if (blocTransport) blocTransport.style.display = (type === "TRANSPORT") ? "" : "none";
+    if (blocPack) blocPack.style.display = (type === "PACK") ? "" : "none";
 
     recomputeAll();
   }
 
-  btnSco.addEventListener("click", () => setType("SCOLARITE"));
-  btnIns.addEventListener("click", () => setType("INSCRIPTION"));
-  btnTr.addEventListener("click", () => setType("TRANSPORT"));
-  btnPack.addEventListener("click", () => setType("PACK"));
+  btnSco?.addEventListener("click", () => setType("SCOLARITE"));
+  btnIns?.addEventListener("click", () => setType("INSCRIPTION"));
+  btnTr?.addEventListener("click", () => setType("TRANSPORT"));
+  btnPack?.addEventListener("click", () => setType("PACK"));
 
-  function resetFinanceUI() {
-    state = {
-      inscription_id: null,
-      max_inscription: "0.00",
-      sco_echeances: [],
-      sco_selected: new Set(),
-      sco_prices: {},
-      tr_enabled: false,
-      tr_tarif: "0.00",
-      tr_echeances: [],
-      tr_selected: new Set(),
-      tr_prices: {},
-    };
+  // =========================
+  // RESET UI finance (sans toucher TomSelect élève)
+  // =========================
+  function resetFinanceUI({ keepCart = true } = {}) {
+    const oldCart = new Map(state.cartEleves);
 
-    inscriptionId.value = "";
-    echeancesPayload.value = "";
-    transportPayload.value = "";
-    packPayload.value = "";
+    state.inscription_id = null;
+    state.max_inscription = "0.00";
+    state.sco_echeances = [];
+    state.sco_selected = new Set();
+    state.sco_prices = {};
+    state.tr_enabled = false;
+    state.tr_tarif = "0.00";
+    state.tr_echeances = [];
+    state.tr_selected = new Set();
+    state.tr_prices = {};
+    state.fratrie = [];
+    state.currentEleveId = null;
+    // state.currentEleveLabel => on garde si besoin (pas grave)
+    // mais on peut vider :
+    state.currentEleveLabel = "";
 
-    totalTxt.textContent = "0.00";
+    if (!keepCart) state.cartEleves = new Map();
+    else state.cartEleves = oldCart;
 
-    moisTbody.innerHTML = `<tr><td colspan="3" class="az-muted">Choisis un élève…</td></tr>`;
-    transportTbody.innerHTML = `<tr><td colspan="3" class="az-muted">Choisis un élève…</td></tr>`;
-    packScoTbody.innerHTML = `<tr><td colspan="3" class="az-muted">Choisis un élève…</td></tr>`;
-    packTrTbody.innerHTML = `<tr><td colspan="3" class="az-muted">Choisis un élève…</td></tr>`;
+    if (inscriptionId) inscriptionId.value = "";
+    if (echeancesPayload) echeancesPayload.value = "";
+    if (transportPayload) transportPayload.value = "";
+    if (packPayload) packPayload.value = "";
+    if (fratriePayload) fratriePayload.value = "";
+    if (batchPayload) batchPayload.value = "";
 
-    transportHint.style.display = "none";
-    transportTableWrap.style.display = "none";
+    if (totalTxt) totalTxt.textContent = "0.00";
 
-    packTrDisabled.style.display = "none";
-    packTrTableWrap.style.display = "none";
+    if (moisTbody) moisTbody.innerHTML = `<tr><td colspan="3" class="az-muted">Choisis un élève…</td></tr>`;
+    if (transportTbody) transportTbody.innerHTML = `<tr><td colspan="3" class="az-muted">Choisis un élève…</td></tr>`;
+    if (packScoTbody) packScoTbody.innerHTML = `<tr><td colspan="3" class="az-muted">Choisis un élève…</td></tr>`;
+    if (packTrTbody) packTrTbody.innerHTML = `<tr><td colspan="3" class="az-muted">Choisis un élève…</td></tr>`;
 
-    fratrieBox.style.display = "none";
-    fratrieBox.innerHTML = "";
+    if (transportHint) transportHint.style.display = "none";
+    if (transportTableWrap) transportTableWrap.style.display = "none";
 
-    maxInscriptionTxt.textContent = "";
+    if (packTrDisabled) packTrDisabled.style.display = "none";
+    if (packTrTableWrap) packTrTableWrap.style.display = "none";
+
+    if (fratrieBox) {
+      fratrieBox.style.display = "none";
+      fratrieBox.innerHTML = "";
+    }
+
+    if (maxInscriptionTxt) maxInscriptionTxt.textContent = "";
     if (montantInscription) {
       montantInscription.value = "";
       montantInscription.max = "";
@@ -254,118 +369,143 @@
     if (packInsMax) packInsMax.textContent = "";
 
     applyTransportGuard();
+    updateCartUI();
   }
 
-  async function loadGroupes(niveauId) {
-    groupeSelect.innerHTML = `<option value="">—</option>`;
-    groupeSelect.disabled = true;
+  // =========================
+  // CART UI
+  // =========================
+  function updateCartUI() {
+    if (!fratrieCart || !btnAddToFratrie || !btnClearFratrie) return;
 
-    eleveSelect.innerHTML = `<option value="">—</option>`;
-    eleveSelect.disabled = true;
-    syncEleveTSDisabled();
+    const items = Array.from(state.cartEleves.values());
 
-    // vider TomSelect options
-    if (eleveTS) {
-      try {
-        eleveTS.clear(true);
-        eleveTS.clearOptions();
-        eleveTS.refreshOptions(false);
-      } catch (e) {}
+    const canAdd =
+      !!state.currentEleveId &&
+      !!state.inscription_id &&
+      !state.cartEleves.has(String(state.currentEleveId));
+
+    btnAddToFratrie.disabled = !canAdd;
+
+    if (!items.length) {
+      fratrieCart.style.display = "none";
+      fratrieCart.innerHTML = "";
+      btnClearFratrie.style.display = "none";
+    } else {
+      fratrieCart.style.display = "";
+      btnClearFratrie.style.display = "";
+
+      fratrieCart.innerHTML = items.map(it => `
+        <span class="az-chip is-active" style="cursor:default;">
+          ${esc(it.label)}
+          <button type="button" class="az-chip" data-remove="${esc(it.id)}" style="margin-left:8px;">✕</button>
+        </span>
+      `).join(" ");
+
+      fratrieCart.querySelectorAll("button[data-remove]").forEach(b => {
+        b.addEventListener("click", () => {
+          const id = String(b.dataset.remove);
+          state.cartEleves.delete(id);
+          recomputeAll();
+          updateCartUI();
+        });
+      });
     }
 
-    resetFinanceUI();
-    if (!niveauId) return;
-
-    const data = await fetchJSON(`${cfg.groupesUrl}?niveau_id=${encodeURIComponent(niveauId)}`);
-    const items = data.results || data.items || data.groupes || data.data || (Array.isArray(data) ? data : []);
-
-    groupeSelect.innerHTML =
-      `<option value="">— Choisir —</option>` +
-      (items || []).map(x => `<option value="${x.id}">${esc(x.label || x.nom || x.text || x.name)}</option>`).join("");
-
-    groupeSelect.disabled = false;
+    if (fratriePayload) {
+      fratriePayload.value = JSON.stringify({
+        eleves: items.map(x => ({ eleve_id: x.id, inscription_id: x.inscription_id }))
+      });
+    }
   }
 
-  async function loadEleves(groupeId) {
-    // reset select
-    eleveSelect.innerHTML = `<option value="">—</option>`;
-    eleveSelect.disabled = true;
-    syncEleveTSDisabled();
+  btnAddToFratrie?.addEventListener("click", () => {
+    if (!state.currentEleveId || !state.inscription_id) return;
 
-    // TomSelect off pendant chargement
-    if (eleveTS) {
-      try {
-        eleveTS.clear(true);
-        eleveTS.clearOptions();
-        eleveTS.disable();
-      } catch (e) {}
+    const id = String(state.currentEleveId);
+    if (state.cartEleves.has(id)) return;
+
+    const scoSnap = safeParseJSON(echeancesPayload?.value || "", { selected_ids: [], prices: {} });
+    const trSnap  = safeParseJSON(transportPayload?.value || "", { selected_ids: [], prices: {} });
+    const packSnap = safeParseJSON(packPayload?.value || "", {});
+
+    state.cartEleves.set(id, {
+      id,
+      eleve_id: id,
+      inscription_id: String(state.inscription_id),
+      label: state.currentEleveLabel || `Élève #${id}`,
+
+      type_transaction: String(typeTransaction?.value || "SCOLARITE"),
+      echeances_payload: scoSnap,
+      transport_payload: trSnap,
+      pack_payload: packSnap,
+      montant_inscription: (montantInscription?.value || "0.00"),
+    });
+
+    recomputeAll();
+    updateCartUI();
+  });
+
+  btnClearFratrie?.addEventListener("click", () => {
+    state.cartEleves = new Map();
+    recomputeAll();
+    updateCartUI();
+  });
+
+  // =========================
+  // fratrie buttons
+  // =========================
+  function renderFratrieButtons() {
+    const fr = Array.isArray(state.fratrie) ? state.fratrie : [];
+    if (!fratrieBox) return;
+
+    if (!fr.length) {
+      fratrieBox.style.display = "none";
+      fratrieBox.innerHTML = "";
+      return;
     }
 
-    resetFinanceUI();
-    if (!groupeId) return;
+    fratrieBox.style.display = "";
+    fratrieBox.innerHTML = `
+      <div class="az-muted">Frères/Sœurs :</div>
+      <div class="az-fratrie-list">
+        ${fr.map(f => `
+          <button type="button" class="az-chip" data-eid="${esc(f.id)}">
+            ${esc(f.matricule)} — ${esc(f.nom)} ${esc(f.prenom)} ${f.groupe_label ? "• " + esc(f.groupe_label) : ""}
+          </button>
+        `).join("")}
+      </div>
+      <div class="az-muted" style="margin-top:8px;">
+        Astuce: clique un frère/sœur puis “+ Ajouter…” pour le panier.
+      </div>
+    `;
 
-    // ✅ on envoie groupe_id ET groupe (compat endpoints)
-    const url = `${cfg.elevesUrl}?groupe_id=${encodeURIComponent(groupeId)}&groupe=${encodeURIComponent(groupeId)}`;
-    const data = await fetchJSON(url);
+    fratrieBox.querySelectorAll("button[data-eid]").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        const eid = String(btn.dataset.eid);
 
-    // ✅ support toutes les formes possibles
-    const items =
-      data.results ||
-      data.items ||
-      data.eleves ||
-      data.data ||
-      (Array.isArray(data) ? data : []);
+        // ✅ sélection dans TomSelect
+        if (eleveTS) {
+          try { eleveTS.setValue(eid, true); } catch (e) {}
+          try {
+            const opt = eleveTS?.options?.[eid];
+            if (opt?.text) state.currentEleveLabel = String(opt.text);
+          } catch (e) {}
+        } else {
+          eleveSelect.value = eid;
+        }
 
-    const finalItems = Array.isArray(items) ? items : (Array.isArray(data) ? data : []);
-
-    // build options (HTML select normal)
-    eleveSelect.innerHTML =
-      `<option value="">— Choisir —</option>` +
-      finalItems.map(x => {
-        const id = x.id ?? x.pk ?? x.value;
-        const label =
-          x.label ??
-          x.nom ??
-          x.text ??
-          x.name ??
-          `${x.matricule || ""} ${x.prenom || ""} ${x.nom_famille || ""}`.trim();
-        return `<option value="${esc(id)}">${esc(label)}</option>`;
-      }).join("");
-
-    eleveSelect.disabled = false;
-
-    // ✅ TomSelect: refresh options proprement
-    if (typeof TomSelect !== "undefined") {
-      if (!eleveTS) initEleveTomSelect();
-
-      if (eleveTS) {
-        try {
-          eleveTS.clear(true);
-          eleveTS.clearOptions();
-
-          finalItems.forEach(x => {
-            const id = String(x.id ?? x.pk ?? x.value);
-            const label =
-              String(
-                x.label ??
-                x.nom ??
-                x.text ??
-                x.name ??
-                `${x.matricule || ""} ${x.prenom || ""} ${x.nom_famille || ""}`.trim()
-              );
-            eleveTS.addOption({ value: id, text: label });
-          });
-
-          eleveTS.refreshOptions(false);
-          eleveTS.enable();
-        } catch (e) {}
-      }
-    }
-
-    syncEleveTSDisabled();
+        await loadInscriptionAndAll(eid);
+      });
+    });
   }
 
+  // =========================
+  // tables + payload
+  // =========================
   function renderTableGeneric(tbody, echeances, selectedSet, pricesMap) {
+    if (!tbody) return;
+
     if (!echeances.length) {
       tbody.innerHTML = `<tr><td colspan="3" class="az-muted">Aucune échéance.</td></tr>`;
       return;
@@ -410,7 +550,6 @@
         const id = String(inp.dataset.price);
         pricesMap[id] = inp.value;
 
-        // auto-check
         selectedSet.add(id);
         const chk = tbody.querySelector(`input[type=checkbox][data-eid="${CSS.escape(id)}"]`);
         if (chk && !chk.checked) chk.checked = true;
@@ -445,12 +584,35 @@
     return total;
   }
 
-  function recomputeAll() {
-    // payloads
-    echeancesPayload.value = JSON.stringify(buildPayload(state.sco_selected, state.sco_prices));
-    transportPayload.value = JSON.stringify(buildPayload(state.tr_selected, state.tr_prices));
+  function buildBatchPayloadIfNeeded() {
+    if (!batchPayload) return;
 
-    const type = typeTransaction.value;
+    const items = Array.from(state.cartEleves.values());
+
+    // batch seulement si 2+ élèves
+    if (items.length < 2) {
+      batchPayload.value = "";
+      return;
+    }
+
+    batchPayload.value = JSON.stringify({
+      type_transaction: String(typeTransaction?.value || "SCOLARITE"),
+      items: items.map(it => ({
+        inscription_id: it.inscription_id,
+        type_transaction: it.type_transaction,
+        echeances_payload: it.echeances_payload,
+        transport_payload: it.transport_payload,
+        pack_payload: it.pack_payload,
+        montant_inscription: it.montant_inscription
+      }))
+    });
+  }
+
+  function recomputeAll() {
+    if (echeancesPayload) echeancesPayload.value = JSON.stringify(buildPayload(state.sco_selected, state.sco_prices));
+    if (transportPayload) transportPayload.value = JSON.stringify(buildPayload(state.tr_selected, state.tr_prices));
+
+    const type = String(typeTransaction?.value || "SCOLARITE");
     let total = 0.0;
 
     if (type === "SCOLARITE") {
@@ -471,30 +633,27 @@
         tr: trAllowed ? buildPayload(state.tr_selected, state.tr_prices) : { selected_ids: [], prices: {} },
       };
 
-      packPayload.value = JSON.stringify(pack);
+      if (packPayload) packPayload.value = JSON.stringify(pack);
 
-      if (!trAllowed) {
-        clearTransportSelection();
-      }
+      if (!trAllowed) clearTransportSelection();
 
       if (pack.ins_on) total += toNum(pack.ins_amount);
       if (pack.sco_on) total += sumSelected(state.sco_echeances, state.sco_selected, state.sco_prices);
       if (trAllowed && pack.tr_on) total += sumSelected(state.tr_echeances, state.tr_selected, state.tr_prices);
     }
 
-    totalTxt.textContent = total.toFixed(2);
+    if (totalTxt) totalTxt.textContent = total.toFixed(2);
 
-    // pack blocks
     if (packInsBlock) packInsBlock.style.display = packInsOn?.checked ? "" : "none";
     if (packScoBlock) packScoBlock.style.display = packScoOn?.checked ? "" : "none";
 
-    // pack transport block dépend du transport enabled
     if (packTrBlock) {
       const showTr = !!packTrOn?.checked && !!state.tr_enabled;
       packTrBlock.style.display = showTr ? "" : "none";
     }
 
     applyTransportGuard();
+    buildBatchPayloadIfNeeded();
   }
 
   packInsOn?.addEventListener("change", recomputeAll);
@@ -503,64 +662,116 @@
   packInsAmount?.addEventListener("input", recomputeAll);
   montantInscription?.addEventListener("input", recomputeAll);
 
-  async function loadInscriptionAndAll(eleveId) {
-    resetFinanceUI();
+  // =========================
+  // load by niveau/groupe/eleve
+  // =========================
+  async function loadGroupes(niveauId) {
+    if (!groupeSelect) return;
 
-    moisTbody.innerHTML = `<tr><td colspan="3" class="az-muted">Chargement…</td></tr>`;
-    transportTbody.innerHTML = `<tr><td colspan="3" class="az-muted">Chargement…</td></tr>`;
-    packScoTbody.innerHTML = `<tr><td colspan="3" class="az-muted">Chargement…</td></tr>`;
-    packTrTbody.innerHTML = `<tr><td colspan="3" class="az-muted">Chargement…</td></tr>`;
+    groupeSelect.innerHTML = `<option value="">—</option>`;
+    groupeSelect.disabled = true;
+
+    // ✅ reset finance mais élève reste searchable
+    resetFinanceUI({ keepCart: true });
+
+    // ✅ pas de niveau => stop. (élève global OK)
+    if (!niveauId) return;
+
+    const data = await fetchJSON(`${cfg.groupesUrl}?niveau_id=${encodeURIComponent(niveauId)}`);
+    const items = data.results || data.items || data.groupes || data.data || (Array.isArray(data) ? data : []);
+
+    groupeSelect.innerHTML =
+      `<option value="">— Choisir —</option>` +
+      (items || []).map(x => `<option value="${x.id}">${esc(x.label || x.nom || x.text || x.name)}</option>`).join("");
+
+    groupeSelect.disabled = false;
+  }
+
+  async function loadEleves(groupeId) {
+    // ✅ reset finance mais élève reste searchable
+    resetFinanceUI({ keepCart: true });
+
+    // ✅ important: on ne disable jamais eleveSelect
+    if (eleveSelect) eleveSelect.disabled = false;
+    if (eleveTS) {
+      try { eleveTS.enable(); } catch (e) {}
+      try { eleveTS.clear(true); } catch (e) {}
+    }
+
+    // ✅ si pas de groupe => rien à précharger (recherche globale fonctionne)
+    if (!groupeId) return;
+
+    // (OPTIONNEL) préchargement des élèves du groupe dans TomSelect
+    const url = `${cfg.elevesUrl}?groupe_id=${encodeURIComponent(groupeId)}&groupe=${encodeURIComponent(groupeId)}`;
+    const data = await fetchJSON(url);
+
+    const items =
+      data.results ||
+      data.items ||
+      data.eleves ||
+      data.data ||
+      (Array.isArray(data) ? data : []);
+
+    const finalItems = Array.isArray(items) ? items : [];
+
+    if (eleveTS) {
+      try {
+        eleveTS.clearOptions();
+        finalItems.forEach(x => {
+          const id = String(x.id ?? x.pk ?? x.value ?? "");
+          const label = String(
+            x.label ??
+            x.nom ??
+            x.text ??
+            x.name ??
+            `${x.matricule || ""} ${x.prenom || ""} ${x.nom_famille || ""}`.trim()
+          ).trim();
+          if (id && label) eleveTS.addOption({ value: id, text: label });
+        });
+        eleveTS.refreshOptions(false);
+        eleveTS.enable();
+      } catch (e) {}
+    }
+  }
+
+  async function loadInscriptionAndAll(eleveId) {
+    resetFinanceUI({ keepCart: true });
+
+    state.currentEleveId = String(eleveId);
+    state.currentEleveLabel = state.currentEleveLabel || getSelectedEleveLabel();
+
+    if (moisTbody) moisTbody.innerHTML = `<tr><td colspan="3" class="az-muted">Chargement…</td></tr>`;
+    if (transportTbody) transportTbody.innerHTML = `<tr><td colspan="3" class="az-muted">Chargement…</td></tr>`;
+    if (packScoTbody) packScoTbody.innerHTML = `<tr><td colspan="3" class="az-muted">Chargement…</td></tr>`;
+    if (packTrTbody) packTrTbody.innerHTML = `<tr><td colspan="3" class="az-muted">Chargement…</td></tr>`;
 
     const inscData = await fetchJSON(`${cfg.inscByEleveUrl}?eleve_id=${encodeURIComponent(eleveId)}`);
     state.inscription_id = inscData.inscription_id;
-    inscriptionId.value = state.inscription_id || "";
+    if (inscriptionId) inscriptionId.value = state.inscription_id || "";
 
-    // fratrie
-    const fratrie = inscData.fratrie || [];
-    if (fratrie.length) {
-      fratrieBox.style.display = "";
-      fratrieBox.innerHTML = `
-        <div class="az-muted">Frères/Sœurs :</div>
-        <div class="az-fratrie-list">
-          ${fratrie.map(f => `
-            <button type="button" class="az-chip" data-eid="${esc(f.id)}">
-              ${esc(f.matricule)} — ${esc(f.nom)} ${esc(f.prenom)} ${f.groupe_label ? "• " + esc(f.groupe_label) : ""}
-            </button>
-          `).join("")}
-        </div>
-      `;
-      fratrieBox.querySelectorAll("button[data-eid]").forEach(btn => {
-        btn.addEventListener("click", async () => {
-          // select value + TomSelect sync
-          eleveSelect.value = btn.dataset.eid;
-          if (eleveTS) {
-            try { eleveTS.setValue(btn.dataset.eid, true); } catch (e) {}
-          }
-          await loadInscriptionAndAll(btn.dataset.eid);
-        });
-      });
-    }
+    state.fratrie = inscData.fratrie || [];
+    renderFratrieButtons();
+    updateCartUI();
 
     if (!state.inscription_id) {
       const msg = `<tr><td colspan="3" class="az-muted">Aucune inscription active pour cet élève.</td></tr>`;
-      moisTbody.innerHTML = msg;
-      transportTbody.innerHTML = msg;
-      packScoTbody.innerHTML = msg;
-      packTrTbody.innerHTML = msg;
+      if (moisTbody) moisTbody.innerHTML = msg;
+      if (transportTbody) transportTbody.innerHTML = msg;
+      if (packScoTbody) packScoTbody.innerHTML = msg;
+      if (packTrTbody) packTrTbody.innerHTML = msg;
       applyTransportGuard();
+      recomputeAll();
       return;
     }
 
-    // scolarité + reste inscription
     const echData = await fetchJSON(`${cfg.echeancesUrl}?inscription=${encodeURIComponent(state.inscription_id)}`);
     state.sco_echeances = echData.items || [];
     state.max_inscription = echData.tarifs?.reste_inscription || "0.00";
 
     const maxTxt = `Reste inscription: ${state.max_inscription} MAD`;
-    maxInscriptionTxt.textContent = maxTxt;
+    if (maxInscriptionTxt) maxInscriptionTxt.textContent = maxTxt;
     if (packInsMax) packInsMax.textContent = maxTxt;
 
-    // INSCRIPTION input: default = reste, max = reste
     const maxN = toNum(state.max_inscription);
     if (montantInscription) {
       montantInscription.value = (maxN > 0 ? maxN.toFixed(2) : "");
@@ -573,32 +784,29 @@
       packInsAmount.disabled = !(maxN > 0);
     }
 
-    // transport
     const trData = await fetchJSON(`${cfg.transportEcheancesUrl}?inscription=${encodeURIComponent(state.inscription_id)}`);
     state.tr_enabled = !!trData.enabled;
     state.tr_tarif = trData.tarif || "0.00";
     state.tr_echeances = trData.items || [];
 
-    // render scolarité (wizard + pack)
     renderTableGeneric(moisTbody, state.sco_echeances, state.sco_selected, state.sco_prices);
     renderTableGeneric(packScoTbody, state.sco_echeances, state.sco_selected, state.sco_prices);
 
-    // transport display + blocage
     if (!state.tr_enabled) {
-      transportHint.style.display = "";
-      transportTableWrap.style.display = "none";
+      if (transportHint) transportHint.style.display = "";
+      if (transportTableWrap) transportTableWrap.style.display = "none";
 
-      packTrDisabled.style.display = "";
-      packTrTableWrap.style.display = "none";
+      if (packTrDisabled) packTrDisabled.style.display = "";
+      if (packTrTableWrap) packTrTableWrap.style.display = "none";
 
       if (packTrOn) packTrOn.checked = false;
       clearTransportSelection();
     } else {
-      transportHint.style.display = "none";
-      transportTableWrap.style.display = "";
+      if (transportHint) transportHint.style.display = "none";
+      if (transportTableWrap) transportTableWrap.style.display = "";
 
-      packTrDisabled.style.display = "none";
-      packTrTableWrap.style.display = "";
+      if (packTrDisabled) packTrDisabled.style.display = "none";
+      if (packTrTableWrap) packTrTableWrap.style.display = "";
 
       renderTableGeneric(transportTbody, state.tr_echeances, state.tr_selected, state.tr_prices);
       renderTableGeneric(packTrTbody, state.tr_echeances, state.tr_selected, state.tr_prices);
@@ -609,30 +817,31 @@
   }
 
   // events
-  niveauSelect.addEventListener("change", () => loadGroupes(niveauSelect.value));
-  groupeSelect.addEventListener("change", () => loadEleves(groupeSelect.value));
+  niveauSelect?.addEventListener("change", () => loadGroupes(niveauSelect.value));
+  groupeSelect?.addEventListener("change", () => loadEleves(groupeSelect.value));
 
-  // ✅ important: change event doit fonctionner TomSelect et select normal
-  eleveSelect.addEventListener("change", () => {
+  // ✅ si quelqu’un change le <select> natif (au cas où)
+  eleveSelect?.addEventListener("change", () => {
     const v = eleveSelect.value;
     if (v) loadInscriptionAndAll(v);
   });
 
-  // init tomselect (si dispo)
+  // init TomSelect
   initEleveTomSelect();
 
-  // Prefill
+  // Prefill (optionnel)
   const p = window.__PREFILL__ || {};
-  if (p.niveau_id) {
+  if (p.niveau_id && niveauSelect) {
     niveauSelect.value = p.niveau_id;
     loadGroupes(p.niveau_id).then(() => {
-      if (p.groupe_id) {
+      if (p.groupe_id && groupeSelect) {
         groupeSelect.value = p.groupe_id;
         loadEleves(p.groupe_id).then(() => {
           if (p.eleve_id) {
-            eleveSelect.value = p.eleve_id;
             if (eleveTS) {
               try { eleveTS.setValue(String(p.eleve_id), true); } catch (e) {}
+            } else if (eleveSelect) {
+              eleveSelect.value = p.eleve_id;
             }
             loadInscriptionAndAll(p.eleve_id);
           }
@@ -641,6 +850,6 @@
     });
   }
 
-  // default
+  // default type
   setType("SCOLARITE");
 })();

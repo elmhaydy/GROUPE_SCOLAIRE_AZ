@@ -68,13 +68,15 @@
     </div>
 
     <div class="azad-kpi">
-      <div class="azad-kpi-ic azad-ic-grad b"><i class="fa-solid fa-layer-group"></i></div>
+      <div class="azad-kpi-ic azad-ic-grad c"><i class="fa-solid fa-receipt"></i></div>
       <div class="azad-kpi-meta">
-        <div class="azad-kpi-val">{{ nb_groupes|default:0 }}</div>
-        <div class="azad-kpi-label">Groupes</div>
+        <div class="azad-kpi-val">
+          {{ total_paye_annee|default:0 }} <span class="azad-kpi-unit">MAD</span>
+        </div>
+        <div class="azad-kpi-label">Encaissements (année)</div>
         <div class="azad-kpi-trend">
-          <span class="azad-tr flat"><i class="fa-solid fa-school"></i> Structures</span>
-          <span class="azad-tr-sub">Suivi général</span>
+          <span class="azad-tr flat"><i class="fa-solid fa-shield-halved"></i> Total enregistré</span>
+          <span class="azad-tr-sub">Année: {{ annee_active|default:"—" }}</span>
         </div>
       </div>
     </div>
@@ -82,10 +84,12 @@
     <div class="azad-kpi">
       <div class="azad-kpi-ic azad-ic-grad c"><i class="fa-solid fa-coins"></i></div>
       <div class="azad-kpi-meta">
-        <div class="azad-kpi-val">{{ total_paye|default:0 }} <span class="azad-kpi-unit">MAD</span></div>
-        <div class="azad-kpi-label">Encaissements</div>
+        <div class="azad-kpi-val">
+          {{ total_paye_mois|default:0 }} <span class="azad-kpi-unit">MAD</span>
+        </div>
+        <div class="azad-kpi-label">Encaissements (ce mois)</div>
         <div class="azad-kpi-trend">
-          <span class="azad-tr flat"><i class="fa-solid fa-receipt"></i> Total enregistré</span>
+          <span class="azad-tr flat"><i class="fa-solid fa-calendar"></i> {{ mois_courant_nom|default:"—" }}</span>
           <span class="azad-tr-sub">Tous modes</span>
         </div>
       </div>

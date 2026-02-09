@@ -1,29 +1,244 @@
 {% extends "admin/base_admin.html" %}
 {% load static %}
 
-{% block title %}Transaction enregistrée | AZ{% endblock %}
-{% block page_title %}Transaction{% endblock %}
+{% block title %}Paiements | Succès | AZ{% endblock %}
+{% block page_title %}Paiements{% endblock %}
 {% block breadcrumb %}Finance / Paiements / Succès{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'admin/css/paiements/form.css' %}">
+<link rel="stylesheet" href="{% static 'admin/css/paiements/wizard.css' %}?v=5">
 {% endblock %}
 
 {% block content %}
 <div class="az-container">
-  <div class="az-card">
-    <h2 class="az-title" style="margin:0 0 6px;">✅ Transaction enregistrée</h2>
-    <p class="az-muted" style="margin:0 0 14px;">
-      ID: <b>#{{ tx.id }}</b> — Total: <b>{{ tx.montant_total }} MAD</b> — Type: <b>{{ tx.get_type_transaction_display }}</b>
-    </p>
 
-    <div class="az-actions">
-      <a class="az-btn" href="{% url 'core:transaction_wizard' %}">Nouveau paiement</a>
-      <a class="az-btn az-btn-primary" target="_blank" href="{% url 'core:transaction_pdf' tx.id %}">
-        Voir / Télécharger PDF
-      </a>
-      <a class="az-btn az-btn-ghost" href="{% url 'core:paiement_list' %}">Retour liste</a>
+  <!-- =========================
+       HEADER
+  ========================== -->
+  <header class="az-head">
+    <div>
+      {% if mode == "BATCH" %}
+        <h1 class="az-title">Paiement enregistré ✅</h1>
+        <p class="az-sub">Un reçu unique a été créé.</p>
+      {% else %}
+        <h1 class="az-title">Paiement enregistré ✅</h1>
+        <p class="az-sub">Transaction confirmée avec succès.</p>
+      {% endif %}
+
+      {% if parent_label %}
+        <p class="az-sub" style="margin-top:6px;">
+          <b>Parent :</b> {{ parent_label }}
+        </p>
+      {% endif %}
     </div>
+  </header>
+
+  <div class="az-card">
+
+    <!-- =========================
+         TOP BAR
+    ========================== -->
+    <div class="az-row az-row-2" style="align-items:end;">
+      <div>
+        {% if mode == "BATCH" %}
+          <div class="az-muted">Token</div>
+          <div class="az-pill az-pill-soft" style="margin-top:6px;">
+            <b>{{ batch_token }}</b>
+          </div>
+        {% else %}
+          <div class="az-muted">Transaction</div>
+          <div class="az-pill az-pill-soft" style="margin-top:6px;">
+            <b>#{{ tx.id }}</b>
+            <span class="az-muted" style="margin-left:8px;">•</span>
+            <span style="margin-left:8px;"><b>{{ tx.montant_total }}</b> MAD</span>
+          </div>
+        {% endif %}
+      </div>
+
+      <div style="text-align:right;">
+        {% if mode == "BATCH" %}
+          <a class="az-btn az-btn-secondary"
+             href="{% url 'core:transaction_batch_pdf' batch_token=batch_token %}">
+            PDF
+          </a>
+        {% else %}
+          <a class="az-btn az-btn-secondary" target="_blank"
+             href="{% url 'core:transaction_pdf' tx_id=tx.id %}">
+            PDF
+          </a>
+        {% endif %}
+
+        <a class="az-btn" style="margin-left:8px;"
+           href="{% url 'core:transaction_wizard' %}">
+          + Nouveau paiement
+        </a>
+      </div>
+    </div>
+
+    <hr class="az-hr" style="margin:14px 0;">
+
+    <!-- =========================
+         BATCH MODE
+    ========================== -->
+    {% if mode == "BATCH" %}
+
+      {% if txs and txs|length %}
+        <div class="az-table-wrap">
+          <table class="az-table">
+            <thead>
+              <tr>
+                <th style="width:90px;">ID</th>
+                <th>Élève</th>
+                <th>Parent</th>
+                <th style="width:170px;">Statut</th>
+                <th style="width:140px;">Montant</th>
+                <th style="width:260px;">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for t in txs %}
+                <tr>
+                  <td><b>#{{ t.id }}</b></td>
+                  <td>{{ t.inscription.eleve }}</td>
+
+                  {# si tu fournis t.parent_label dans la view #}
+                  <td>{{ t.parent_label|default:parent_label|default:"—" }}</td>
+
+                  <!-- ===== STATUT REMBOURSEMENT ===== -->
+                  <td>
+                    {% if t.is_annulee_zero %}
+                      <span class="az-badge az-badge-muted">Annulé</span>
+                    {% elif t.is_rembourse %}
+                      <span class="az-badge az-badge-danger">
+                        <i class="fa-solid fa-rotate-left"></i> Remboursé
+                      </span>
+                    {% elif t.is_rembourse_partiel %}
+                      <span class="az-badge az-badge-warning">
+                        <i class="fa-solid fa-rotate-left"></i>
+                        Partiel ({{ t.montant_rembourse }} MAD)
+                      </span>
+                    {% else %}
+                      <span class="az-badge az-badge-success">Payé</span>
+                    {% endif %}
+                  </td>
+
+                  <td><b>{{ t.montant_total }}</b> MAD</td>
+
+                  <!-- ===== ACTIONS ===== -->
+                  <td>
+                    <a class="az-btn az-btn-secondary"
+                       href="{% url 'core:transaction_success' tx_id=t.id %}">
+                      Détails
+                    </a>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <div class="az-total" style="margin-top:14px;">
+          <div class="az-kpi">
+            <span>Total (batch)</span>
+            <strong>{{ total }}</strong>
+          </div>
+        </div>
+      {% else %}
+        <div class="az-muted">Aucune transaction à afficher.</div>
+      {% endif %}
+
+    <!-- =========================
+         SINGLE MODE
+    ========================== -->
+    {% else %}
+      {% if tx %}
+        <div class="az-row az-row-3">
+          <div>
+            <div class="az-muted">Élève</div>
+            <b>{{ tx.inscription.eleve }}</b>
+          </div>
+
+          <div>
+            <div class="az-muted">Mode</div>
+            <b>{{ tx.get_mode_display }}</b>
+          </div>
+
+          <div>
+            <div class="az-muted">Statut</div>
+            {% if tx.is_annulee_zero %}
+              <span class="az-badge az-badge-muted">Annulé</span>
+            {% elif tx.is_rembourse %}
+              <span class="az-badge az-badge-danger">
+                <i class="fa-solid fa-rotate-left"></i> Remboursé
+              </span>
+            {% elif tx.is_rembourse_partiel %}
+              <span class="az-badge az-badge-warning">
+                <i class="fa-solid fa-rotate-left"></i>
+                Partiel ({{ tx.montant_rembourse }} MAD)
+              </span>
+            {% else %}
+              <span class="az-badge az-badge-success">Payé</span>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="az-row az-row-2" style="margin-top:12px;">
+          <div>
+            <div class="az-muted">Total</div>
+            <b>{{ total }}</b> MAD
+          </div>
+
+          <div style="text-align:right;">
+            {% if tx.can_refund %}
+              <a class="az-btn az-btn-danger"
+                 href="{% url 'core:paiement_remboursement_create' tx.id %}">
+                {% if tx.montant_total|floatformat:2 == "0.00" %}
+                  Annuler
+                {% else %}
+                  Rembourser
+                {% endif %}
+              </a>
+            {% else %}
+              <span class="az-btn az-btn-danger az-btn-disabled">
+                Rembourser
+              </span>
+            {% endif %}
+          </div>
+        </div>
+
+        {% if tx.lignes.all %}
+          <hr class="az-hr" style="margin:14px 0;">
+          <div class="az-table-wrap">
+            <table class="az-table">
+              <thead>
+                <tr>
+                  <th>Libellé</th>
+                  <th style="width:160px;">Montant</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for ln in tx.lignes.all %}
+                  <tr>
+                    <td>{{ ln.libelle|default:"—" }}</td>
+                    <td><b>{{ ln.montant }}</b></td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% endif %}
+
+      {% else %}
+        <div class="az-muted">Transaction introuvable.</div>
+      {% endif %}
+    {% endif %}
+
+    <div class="az-actions" style="margin-top:18px;">
+      <a href="{% url 'core:paiement_list' %}" class="az-btn">
+        ← Retour liste paiements
+      </a>
+    </div>
+
   </div>
 </div>
 {% endblock %}

@@ -8,12 +8,31 @@
 
 <div class="az-card" style="grid-column:span 12;max-width:640px;">
   <h3>Confirmation</h3>
-  <p class="az-sub">Tu es sûr de vouloir supprimer <b>{{ niveau.degre.nom }} — {{ niveau.nom }}</b> ?</p>
+  <p class="az-sub">
+    Tu es sûr de vouloir supprimer
+    <b>{{ niveau.degre.nom }} — {{ niveau.nom }}</b> ?
+  </p>
+
+  <div class="az-pill" style="margin-top:10px;">
+    ⚠️ La suppression <b>forcée</b> peut supprimer aussi les groupes / inscriptions liés (et casser l’historique).
+  </div>
 
   <form method="post" style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap;">
     {% csrf_token %}
-    <button class="az-btn" type="submit" style="border-color:rgba(255,80,80,.35);">🗑️ Oui, supprimer</button>
-    <a class="az-btn az-btn-gradient" href="{% url 'core:niveau_list' %}">Annuler</a>
+
+    {# ✅ SUPPRESSION NORMALE #}
+    <button class="az-btn" type="submit" name="force" value="0"
+            style="border-color:rgba(255,80,80,.35);">
+      🗑️ Oui, supprimer (normal)
+    </button>
+
+    {# ✅ SUPPRESSION FORCÉE #}
+    <button class="az-btn az-btn-gradient" type="submit" name="force" value="1"
+            style="background:linear-gradient(135deg,#ef4444,#b91c1c);border:none;">
+      ⚠️ Forcer la suppression
+    </button>
+
+    <a class="az-btn" href="{% url 'core:niveau_list' %}">Annuler</a>
   </form>
 </div>
 

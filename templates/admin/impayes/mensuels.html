@@ -10,7 +10,10 @@
 {% endblock %}
 
 {% block content %}
-<script src="{% static 'admin/js/impayes/mensuels.js' %}?v=6" defer></script>
+<div id="az-impayes"
+     data-endpoint-groupes="{% url 'core:ajax_groupes' %}">
+</div>
+<script src="{% static 'admin/js/impayes/mensuels.js' %}?v=7" defer></script>
 
 <div class="az-page-head">
   <div class="az-page-head-left">

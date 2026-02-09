@@ -95,6 +95,12 @@
                         {% for e in form.eleve_telephone.errors %}<div class="az-error-msg">{{ e }}</div>{% endfor %}
                     </div>
                 </div>
+<div class="az-field">
+  <label for="{{ form.dernier_etablissement.id_for_label }}">Dernier établissement</label>
+  {{ form.dernier_etablissement }}
+  <div class="az-help">Ex : École / Collège / Lycée précédent</div>
+  <div class="az-error" data-error-for="dernier_etablissement"></div>
+</div>
 
                 <div class="az-field">
                     {{ form.eleve_adresse.label_tag }}

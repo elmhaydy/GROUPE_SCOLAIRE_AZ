@@ -817,3 +817,61 @@ html[data-theme="dark"] .az-toast{
     grid-column: auto;
   }
 }
+/* Parent item clickable */
+.az-parent-link{
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  text-decoration: none;
+  color: inherit;
+}
+
+.az-parent-link:hover{
+  transform: translateY(-1px);
+}
+
+.az-parent-link:focus-visible{
+  outline: 2px solid rgba(168,85,247,.55);
+  outline-offset: 3px;
+  border-radius: 14px;
+}
+
+/* Details stack */
+.az-parent-details{
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.parent-name{
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.parent-phone{
+  font-size: 12px;
+  color: rgba(255,255,255,.65);
+  line-height: 1.1;
+}
+
+.parent-relation{
+  font-size: 12px;
+  color: rgba(255,255,255,.75);
+}
+
+/* little arrow right */
+.az-parent-chev{
+  margin-left: auto;
+  opacity: .65;
+  transition: transform .15s ease, opacity .15s ease;
+}
+
+.az-parent-link:hover .az-parent-chev{
+  transform: translateX(2px);
+  opacity: 1;
+}

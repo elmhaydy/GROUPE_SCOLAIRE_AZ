@@ -1,0 +1,132 @@
+{% extends "admin/base_admin.html" %}
+{% load static %}
+
+{% block title %}Détails Paiement Parent | AZ{% endblock %}
+{% block page_title %}Détails paiement parent{% endblock %}
+{% block current_page %}Finance / Paiements / Parents / Détails{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'admin/css/paiements/list.css' %}?v=2">
+{% endblock %}
+
+{% block content %}
+
+<div class="az-page-head">
+  <div class="az-page-head-left">
+    <div class="az-pill">
+      <i class="fa-solid fa-user-group"></i>
+      <span><b>{{ payeur_label }}</b></span>
+    </div>
+
+    <span class="az-pill">
+      <i class="fa-solid fa-fingerprint"></i>
+      <span>{{ group_key }}</span>
+    </span>
+  </div>
+
+  <div class="az-page-head-right">
+    <span class="az-pill az-pill-total">
+      <i class="fa-solid fa-sack-dollar"></i>
+      <span>Net : <b>{{ total_net }}</b> MAD</span>
+    </span>
+
+    <span class="az-pill">
+      <i class="fa-solid fa-coins"></i>
+      <span>Brut : <b>{{ total_brut }}</b> MAD</span>
+    </span>
+
+    <span class="az-pill">
+      <i class="fa-solid fa-rotate-left"></i>
+      <span>Remboursé : <b>{{ total_rembourse }}</b> MAD</span>
+    </span>
+
+    <a class="az-btn az-btn-ghost" href="{% url 'core:paiement_list' %}">
+      <i class="fa-solid fa-arrow-left"></i> Retour
+    </a>
+  </div>
+</div>
+
+<div class="az-card az-paiement-card">
+  <div class="az-card-head">
+    <h3 class="az-card-title">
+      <i class="fa-solid fa-children"></i>
+      Élèves inclus dans ce paiement
+    </h3>
+  </div>
+
+  <div class="az-table">
+    <div class="az-thead">
+      <div>Date</div>
+      <div>Élève</div>
+      <div>Année</div>
+      <div>Groupe</div>
+      <div>Montant</div>
+      <div>Mode</div>
+      <div class="az-th-actions">Actions</div>
+    </div>
+
+    <div class="az-tbody">
+      {% for t in txs %}
+        <div class="az-row">
+          <div class="az-cell">
+            <span class="az-badge az-badge-muted">
+              <i class="fa-solid fa-calendar-day"></i>
+              {{ t.date_transaction|date:"Y-m-d" }}
+            </span>
+          </div>
+
+          <div class="az-cell">
+            <span class="az-strong">{{ t.inscription.eleve.matricule }}</span>
+            <span class="az-muted"> — {{ t.inscription.eleve.nom }} {{ t.inscription.eleve.prenom }}</span>
+            <div class="az-muted az-row-sub">
+              <span class="az-badge az-badge-muted">{{ t.get_type_transaction_display }}</span>
+            </div>
+          </div>
+
+          <div class="az-cell">
+            <span class="az-badge az-badge-muted">
+              <i class="fa-solid fa-calendar-days"></i> {{ t.inscription.annee.nom }}
+            </span>
+          </div>
+
+          <div class="az-cell">
+            <b>{{ t.inscription.groupe.nom }}</b>
+          </div>
+
+          <div class="az-cell">
+            <span class="az-badge az-badge-money">
+              <i class="fa-solid fa-coins"></i> <b>{{ t.montant_total }}</b> MAD
+            </span>
+            {% if t.montant_rembourse and t.montant_rembourse != 0 %}
+              <div class="az-muted" style="margin-top:6px;">
+                Remboursé: <b>{{ t.montant_rembourse }}</b> MAD
+              </div>
+            {% endif %}
+          </div>
+
+          <div class="az-cell">
+            <span class="az-badge az-badge-mode az-mode-{{ t.mode|lower }}">
+              <i class="fa-solid fa-credit-card"></i> {{ t.get_mode_display }}
+            </span>
+          </div>
+
+          <div class="az-cell az-actions">
+            <a class="az-btn az-btn-outline" href="{% url 'core:transaction_success' tx_id=t.id %}">
+              <i class="fa-solid fa-receipt"></i> Reçu
+            </a>
+            <a class="az-btn az-btn-outline" href="{% url 'core:transaction_pdf' tx_id=t.id %}">
+              <i class="fa-solid fa-file-pdf"></i> PDF
+            </a>
+          </div>
+        </div>
+      {% empty %}
+        <div class="az-empty">
+          <i class="fa-solid fa-inbox"></i>
+          <div>Aucune transaction liée.</div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+{% endblock %}

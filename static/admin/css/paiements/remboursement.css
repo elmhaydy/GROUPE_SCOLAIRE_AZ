@@ -1,0 +1,521 @@
+/* =========================================================
+   AZ — Paiements / Remboursement
+   File: static/admin/css/paiements/remboursement.css
+   Compatible: dark/light via html[data-theme="dark"]
+========================================================= */
+
+:root{
+  --az-bg: #f8fafc;
+  --az-card: #ffffff;
+  --az-border: rgba(15,23,42,.10);
+  --az-text: #0f172a;
+  --az-muted: rgba(15,23,42,.70);
+
+  --az-primary: #4361ee;
+  --az-primary-2: #7209b7;
+
+  --az-success: #16a34a;
+  --az-warning: #f59e0b;
+  --az-danger: #ef4444;
+  --az-info: #3b82f6;
+
+  --az-shadow: 0 12px 30px rgba(2,6,23,.08);
+  --az-shadow-soft: 0 8px 18px rgba(2,6,23,.06);
+
+  --az-radius: 16px;
+  --az-radius-sm: 12px;
+
+  --az-focus: 0 0 0 3px rgba(114, 9, 183, .22);
+}
+
+html[data-theme="dark"]{
+  --az-bg: #070b14;
+  --az-card: rgba(11, 18, 32, .92);
+  --az-border: rgba(148,163,184,.14);
+  --az-text: #e5e7eb;
+  --az-muted: rgba(226,232,240,.70);
+
+  --az-shadow: 0 18px 48px rgba(0,0,0,.35);
+  --az-shadow-soft: 0 10px 28px rgba(0,0,0,.30);
+  color-scheme: dark;
+}
+
+/* page wrapper */
+.az-refund{
+  padding: 14px;
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+.az-muted{ color: var(--az-muted); }
+.az-mono{
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+/* =========================================================
+   Header
+========================================================= */
+.az-refund-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.az-refund-title{
+  display:flex;
+  align-items:flex-start;
+  gap: 12px;
+}
+
+.az-refund-title > i{
+  width: 40px;
+  height: 40px;
+  border-radius: 14px;
+  display:grid;
+  place-items:center;
+  background: linear-gradient(135deg, rgba(67,97,238,.14), rgba(114,9,183,.14));
+  border: 1px solid var(--az-border);
+  color: var(--az-primary);
+  box-shadow: var(--az-shadow-soft);
+}
+
+.az-refund-title h2{
+  margin: 0;
+  font-size: 20px;
+  line-height: 1.15;
+  color: var(--az-text);
+}
+.az-refund-title p{
+  margin: 6px 0 0;
+  font-size: 13px;
+}
+
+/* =========================================================
+   KPIs (pills)
+========================================================= */
+.az-refund-kpis{
+  display:flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+/* si ton base theme a déjà .az-pill, on ne casse pas,
+   on complète juste la cohérence */
+.az-pill{
+  display:inline-flex;
+  align-items:center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--az-border);
+  background: linear-gradient(180deg, rgba(255,255,255,.90), rgba(255,255,255,.72));
+  box-shadow: var(--az-shadow-soft);
+  color: var(--az-text);
+  font-size: 13px;
+}
+
+html[data-theme="dark"] .az-pill{
+  background: linear-gradient(180deg, rgba(11,18,32,.92), rgba(11,18,32,.70));
+}
+
+.az-pill i{
+  opacity: .92;
+}
+
+.az-pill-total{
+  border-color: rgba(67,97,238,.22);
+  background: linear-gradient(135deg, rgba(67,97,238,.16), rgba(114,9,183,.14));
+}
+
+.az-pill-soft{
+  border-color: rgba(148,163,184,.16);
+}
+
+.az-pill-warn{
+  border-color: rgba(245,158,11,.28);
+  background: linear-gradient(135deg, rgba(245,158,11,.18), rgba(239,68,68,.12));
+}
+
+/* =========================================================
+   Card layout (fits your AZ base .az-card)
+========================================================= */
+.az-refund-card{
+  border-radius: var(--az-radius);
+  border: 1px solid var(--az-border);
+  background: var(--az-card);
+  box-shadow: var(--az-shadow);
+  overflow: hidden;
+}
+
+.az-card-head{
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--az-border);
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  background: linear-gradient(180deg, rgba(67,97,238,.06), transparent);
+}
+
+html[data-theme="dark"] .az-card-head{
+  background: linear-gradient(180deg, rgba(114,9,183,.10), transparent);
+}
+
+.az-card-title{
+  margin: 0;
+  display:flex;
+  align-items:center;
+  gap: 10px;
+  font-size: 15px;
+  color: var(--az-text);
+}
+
+.az-card-title i{
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  display:grid;
+  place-items:center;
+  background: linear-gradient(135deg, rgba(67,97,238,.16), rgba(114,9,183,.16));
+  border: 1px solid var(--az-border);
+  color: var(--az-primary);
+}
+
+.az-card-body{
+  padding: 16px;
+}
+
+/* =========================================================
+   Alerts
+========================================================= */
+.az-alert{
+  display:flex;
+  align-items:flex-start;
+  gap: 10px;
+  padding: 12px 12px;
+  border-radius: var(--az-radius-sm);
+  border: 1px solid var(--az-border);
+  margin-bottom: 12px;
+  background: rgba(148,163,184,.08);
+  color: var(--az-text);
+}
+
+.az-alert i{
+  margin-top: 2px;
+  opacity: .95;
+}
+
+.az-alert-danger{
+  border-color: rgba(239,68,68,.28);
+  background: linear-gradient(135deg, rgba(239,68,68,.14), rgba(239,68,68,.06));
+}
+
+.az-alert-info{
+  border-color: rgba(59,130,246,.28);
+  background: linear-gradient(135deg, rgba(59,130,246,.14), rgba(114,9,183,.08));
+}
+
+/* =========================================================
+   Form grid
+========================================================= */
+.az-refund-form{
+  margin-top: 8px;
+}
+
+.az-grid{
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.az-field{
+  display:flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.az-field-full{
+  grid-column: 1 / -1;
+}
+
+.az-field-label{
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .2px;
+  color: var(--az-text);
+}
+
+.az-help{
+  font-size: 12px;
+  color: var(--az-muted);
+}
+
+.az-input,
+.az-select{
+  width: 100%;
+  height: 40px;
+  padding: 0 12px;
+  border-radius: 12px;
+  border: 1px solid var(--az-border);
+  background: rgba(255,255,255,.92);
+  color: var(--az-text);
+  outline: none;
+  transition: box-shadow .18s ease, border-color .18s ease, transform .18s ease, background .18s ease;
+}
+
+html[data-theme="dark"] .az-input,
+html[data-theme="dark"] .az-select{
+  background: rgba(2,6,23,.34);
+}
+
+.az-input:focus,
+.az-select:focus{
+  border-color: rgba(114,9,183,.45);
+  box-shadow: var(--az-focus);
+}
+
+.az-input[disabled],
+.az-select[disabled]{
+  opacity: .62;
+  cursor: not-allowed;
+}
+
+/* =========================================================
+   Actions row
+========================================================= */
+.az-refund-actions{
+  display:flex;
+  align-items:center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+
+.az-actions{
+  display:flex;
+  gap: 10px;
+  align-items:center;
+  flex-wrap: wrap;
+}
+
+/* Buttons fallback if base not enough */
+.az-btn{
+  display:inline-flex;
+  align-items:center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--az-border);
+  background: rgba(148,163,184,.10);
+  color: var(--az-text);
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform .14s ease, box-shadow .14s ease, border-color .14s ease, background .14s ease;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.az-btn:hover{
+  transform: translateY(-1px);
+  box-shadow: var(--az-shadow-soft);
+  border-color: rgba(148,163,184,.22);
+}
+
+.az-btn:active{ transform: translateY(0); }
+
+.az-btn-primary{
+  background: linear-gradient(135deg, rgba(67,97,238,.95), rgba(114,9,183,.92));
+  border-color: rgba(114,9,183,.38);
+  color: #fff;
+}
+
+.az-btn-secondary{
+  background: rgba(148,163,184,.12);
+}
+
+.az-btn-ghost{
+  background: transparent;
+}
+
+.az-btn[disabled],
+.az-btn-disabled{
+  opacity: .55;
+  cursor: not-allowed;
+  pointer-events: none;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* =========================================================
+   Table (div-based)
+========================================================= */
+.az-table{
+  width: 100%;
+}
+
+.az-thead{
+  display:grid;
+  grid-template-columns: 90px 1.6fr 1fr 140px 120px 140px 160px;
+  gap: 10px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--az-border);
+  color: var(--az-muted);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .25px;
+  text-transform: uppercase;
+}
+
+.az-tbody .az-row{
+  display:grid;
+  grid-template-columns: 90px 1.6fr 1fr 140px 120px 140px 160px;
+  gap: 10px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--az-border);
+  align-items: center;
+}
+
+.az-tbody .az-row:hover{
+  background: rgba(148,163,184,.06);
+}
+
+.az-cell{
+  min-width: 0;
+}
+
+.az-strong{
+  font-weight: 800;
+  color: var(--az-text);
+}
+
+.az-row-sub{
+  margin-top: 6px;
+  display:flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* =========================================================
+   Badges (fallback)
+========================================================= */
+.az-badge{
+  display:inline-flex;
+  align-items:center;
+  gap: 7px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--az-border);
+  font-size: 12px;
+  color: var(--az-text);
+  background: rgba(148,163,184,.10);
+  white-space: nowrap;
+}
+
+.az-badge-muted{
+  color: var(--az-muted);
+  background: rgba(148,163,184,.08);
+}
+
+.az-badge-money{
+  border-color: rgba(67,97,238,.22);
+  background: linear-gradient(135deg, rgba(67,97,238,.14), rgba(114,9,183,.10));
+}
+
+.az-badge-success{
+  border-color: rgba(22,163,74,.25);
+  background: rgba(22,163,74,.12);
+}
+
+.az-badge-warning{
+  border-color: rgba(245,158,11,.25);
+  background: rgba(245,158,11,.12);
+}
+
+.az-badge-danger{
+  border-color: rgba(239,68,68,.25);
+  background: rgba(239,68,68,.12);
+}
+
+/* =========================================================
+   Empty state
+========================================================= */
+.az-empty{
+  padding: 22px 14px;
+  text-align: center;
+  color: var(--az-muted);
+}
+
+.az-empty i{
+  font-size: 20px;
+  opacity: .8;
+  margin-bottom: 6px;
+}
+
+/* =========================================================
+   Responsive
+========================================================= */
+@media (max-width: 1000px){
+  .az-thead,
+  .az-tbody .az-row{
+    grid-template-columns: 80px 1.6fr 1fr 120px 110px 120px 140px;
+  }
+}
+
+@media (max-width: 860px){
+  .az-refund-head{
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .az-refund-head-right{
+    display:flex;
+    justify-content:flex-end;
+  }
+
+  .az-grid{
+    grid-template-columns: 1fr;
+  }
+  .az-field-full{
+    grid-column: auto;
+  }
+
+  /* table -> cards */
+  .az-thead{ display:none; }
+
+  .az-tbody .az-row{
+    grid-template-columns: 1fr;
+    gap: 10px;
+    border: 1px solid var(--az-border);
+    border-radius: var(--az-radius);
+    margin: 10px 0;
+    background: var(--az-card);
+  }
+
+  .az-tbody .az-row:hover{
+    background: var(--az-card);
+  }
+
+  .az-cell{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap: 10px;
+    padding: 2px 0;
+  }
+
+  .az-cell::before{
+    content: attr(data-label);
+    color: var(--az-muted);
+    font-size: 12px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .2px;
+  }
+}
+
+/* =========================================================
+   Optional: labels mobile for the div-table
+   (Tu peux ajouter data-label dans ton template si tu veux)
+========================================================= */

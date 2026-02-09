@@ -1,13 +1,26 @@
-#accounts/permissions.py
+# accounts/permissions.py
 from functools import wraps
 from django.core.exceptions import PermissionDenied
 from django.contrib.auth.views import redirect_to_login
 
 def group_required(*group_names):
     """
-    - Si user pas connecté => redirect login (?next=...)
-    - Si connecté mais pas dans les groupes => 403
+    Autorise si:
+    - user pas connecté => redirect login (?next=...)
+    - superuser => OK
+    - user dans AU MOINS un des groupes => OK
+    Sinon => 403
+    Supporte:
+        @group_required("ADMIN", "SCOLARITE")
+        @group_required(["ADMIN", "SCOLARITE"])
     """
+
+    # normaliser: group_required(["A","B"])
+    if len(group_names) == 1 and isinstance(group_names[0], (list, tuple, set)):
+        group_names = tuple(group_names[0])
+
+    group_names = tuple(g for g in group_names if g)
+
     def decorator(view_func):
         @wraps(view_func)
         def _wrapped(request, *args, **kwargs):
@@ -18,11 +31,9 @@ def group_required(*group_names):
                 return view_func(request, *args, **kwargs)
 
             user_groups = set(request.user.groups.values_list("name", flat=True))
-            allowed = bool(user_groups.intersection(set(group_names)))
+            if user_groups.intersection(set(group_names)):
+                return view_func(request, *args, **kwargs)
 
-            if not allowed:
-                raise PermissionDenied("Accès refusé.")
-
-            return view_func(request, *args, **kwargs)
+            raise PermissionDenied("Accès refusé.")
         return _wrapped
     return decorator

@@ -8,6 +8,7 @@ from django.contrib.auth.models import Group
 from datetime import datetime, date as date_cls
 from django.db import models
 from django.conf import settings
+from core.utils_dates import month_start, add_months
 import os
 import uuid
 from decimal import Decimal
@@ -63,6 +64,7 @@ class AuditBase(models.Model):
         null=True, blank=True,
         related_name="updated_%(class)s_set"
     )
+    archived_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         abstract = True
@@ -180,6 +182,43 @@ class Eleve(AuditBase):
     telephone = models.CharField(max_length=30, blank=True)
 
     is_active = models.BooleanField(default=True)
+
+    # ✅ Pro: traçabilité d’archivage
+    archived_at = models.DateTimeField(null=True, blank=True)
+    archived_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True, blank=True,
+        on_delete=models.SET_NULL,
+        related_name="eleves_archived"
+    )
+
+    def archive(self, by_user=None, save=True):
+        """Archive (soft delete)"""
+        self.is_active = False
+        self.archived_at = timezone.now()
+        self.archived_by = by_user if by_user and getattr(by_user, "is_authenticated", False) else None
+
+        # ✅ optionnel: désactiver le compte user élève
+        if self.user_id:
+            self.user.is_active = False
+            self.user.save(update_fields=["is_active"])
+
+        if save:
+            self.save(update_fields=["is_active", "archived_at", "archived_by"])
+
+    def restore(self, save=True):
+        """Restaure"""
+        self.is_active = True
+        self.archived_at = None
+        self.archived_by = None
+
+        # ✅ optionnel: réactiver le compte user élève
+        if self.user_id:
+            self.user.is_active = True
+            self.user.save(update_fields=["is_active"])
+
+        if save:
+            self.save(update_fields=["is_active", "archived_at", "archived_by"])
 
     class Meta:
         ordering = ["nom", "prenom"]
@@ -349,7 +388,12 @@ class Inscription(models.Model):
     tarif_override = models.BooleanField(default=False)
     override_frais_inscription_du = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
     override_frais_scolarite_mensuel = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
-
+    dernier_etablissement = models.CharField(
+        max_length=160,
+        blank=True,
+        default="",
+        help_text="Dernier établissement fréquenté"
+    )
     date_inscription = models.DateField(auto_now_add=True)
     statut = models.CharField(max_length=20, choices=[("EN_COURS", "En cours"), ("VALIDEE", "Validée")], default="VALIDEE")
 
@@ -772,6 +816,7 @@ class Parent(AuditBase):
     prenom = models.CharField(max_length=80)
 
     telephone = models.CharField(max_length=30, blank=True)
+    telephone_norm = models.CharField(max_length=20, blank=True, db_index=True)
     email = models.EmailField(blank=True)
     adresse = models.CharField(max_length=255, blank=True)
 
@@ -890,17 +935,6 @@ class Periode(AuditBase):
     def __str__(self):
         return f"{self.nom} — {self.annee.nom}"
     
-
-# =========================================
-# Utils
-# =========================================
-def add_months(dt: date_cls, months: int) -> date_cls:
-    y = dt.year + (dt.month - 1 + months) // 12
-    m = (dt.month - 1 + months) % 12 + 1
-    last_day = calendar.monthrange(y, m)[1]
-    d = min(dt.day, last_day)
-    return date_cls(y, m, d)
-
 
 from decimal import Decimal
 from datetime import date as date_cls
@@ -1507,8 +1541,16 @@ from decimal import Decimal
 from django.db import models
 from django.db.models import Q
 from django.core.exceptions import ValidationError
+from django.db import transaction as dbtx
+
 
 class TransactionFinance(AuditBase):
+    parent = models.ForeignKey(
+        "Parent",
+        on_delete=models.PROTECT,
+        null=True, blank=True,
+        related_name="transactions"
+    )
     inscription = models.ForeignKey("Inscription", on_delete=models.PROTECT, related_name="transactions")
     date_transaction = models.DateTimeField(auto_now_add=True)
 
@@ -1520,7 +1562,6 @@ class TransactionFinance(AuditBase):
     ]
     type_transaction = models.CharField(max_length=20, choices=TYPE_CHOICES, default="SCOLARITE")
 
-    # ✅ 0 autorisé
     montant_total = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
 
     MODE_CHOICES = [
@@ -1539,11 +1580,26 @@ class TransactionFinance(AuditBase):
         ordering = ["-date_transaction", "-id"]
 
     def clean(self):
-        # ✅ on autorise 0 (réduction totale / gratuit / correction)
         m = self.montant_total or Decimal("0.00")
         if m < Decimal("0.00"):
             raise ValidationError({"montant_total": "Montant total invalide (négatif)."})
 
+    def save(self, *args, **kwargs):
+        creating = self.pk is None
+        super().save(*args, **kwargs)
+
+        # ✅ Référence auto UNE SEULE FOIS
+        if creating and not (self.reference or "").strip():
+            from core.models import RecuCounter  # même app, ok
+            annee_id = self.inscription.annee_id
+
+            with transaction.atomic():
+                n = RecuCounter.next_for_annee(annee_id)
+
+                # ✅ année : tu peux prendre date_debut.year OU datetime.now().year
+                year = self.inscription.annee.date_debut.year
+                self.reference = f"AZ-PAY-{year}-{n}"
+                super().save(update_fields=["reference"])
 
 class TransactionLigne(models.Model):
     transaction = models.ForeignKey("TransactionFinance", on_delete=models.CASCADE, related_name="lignes")
@@ -1593,6 +1649,27 @@ class TransactionLigne(models.Model):
             raise ValidationError({"montant": "Montant ligne invalide (négatif)."})
 
 
+from django.db.models import F
+
+class RecuCounter(models.Model):
+    annee = models.OneToOneField("AnneeScolaire", on_delete=models.CASCADE, related_name="recu_counter")
+    last_number = models.PositiveIntegerField(default=0)
+
+    def __str__(self):
+        return f"{self.annee.nom} -> {self.last_number}"
+
+    @staticmethod
+    @transaction.atomic
+    def next_for_annee(annee_id: int) -> int:
+        obj, _ = RecuCounter.objects.select_for_update().get_or_create(
+            annee_id=annee_id,
+            defaults={"last_number": 0},
+        )
+        obj.last_number = F("last_number") + 1
+        obj.save(update_fields=["last_number"])
+        obj.refresh_from_db(fields=["last_number"])
+        return int(obj.last_number)
+
 from decimal import Decimal
 from django.db import models
 from django.core.exceptions import ValidationError
@@ -1613,11 +1690,6 @@ class EleveTransport(models.Model):
 
     def __str__(self):
         return f"Transport {self.eleve_id} enabled={self.enabled} tarif={self.tarif_mensuel}"
-
-# core/models.py
-from decimal import Decimal
-from django.db import models
-from django.core.exceptions import ValidationError
 
 class EcheanceTransportMensuelle(models.Model):
     eleve = models.ForeignKey("Eleve", on_delete=models.CASCADE, related_name="echeances_transport")
@@ -1680,16 +1752,14 @@ class EcheanceTransportMensuelle(models.Model):
 
 from decimal import Decimal
 from django.core.exceptions import ValidationError
-from django.db import models, transaction as db_transaction
-from django.conf import settings
+from django.db import models
+from django.db import transaction as db_transaction
 
 class RemboursementFinance(models.Model):
     transaction = models.ForeignKey("TransactionFinance", on_delete=models.PROTECT, related_name="remboursements")
     created_at = models.DateTimeField(auto_now_add=True)
 
     montant = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
-
-    # ✅ NEW: pour gérer l’annulation logique des transactions à 0
     is_annulation = models.BooleanField(default=False)
 
     MODE_CHOICES = [
@@ -1721,22 +1791,36 @@ class RemboursementFinance(models.Model):
         if m < Decimal("0.00"):
             raise ValidationError({"montant": "Montant invalide (négatif interdit)."})
 
-        # ✅ Transaction à 0 => on autorise uniquement un remboursement/annulation à 0
+        # =========================
+        # ✅ CAS 1 : Transaction = 0  => Annulation logique
+        # =========================
         if total == Decimal("0.00"):
+            deja_annulee = self.transaction.remboursements.filter(is_annulation=True).exclude(pk=self.pk).exists()
+            if deja_annulee:
+                raise ValidationError("Cette transaction à 0 est déjà annulée.")
+
+            # force montant=0 + annulation
             if m != Decimal("0.00"):
-                raise ValidationError({"montant": "Transaction à 0 => montant doit rester à 0."})
+                raise ValidationError({"montant": "Transaction à 0 => le montant doit rester à 0."})
+
             self.is_annulation = True
             return
 
-        # ✅ Transaction > 0 => remboursement normal
+
+        # =========================
+        # ✅ CAS 2 : Transaction > 0 => Remboursement normal (partiel/total)
+        # =========================
         if m <= Decimal("0.00"):
-            raise ValidationError({"montant": "Montant remboursement invalide."})
+            raise ValidationError({"montant": "Montant remboursement invalide (doit être > 0)."})
 
         deja = self.transaction.remboursements.aggregate(s=models.Sum("montant"))["s"] or Decimal("0.00")
         max_remb = max(total - deja, Decimal("0.00"))
 
         if m > max_remb:
             raise ValidationError({"montant": f"Trop élevé. Max = {max_remb} MAD."})
+
+        # ✅ pas une annulation
+        self.is_annulation = False
 
     @db_transaction.atomic
     def save(self, *args, **kwargs):
@@ -1747,11 +1831,11 @@ class RemboursementFinance(models.Model):
         if not is_new:
             return
 
-        # ✅ annulation logique => aucune ligne, aucune modif sur échéances
+        # ✅ Annulation logique (tx=0) => aucune ligne, aucune modif sur échéances
         if self.is_annulation:
             return
 
-        # ✅ remboursement normal => créer lignes + décrémenter payé (ton flow)
+        # ✅ remboursement normal => ton flow (lignes + décrément payé)
         tx = self.transaction
         remaining = self.montant or Decimal("0.00")
         lignes = tx.lignes.select_related("echeance", "echeance_transport").order_by("-id")
@@ -1801,6 +1885,7 @@ class RemboursementFinance(models.Model):
                 et.save(update_fields=["montant_paye", "statut"])
 
             remaining -= take
+
 
 
 class RemboursementFinanceLigne(models.Model):

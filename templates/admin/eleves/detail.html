@@ -6,7 +6,7 @@
 {% block breadcrumb %}Scolaire / Élèves / {{ eleve.matricule }}{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'admin/css/eleves/detail.css' %}?v=5">
+<link rel="stylesheet" href="{% static 'admin/css/eleves/detail.css' %}?v=6">
 {% endblock %}
 
 {% block content %}
@@ -158,11 +158,6 @@
           </div>
 
           <div class="az-info-item">
-            <span class="label">Période</span>
-            <span class="value">{% if classe_active.periode %}{{ classe_active.periode.nom }}{% else %}—{% endif %}</span>
-          </div>
-
-          <div class="az-info-item">
             <span class="label">Degré</span>
             <span class="value">{{ classe_active.degre.nom }}</span>
           </div>
@@ -176,6 +171,19 @@
             <span class="label">Groupe</span>
             <span class="value highlight"><b>{{ classe_active.groupe.nom }}</b></span>
           </div>
+
+          <div class="az-info-item">
+            <span class="label">Dernier établissement</span>
+            <span class="value">
+              {% if inscription_active.dernier_etablissement %}
+                {{ inscription_active.dernier_etablissement }}
+              {% else %}
+                —
+              {% endif %}
+            </span>
+          </div>
+
+
         {% else %}
           <div class="az-empty-state">
             <i class="fas fa-user-plus"></i>
@@ -196,15 +204,31 @@
 
       <div class="az-parents-list">
         {% for l in liens_parents %}
-          <div class="az-parent-item">
+          <a class="az-parent-item az-parent-link"
+            href="{% url 'core:parent_detail' l.parent.id %}">
             <div class="az-parent-icon" aria-hidden="true">
               <i class="fas fa-user-shield"></i>
             </div>
+
             <div class="az-parent-details">
               <span class="parent-name">{{ l.parent.nom }} {{ l.parent.prenom }}</span>
+
+              {# ✅ numéro sous le nom #}
+              <span class="parent-phone">
+                {% if l.parent.telephone %}
+                  {{ l.parent.telephone }}
+                {% else %}
+                  —
+                {% endif %}
+              </span>
+
               <span class="parent-relation">{{ l.get_lien_display }}</span>
             </div>
-          </div>
+
+            <div class="az-parent-chev" aria-hidden="true">
+              <i class="fas fa-chevron-right"></i>
+            </div>
+          </a>
         {% empty %}
           <div class="az-empty-state">
             <i class="fas fa-user-slash"></i>
@@ -212,6 +236,7 @@
           </div>
         {% endfor %}
       </div>
+
     </section>
 
   </div><!-- /az-main-grid -->
@@ -277,6 +302,7 @@
               <th>Degré</th>
               <th>Niveau</th>
               <th>Groupe</th>
+              <th>Dernier établissement</th>
               <th>Statut</th>
             </tr>
           </thead>

@@ -95,13 +95,15 @@ class InscriptionForm(forms.ModelForm):
         model = Inscription
 
         # ✅ PAS de "niveau" (car le modèle Inscription ne l’a pas)
-        fields = ["eleve", "annee", "groupe", "statut"]
+        fields = ["eleve", "annee", "groupe", "statut", "dernier_etablissement"]
 
         widgets = {
             "annee": forms.Select(attrs={"id": "id_annee"}),
             "groupe": forms.Select(attrs={"id": "id_groupe"}),
             "statut": forms.Select(),
             "eleve": forms.Select(),
+            "dernier_etablissement": forms.TextInput(attrs={"class": "az-input", "placeholder": "Ex : École X"}),
+
         }
 
     def __init__(self, *args, **kwargs):
@@ -782,6 +784,27 @@ from core.models import (
     Eleve, Parent, ParentEleve,
     Inscription
 )
+import re
+
+def normalize_phone(phone: str) -> str:
+    """
+    0672786793
+    06.72.78.67.93
+    06 72 78 67 93
+    +212672786793
+    → 0672786793
+    """
+    if not phone:
+        return ""
+
+    # garder uniquement les chiffres
+    digits = re.sub(r"\D", "", phone)
+
+    # Maroc: +2126XXXXXXXX → 06XXXXXXXX
+    if digits.startswith("212") and len(digits) >= 12:
+        digits = "0" + digits[3:]
+
+    return digits
 
 class InscriptionFullForm(forms.Form):
     """
@@ -828,6 +851,16 @@ class InscriptionFullForm(forms.Form):
         max_length=120, required=False, label="Lieu naissance",
         widget=forms.TextInput(attrs={"class": "az-input", "placeholder": "Ville"})
     )
+    dernier_etablissement = forms.CharField(
+        required=False,
+        max_length=160,
+        label="Dernier établissement",
+        widget=forms.TextInput(attrs={
+            "class": "az-input",
+            "placeholder": "Ex : École X / Collège Y..."
+        })
+    )
+
     eleve_adresse = forms.CharField(
         max_length=255, required=False, label="Adresse",
         widget=forms.TextInput(attrs={"class": "az-input", "placeholder": "Adresse"})
@@ -992,25 +1025,34 @@ class InscriptionFullForm(forms.Form):
         has_any_parent = any([p_nom, p_pre, p_tel, p_mail])
 
         if has_any_parent:
-            # priorité email, sinon téléphone
+            norm_tel = normalize_phone(p_tel)
+
+            # priorité email, sinon tel normalisé
             if p_mail:
                 parent = Parent.objects.filter(email__iexact=p_mail).first()
-            if not parent and p_tel:
-                parent = Parent.objects.filter(telephone=p_tel).first()
+
+            if not parent and norm_tel:
+                parent = Parent.objects.filter(telephone_norm=norm_tel).first()
 
             if not parent:
                 parent = Parent.objects.create(
-                    user=None,  # ✅ pas de compte parent auto
+                    user=None,
                     nom=p_nom,
                     prenom=p_pre,
                     telephone=p_tel,
+                    telephone_norm=norm_tel,
                     email=p_mail,
                     adresse=p_adr,
                     is_active=True,
                 )
             else:
-                # update soft (uniquement si champs vides)
+                # update soft + set telephone_norm si vide
                 changed = False
+
+                if norm_tel and not (parent.telephone_norm or "").strip():
+                    parent.telephone_norm = norm_tel
+                    changed = True
+
                 if p_nom and not (parent.nom or "").strip():
                     parent.nom = p_nom; changed = True
                 if p_pre and not (parent.prenom or "").strip():
@@ -1021,24 +1063,28 @@ class InscriptionFullForm(forms.Form):
                     parent.email = p_mail; changed = True
                 if p_adr and not (parent.adresse or "").strip():
                     parent.adresse = p_adr; changed = True
+
                 if changed:
                     parent.save()
 
             ParentEleve.objects.get_or_create(
                 parent=parent,
                 eleve=eleve,
-                defaults={"lien": cd.get("lien") or "TUTEUR"}
+                defaults={"lien": cd.get("lien") or "TUTEUR"},
             )
 
-        # 3) Inscription (tarifs appliqués dans Inscription.save())
+        # 3) Inscription
         inscription = Inscription.objects.create(
             eleve=eleve,
             annee=cd["annee"],
             groupe=cd["groupe"],
             statut=cd["statut"],
+            dernier_etablissement=(cd.get("dernier_etablissement") or "").strip(),
+
         )
 
         return eleve, parent, inscription
+
 
 password = forms.CharField(
     required=False,
