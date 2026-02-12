@@ -340,6 +340,7 @@ class PaiementForm(forms.ModelForm):
         return cleaned
 
 
+
 class EnseignantForm(forms.ModelForm):
     class Meta:
         model = Enseignant
@@ -349,16 +350,16 @@ class EnseignantForm(forms.ModelForm):
             "email": forms.EmailInput(attrs={"placeholder": "email@exemple.com"}),
             "specialite": forms.TextInput(attrs={"placeholder": "Ex: Mathématiques"}),
         }
- 
 
 
 class EnseignantGroupeForm(forms.ModelForm):
     class Meta:
         model = EnseignantGroupe
-        fields = ["annee", "groupe"]
+        fields = ["annee", "groupe", "matiere_fk"]
         widgets = {
-            "annee": forms.Select(attrs={"id": "id_annee_aff"}),
-            "groupe": forms.Select(attrs={"id": "id_groupe_aff"}),
+            "annee": forms.Select(attrs={"class": "az-input"}),
+            "groupe": forms.Select(attrs={"class": "az-input"}),
+            "matiere_fk": forms.Select(attrs={"class": "az-input"}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -369,7 +370,7 @@ class EnseignantGroupeForm(forms.ModelForm):
             self.initial["annee"] = active
 
         annee_id = (
-            self.data.get("annee")
+            self.data.get(self.add_prefix("annee"))
             or getattr(self.instance, "annee_id", None)
             or (active.id if active else None)
         )
@@ -382,6 +383,22 @@ class EnseignantGroupeForm(forms.ModelForm):
             )
         else:
             self.fields["groupe"].queryset = Groupe.objects.none()
+
+        groupe_id = (
+            self.data.get(self.add_prefix("groupe"))
+            or getattr(self.instance, "groupe_id", None)
+        )
+
+        if groupe_id:
+            try:
+                g = Groupe.objects.select_related("niveau").get(pk=groupe_id)
+                self.fields["matiere_fk"].queryset = (
+                    Matiere.objects.filter(is_active=True, niveaux=g.niveau).order_by("nom")
+                )
+            except Groupe.DoesNotExist:
+                self.fields["matiere_fk"].queryset = Matiere.objects.none()
+        else:
+            self.fields["matiere_fk"].queryset = Matiere.objects.none()
 
 
 class SeanceForm(forms.ModelForm):

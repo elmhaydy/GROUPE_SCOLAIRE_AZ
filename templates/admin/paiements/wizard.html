@@ -6,14 +6,14 @@
 {% block breadcrumb %}Finance / Paiements / Wizard{% endblock %}
 
 {% block extra_css %}
-  <link rel="stylesheet" href="{% static 'admin/css/paiements/wizard.css' %}?v=6">
+  <link rel="stylesheet" href="{% static 'admin/css/paiements/wizard.css' %}?v=9">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css">
-  <link rel="stylesheet" href="{% static 'admin/css/tomselect-az.css' %}?v=1">
+  <link rel="stylesheet" href="{% static 'admin/css/paiements/tomselect-az.css' %}?v=2">
 {% endblock %}
 
 {% block extra_js %}
   <script defer src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
-  <script defer src="{% static 'admin/js/paiements/wizard_parent.js' %}?v=1"></script>
+  <script defer src="{% static 'admin/js/paiements/wizard.js' %}?v=5"></script>
 {% endblock %}
 
 {% block content %}
@@ -22,237 +22,330 @@
   <header class="az-head">
     <div>
       <h1 class="az-title">Paiements</h1>
-      <p class="az-sub">Mode Parent → enfants • Scolarité / Inscription / Transport + Pack</p>
+      <p class="az-sub">Payeur Parent → enfants • ou Autre → recherche élève direct • Scolarité / Inscription / Transport / Pack</p>
     </div>
   </header>
 
   <div class="az-card">
 
-    <!-- PARENT + ENFANT -->
-    <div class="az-row az-row-2">
-      <div>
-        <label class="az-label">Parent</label>
-        <select id="parentSelect" class="az-select">
-          <option value=""></option>
-        </select>
-        <div class="az-muted" style="margin-top:6px;">
-          Tape nom / CIN / téléphone…
-        </div>
+    <!-- ==========================
+         PAYEUR MODE (PARENT/AUTRE)
+         ========================== -->
+    <div class="az-row" style="margin-bottom:12px;">
+      <div class="az-payeur-toggle">
+        <button type="button" class="az-chip is-active" id="btnModeParent" data-mode="PARENT">
+           Parent
+        </button>
+        <button type="button" class="az-chip" id="btnModeAutre" data-mode="AUTRE">
+           Autre payeur (chercher élève)
+        </button>
+        <input type="hidden" name="payeur_mode" id="payeurMode" value="PARENT">
       </div>
-
-      <div>
-        <label class="az-label">Enfant</label>
-        <select id="eleveSelect" class="az-select" disabled>
-          <option value="">— Choisir un parent d’abord —</option>
-        </select>
-        <div class="az-muted" id="eleveHint" style="margin-top:6px;"></div>
+      <div class="az-muted">
+        Choisis si tu payes via parent (enfants + panier) ou directement par élève (sans parent).
       </div>
     </div>
 
-    <!-- Switch -->
-    <div class="az-switch" style="margin-top:12px;">
-      <button type="button" class="az-chip is-active" data-type="SCOLARITE" id="btnSco">Scolarité</button>
-      <button type="button" class="az-chip" data-type="INSCRIPTION" id="btnIns">Inscription</button>
-      <button type="button" class="az-chip" data-type="TRANSPORT" id="btnTr">Transport</button>
-      <button type="button" class="az-chip" data-type="PACK" id="btnPack">Pack</button>
-    </div>
+    <!-- ==========================
+         LAYOUT: LEFT (FORM) + RIGHT (CART)
+         ========================== -->
+    <div class="az-layout">
 
-    <form method="post" action="{% url 'core:transaction_create' %}" class="az-form" id="txForm" novalidate>
-      {% csrf_token %}
+      <!-- ==========================
+           LEFT SIDE
+           ========================== -->
+      <div class="az-main">
 
-      <input type="hidden" name="type_transaction" id="typeTransaction" value="SCOLARITE">
-      <input type="hidden" name="inscription_id" id="inscriptionId" value="">
-      <input type="hidden" name="echeances_payload" id="echeancesPayload" value="">
-      <input type="hidden" name="transport_payload" id="transportPayload" value="">
-      <input type="hidden" name="pack_payload" id="packPayload" value="">
-      <input type="hidden" name="batch_payload" id="batchPayload" value="">
+        <!-- MODE PARENT -->
+        <div id="modeParentBox">
+          <div class="az-row az-row-2">
+            <div>
+              <label class="az-label">Parent</label>
+              <select id="parentSelect" class="az-select">
+                <option value=""></option>
+              </select>
+              <div class="az-muted" style="margin-top:6px;">
+                Tape nom / CIN / téléphone…
+              </div>
+            </div>
 
-      <!-- SCOLARITE -->
-      <section id="blocScolarite">
-        <div class="az-table-wrap">
-          <table class="az-table">
-            <thead>
-              <tr>
-                <th style="width:44px;"></th>
-                <th>Mois</th>
-                <th style="width:220px;">Montant à payer</th>
-              </tr>
-            </thead>
-            <tbody id="moisTbody">
-              <tr><td colspan="3" class="az-muted">Choisis un parent puis un enfant…</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <!-- INSCRIPTION -->
-      <section id="blocInscription" style="display:none;">
-        <div class="az-row az-row-2">
-          <div>
-            <label class="az-label">Montant inscription</label>
-            <input type="number" step="0.01" min="0" class="az-input" name="montant_inscription" id="montantInscription" placeholder="0.00">
-            <div class="az-muted" id="maxInscriptionTxt"></div>
-          </div>
-        </div>
-      </section>
-
-      <!-- TRANSPORT -->
-      <section id="blocTransport" style="display:none;">
-        <div class="az-pill az-pill-soft" id="transportHint" style="margin-bottom:10px; display:none;">
-          Transport désactivé pour cet élève.
-        </div>
-
-        <div class="az-table-wrap" id="transportTableWrap" style="display:none;">
-          <table class="az-table">
-            <thead>
-              <tr>
-                <th style="width:44px;"></th>
-                <th>Mois</th>
-                <th style="width:220px;">Montant à payer</th>
-              </tr>
-            </thead>
-            <tbody id="transportTbody">
-              <tr><td colspan="3" class="az-muted">Choisis un enfant…</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <!-- PACK -->
-      <section id="blocPack" style="display:none;">
-        <div class="az-row az-row-3">
-          <label class="az-pill az-pill-soft" style="display:flex;gap:10px;align-items:center;">
-            <input type="checkbox" id="packInsOn" checked>
-            <span>Inclure inscription</span>
-          </label>
-          <label class="az-pill az-pill-soft" style="display:flex;gap:10px;align-items:center;">
-            <input type="checkbox" id="packScoOn" checked>
-            <span>Inclure scolarité</span>
-          </label>
-          <label class="az-pill az-pill-soft" style="display:flex;gap:10px;align-items:center;">
-            <input type="checkbox" id="packTrOn" checked>
-            <span>Inclure transport</span>
-          </label>
-        </div>
-
-        <div class="az-hr" style="margin:12px 0;"></div>
-
-        <div id="packInsBlock">
-          <label class="az-label">Montant inscription</label>
-          <input type="number" step="0.01" min="0" class="az-input" id="packInsAmount" placeholder="0.00">
-          <div class="az-muted" id="packInsMax"></div>
-        </div>
-
-        <div class="az-hr" style="margin:12px 0;"></div>
-
-        <div id="packScoBlock">
-          <div class="az-muted" style="margin-bottom:8px;">Scolarité (sélection mois)</div>
-          <div class="az-table-wrap">
-            <table class="az-table">
-              <thead>
-                <tr>
-                  <th style="width:44px;"></th>
-                  <th>Mois</th>
-                  <th style="width:220px;">Montant</th>
-                </tr>
-              </thead>
-              <tbody id="packScoTbody"><tr><td colspan="3" class="az-muted">Choisis un enfant…</td></tr></tbody>
-            </table>
+            <div>
+              <label class="az-label">Enfant</label>
+              <select id="eleveSelect" class="az-select" disabled>
+                <option value="">— Choisir un parent d’abord —</option>
+              </select>
+              <div class="az-muted" id="eleveHint" style="margin-top:6px;"></div>
+            </div>
           </div>
         </div>
 
-        <div class="az-hr" style="margin:12px 0;"></div>
+        <!-- MODE AUTRE (ÉLÈVE DIRECT) -->
+        <div id="modeAutreBox" style="display:none;">
 
-        <div id="packTrBlock">
-          <div class="az-muted" style="margin-bottom:8px;">Transport (sélection mois)</div>
-          <div class="az-pill az-pill-soft" id="packTrDisabled" style="margin-bottom:10px; display:none;">
-            Transport désactivé pour cet élève.
+          <div class="az-row">
+            <div>
+              <label class="az-label">Élève</label>
+              <select id="eleveDirectSelect" class="az-select">
+                <option value=""></option>
+              </select>
+              <div class="az-muted" style="margin-top:6px;">
+                Tape matricule / nom / prénom…
+              </div>
+            </div>
           </div>
-          <div class="az-table-wrap" id="packTrTableWrap" style="display:none;">
-            <table class="az-table">
-              <thead>
-                <tr>
-                  <th style="width:44px;"></th>
-                  <th>Mois</th>
-                  <th style="width:220px;">Montant</th>
-                </tr>
-              </thead>
-              <tbody id="packTrTbody"><tr><td colspan="3" class="az-muted">Choisis un enfant…</td></tr></tbody>
-            </table>
+          <!-- FRATRIE -->
+          <div class="az-fratrie" id="fratrieBox" style="display:none; margin-top:14px;">
+            <div class="az-muted" style="font-weight:800; text-transform:uppercase; font-size:12px;">
+              Fratrie
+            </div>
+
+            <div id="fratrieList" class="az-fratrie-list" style="margin-top:10px;"></div>
+
+            <div class="az-muted" style="margin-top:8px;">
+              Clique sur un frère / sœur pour le charger dans le formulaire.
+            </div>
           </div>
+
         </div>
-      </section>
 
-      <!-- PANIER (FRATRIE/BATCH) -->
-      <div class="az-hr" style="margin:12px 0;"></div>
+        <!-- ==========================
+             SWITCH TYPE TRANSACTION
+             ========================== -->
+        <div class="az-switch" style="margin-top:12px;">
+          <button type="button" class="az-chip is-active" data-type="SCOLARITE" id="btnSco">Scolarité</button>
+          <button type="button" class="az-chip" data-type="INSCRIPTION" id="btnIns">Inscription</button>
+          <button type="button" class="az-chip" data-type="TRANSPORT" id="btnTr">Transport</button>
+          <button type="button" class="az-chip" data-type="PACK" id="btnPack">Pack</button>
+        </div>
 
-      <section class="az-fratrie-cart">
-        <div class="az-row az-row-2" style="align-items:end;">
-          <div>
-            <div class="az-muted">Paiement parent (un seul reçu)</div>
-            <div id="cartBox" class="az-pill az-pill-soft" style="display:none;margin-top:8px;"></div>
+        <!-- ==========================
+             FORM
+             ========================== -->
+        <form method="post" action="{% url 'core:transaction_create' %}" class="az-form" id="txForm" novalidate>
+          {% csrf_token %}
+
+          <input type="hidden" name="type_transaction" id="typeTransaction" value="SCOLARITE">
+          <input type="hidden" name="inscription_id" id="inscriptionId" value="">
+          <input type="hidden" name="echeances_payload" id="echeancesPayload" value="">
+          <input type="hidden" name="transport_payload" id="transportPayload" value="">
+          <input type="hidden" name="pack_payload" id="packPayload" value="">
+          <input type="hidden" name="batch_payload" id="batchPayload" value="">
+
+          <!-- ==========================
+               SCOLARITE
+               ========================== -->
+          <section id="blocScolarite">
+            <div class="az-table-wrap">
+              <table class="az-table">
+                <thead>
+                  <tr>
+                    <th style="width:44px;"></th>
+                    <th>Mois</th>
+                    <th style="width:220px;">Montant à payer</th>
+                  </tr>
+                </thead>
+                <tbody id="moisTbody">
+                  <tr><td colspan="3" class="az-muted">Choisis un élève…</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <!-- ==========================
+               INSCRIPTION
+               ========================== -->
+          <section id="blocInscription" style="display:none;">
+            <div class="az-row az-row-2">
+              <div>
+                <label class="az-label">Montant inscription</label>
+                <input type="number" step="0.01" min="0" class="az-input" name="montant_inscription" id="montantInscription" placeholder="0.00">
+                <div class="az-muted" id="maxInscriptionTxt"></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ==========================
+               TRANSPORT
+               ========================== -->
+          <section id="blocTransport" style="display:none;">
+            <div class="az-pill az-pill-soft" id="transportHint" style="margin-bottom:10px; display:none;">
+              Transport désactivé pour cet élève.
+            </div>
+
+            <div class="az-table-wrap" id="transportTableWrap" style="display:none;">
+              <table class="az-table">
+                <thead>
+                  <tr>
+                    <th style="width:44px;"></th>
+                    <th>Mois</th>
+                    <th style="width:220px;">Montant à payer</th>
+                  </tr>
+                </thead>
+                <tbody id="transportTbody">
+                  <tr><td colspan="3" class="az-muted">Choisis un élève…</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <!-- ==========================
+               PACK
+               ========================== -->
+          <section id="blocPack" style="display:none;">
+            <div class="az-row az-row-3">
+              <label class="az-pill az-pill-soft" style="display:flex;gap:10px;align-items:center;">
+                <input type="checkbox" id="packInsOn" checked>
+                <span>Inclure inscription</span>
+              </label>
+              <label class="az-pill az-pill-soft" style="display:flex;gap:10px;align-items:center;">
+                <input type="checkbox" id="packScoOn" checked>
+                <span>Inclure scolarité</span>
+              </label>
+              <label class="az-pill az-pill-soft" style="display:flex;gap:10px;align-items:center;">
+                <input type="checkbox" id="packTrOn" checked>
+                <span>Inclure transport</span>
+              </label>
+            </div>
+
+            <div class="az-hr" style="margin:12px 0;"></div>
+
+            <div id="packInsBlock">
+              <label class="az-label">Montant inscription</label>
+              <input type="number" step="0.01" min="0" class="az-input" id="packInsAmount" placeholder="0.00">
+              <div class="az-muted" id="packInsMax"></div>
+            </div>
+
+            <div class="az-hr" style="margin:12px 0;"></div>
+
+            <div id="packScoBlock">
+              <div class="az-muted" style="margin-bottom:8px;">Scolarité (sélection mois)</div>
+              <div class="az-table-wrap">
+                <table class="az-table">
+                  <thead>
+                    <tr>
+                      <th style="width:44px;"></th>
+                      <th>Mois</th>
+                      <th style="width:220px;">Montant</th>
+                    </tr>
+                  </thead>
+                  <tbody id="packScoTbody">
+                    <tr><td colspan="3" class="az-muted">Choisis un élève…</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="az-hr" style="margin:12px 0;"></div>
+
+            <div id="packTrBlock">
+              <div class="az-muted" style="margin-bottom:8px;">Transport (sélection mois)</div>
+              <div class="az-pill az-pill-soft" id="packTrDisabled" style="margin-bottom:10px; display:none;">
+                Transport désactivé pour cet élève.
+              </div>
+              <div class="az-table-wrap" id="packTrTableWrap" style="display:none;">
+                <table class="az-table">
+                  <thead>
+                    <tr>
+                      <th style="width:44px;"></th>
+                      <th>Mois</th>
+                      <th style="width:220px;">Montant</th>
+                    </tr>
+                  </thead>
+                  <tbody id="packTrTbody">
+                    <tr><td colspan="3" class="az-muted">Choisis un élève…</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          <!-- ==========================
+               MODE + REFERENCE + NOTE
+               ========================== -->
+          <hr class="az-hr">
+
+          <div class="az-row az-row-3">
+            <div>
+              <label class="az-label">Mode</label>
+              <select class="az-select" name="mode" id="mode">
+                <option value="ESPECES">Espèces</option>
+                <option value="CARTE">Carte</option>
+                <option value="VIREMENT">Virement</option>
+                <option value="CHEQUE">Chèque</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="az-label">Référence</label>
+              <input class="az-input" name="reference" id="reference" placeholder="N° chèque / virement…">
+            </div>
+
+            <div>
+              <label class="az-label">Note</label>
+              <input class="az-input" name="note" id="note" placeholder="Optionnel">
+            </div>
           </div>
 
-          <div style="text-align:right;">
-            <button type="button" class="az-btn az-btn-secondary" id="btnAddToCart" disabled>
-              + Ajouter cet enfant au panier
-            </button>
-            <button type="button" class="az-btn" id="btnClearCart" style="margin-left:8px; display:none;">
+          <div class="az-actions">
+            <a href="{% url 'core:paiement_list' %}" class="az-btn">← Retour</a>
+            <button class="az-btn az-btn-primary" type="submit">Valider</button>
+          </div>
+
+        </form>
+      </div><!-- /az-main -->
+
+      <!-- ==========================
+           RIGHT SIDE : CART SIDEBAR
+           ========================== -->
+      <aside class="az-side">
+        <div class="az-cart">
+          <div class="az-cart-head">
+            <div>
+              <div class="az-cart-title">🧺 Panier</div>
+              <div class="az-muted" style="font-size:12px;">Un seul reçu • multi-élèves</div>
+            </div>
+
+            <button type="button" class="az-btn az-btn-secondary" id="btnClearCart" style="display:none;">
               Vider
             </button>
           </div>
+
+          <div id="cartEmpty" class="az-cart-empty">
+            Aucun élève dans le panier.
+          </div>
+
+          <div id="cartList" class="az-cart-list" style="display:none;"></div>
+
+          <div class="az-hr" style="margin:12px 0;"></div>
+
+          <button type="button" class="az-btn az-btn-primary" id="btnAddToCart" disabled style="width:100%;">
+            + Ajouter au panier
+          </button>
+
+          <div class="az-hr" style="margin:12px 0;"></div>
+
+          <div class="az-kpi" style="justify-content:space-between;">
+            <span>Total sélection</span>
+            <strong id="totalTxt">0.00</strong>
+          </div>
         </div>
-      </section>
+      </aside>
 
-      <!-- TOTAL -->
-      <div class="az-total" style="margin-top:12px;">
-        <div class="az-kpi">
-          <span>Total sélection</span>
-          <strong id="totalTxt">0.00</strong>
-        </div>
-      </div>
+    </div><!-- /az-layout -->
 
-      <hr class="az-hr">
-
-      <div class="az-row az-row-3">
-        <div>
-          <label class="az-label">Mode</label>
-          <select class="az-select" name="mode" id="mode">
-            <option value="ESPECES">Espèces</option>
-            <option value="CARTE">Carte</option>
-            <option value="VIREMENT">Virement</option>
-            <option value="CHEQUE">Chèque</option>
-          </select>
-        </div>
-
-        <div>
-          <label class="az-label">Référence</label>
-          <input class="az-input" name="reference" id="reference" placeholder="N° chèque / virement…">
-        </div>
-
-        <div>
-          <label class="az-label">Note</label>
-          <input class="az-input" name="note" id="note" placeholder="Optionnel">
-        </div>
-      </div>
-
-      <div class="az-actions">
-        <a href="{% url 'core:paiement_list' %}" class="az-btn">← Retour</a>
-        <button class="az-btn az-btn-primary" type="submit">Valider</button>
-      </div>
-    </form>
-  </div>
-</div>
+  </div><!-- /az-card -->
+</div><!-- /az-container -->
 
 <script>
   window.AZ_WIZ = {
     parentsSearchUrl: "{% url 'core:ajax_parents_search' %}",
     enfantsByParentUrl: "{% url 'core:ajax_enfants_by_parent' %}",
+    elevesSearchUrl: "{% url 'core:ajax_eleves_search' %}",
 
     echeancesUrl: "{% url 'core:ajax_echeances' %}",
     transportEcheancesUrl: "{% url 'core:ajax_transport_echeances' %}",
+    fratrieUrl: "{% url 'core:ajax_fratrie' %}",
 
-    // optionnel si tu veux un label parent
   };
 </script>
 

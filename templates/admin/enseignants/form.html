@@ -6,7 +6,7 @@
 {% block breadcrumb %}Pédagogie / Enseignants{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'admin/css/enseignants/form.css' %}?v=4">
+<link rel="stylesheet" href="{% static 'admin/css/enseignants/form.css' %}?v=6">
 {% endblock %}
 
 {% block content %}
@@ -16,7 +16,7 @@
     <div>
       <h3 class="az-ens-title">Formulaire</h3>
       <p class="az-ens-sub">
-        Renseigne les informations de l’enseignant (coordonnées + spécialité).
+        Renseigne les informations de l’enseignant (coordonnées + spécialité) puis ses affectations (groupe + matière).
       </p>
     </div>
 
@@ -33,40 +33,57 @@
     </div>
   {% endif %}
 
+  {% if form.non_field_errors %}
+    <div class="az-ens-flash az-ens-flash-danger">
+      {% for e in form.non_field_errors %}<div>{{ e }}</div>{% endfor %}
+    </div>
+  {% endif %}
+
   <form method="post" class="az-ens-form" novalidate enctype="multipart/form-data">
-
     {% csrf_token %}
-<div class="az-field">
-  <label>Photo</label>
 
-  <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
-    <div style="width:72px;height:72px;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);display:flex;align-items:center;justify-content:center;">
-      {% if form.instance.photo %}
-        <img id="photoPreview" src="{{ form.instance.photo.url }}" alt="Photo enseignant" style="width:100%;height:100%;object-fit:cover;">
-      {% else %}
-        <img id="photoPreview" src="" alt="" style="display:none;width:100%;height:100%;object-fit:cover;">
-        <i class="fas fa-user" style="opacity:.55;"></i>
-      {% endif %}
+    <input type="hidden" id="apiMatieresUrl" value="{% url 'core:api_matieres_par_groupe' %}">
+
+    <!-- =========================
+         PHOTO
+    ========================== -->
+    <div class="az-field">
+      <label>Photo</label>
+
+      <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+        <div style="width:72px;height:72px;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);display:flex;align-items:center;justify-content:center;">
+          {% if form.instance.photo %}
+            <img id="photoPreview" src="{{ form.instance.photo.url }}" alt="Photo enseignant" style="width:100%;height:100%;object-fit:cover;">
+          {% else %}
+            <img id="photoPreview" src="" alt="" style="display:none;width:100%;height:100%;object-fit:cover;">
+            <i class="fas fa-user" style="opacity:.55;"></i>
+          {% endif %}
+        </div>
+
+        <div style="min-width:220px;flex:1;">
+          {{ form.photo }}
+          <div class="az-help">PNG/JPG. Optionnel.</div>
+          {% if form.photo.errors %}
+            <div class="az-ens-flash az-ens-flash-danger">{{ form.photo.errors }}</div>
+          {% endif %}
+        </div>
+      </div>
     </div>
 
-    <div style="min-width:220px;flex:1;">
-      {{ form.photo }}
-      <div class="az-help">PNG/JPG. Optionnel.</div>
-    </div>
-  </div>
-</div>
-
+    <!-- =========================
+         INFOS
+    ========================== -->
     <div class="az-grid-2">
       <div class="az-field">
         <label for="{{ form.nom.id_for_label }}">Nom</label>
         {{ form.nom }}
-        <div class="az-error" data-error-for="nom"></div>
+        {% if form.nom.errors %}<div class="az-ens-flash az-ens-flash-danger">{{ form.nom.errors }}</div>{% endif %}
       </div>
 
       <div class="az-field">
         <label for="{{ form.prenom.id_for_label }}">Prénom</label>
         {{ form.prenom }}
-        <div class="az-error" data-error-for="prenom"></div>
+        {% if form.prenom.errors %}<div class="az-ens-flash az-ens-flash-danger">{{ form.prenom.errors }}</div>{% endif %}
       </div>
     </div>
 
@@ -75,14 +92,14 @@
         <label for="{{ form.telephone.id_for_label }}">Téléphone</label>
         {{ form.telephone }}
         <div class="az-help">Format recommandé : +212…</div>
-        <div class="az-error" data-error-for="telephone"></div>
+        {% if form.telephone.errors %}<div class="az-ens-flash az-ens-flash-danger">{{ form.telephone.errors }}</div>{% endif %}
       </div>
 
       <div class="az-field">
         <label for="{{ form.email.id_for_label }}">Email</label>
         {{ form.email }}
         <div class="az-help">Ex : prof@ecole.ma</div>
-        <div class="az-error" data-error-for="email"></div>
+        {% if form.email.errors %}<div class="az-ens-flash az-ens-flash-danger">{{ form.email.errors }}</div>{% endif %}
       </div>
     </div>
 
@@ -90,14 +107,128 @@
       <label for="{{ form.specialite.id_for_label }}">Spécialité</label>
       {{ form.specialite }}
       <div class="az-help">Ex : Mathématiques, Français, Physique…</div>
-      <div class="az-error" data-error-for="specialite"></div>
+      {% if form.specialite.errors %}<div class="az-ens-flash az-ens-flash-danger">{{ form.specialite.errors }}</div>{% endif %}
     </div>
 
-    <div class="az-switch">
+    <!-- =========================
+         AFFECTATIONS (FORMSET)
+    ========================== -->
+    {% if formset %}
+      <div class="az-ens-divider" style="margin:18px 0; opacity:.7;"></div>
+
+      <div class="az-ens-head" style="padding:0; margin:0 0 10px 0;">
+        <div>
+          <h3 class="az-ens-title" style="margin:0;">Affectations</h3>
+          <p class="az-ens-sub" style="margin:4px 0 0 0;">
+            Choisis un groupe, puis la matière (filtrée selon le niveau du groupe). Tu peux ajouter plusieurs lignes.
+          </p>
+        </div>
+      </div>
+
+      {{ formset.management_form }}
+
+      {% if formset.non_form_errors %}
+        <div class="az-ens-flash az-ens-flash-danger">
+          {{ formset.non_form_errors }}
+        </div>
+      {% endif %}
+
+      {% if formset.errors %}
+        <div class="az-ens-flash az-ens-flash-danger">
+          <b>Erreurs affectations :</b>
+          <pre style="white-space:pre-wrap; margin:8px 0 0;">{{ formset.errors }}</pre>
+        </div>
+      {% endif %}
+
+      <!-- TEMPLATE NEW ROW -->
+      <template id="affRowTpl">
+        <div class="az-card aff-row" style="padding:12px; border-radius:14px;">
+          <div class="az-grid-3" style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px;">
+            <div class="az-field">
+              <label>Année</label>
+              {{ formset.empty_form.annee }}
+            </div>
+
+            <div class="az-field">
+              <label>Groupe</label>
+              {{ formset.empty_form.groupe }}
+            </div>
+
+            <div class="az-field">
+              <label>Matière</label>
+              {{ formset.empty_form.matiere_fk }}
+            </div>
+          </div>
+
+          {% if formset.empty_form.DELETE %}
+            <div class="az-field" style="margin-top:10px;">
+              <label style="display:flex; gap:8px; align-items:center;">
+                {{ formset.empty_form.DELETE }} <span>Supprimer cette ligne</span>
+              </label>
+            </div>
+          {% endif %}
+        </div>
+      </template>
+
+      <!-- EXISTING ROWS -->
+      <div id="affRows" style="display:flex; flex-direction:column; gap:10px;">
+        {% for f in formset %}
+          <div class="az-card aff-row" style="padding:12px; border-radius:14px;">
+            {{ f.id }} {# ✅ ULTRA IMPORTANT pour UPDATE #}
+
+            <div class="az-grid-3" style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px;">
+              <div class="az-field">
+                <label>Année</label>
+                {{ f.annee }}
+                {% if f.annee.errors %}<div class="az-ens-flash az-ens-flash-danger">{{ f.annee.errors }}</div>{% endif %}
+              </div>
+
+              <div class="az-field">
+                <label>Groupe</label>
+                {{ f.groupe }}
+                {% if f.groupe.errors %}<div class="az-ens-flash az-ens-flash-danger">{{ f.groupe.errors }}</div>{% endif %}
+              </div>
+
+              <div class="az-field">
+                <label>Matière</label>
+                {{ f.matiere_fk }}
+                {% if f.matiere_fk.errors %}<div class="az-ens-flash az-ens-flash-danger">{{ f.matiere_fk.errors }}</div>{% endif %}
+              </div>
+            </div>
+
+            {% if f.DELETE %}
+              <div class="az-field" style="margin-top:10px;">
+                <label style="display:flex; gap:8px; align-items:center;">
+                  {{ f.DELETE }} <span>Supprimer cette ligne</span>
+                </label>
+              </div>
+            {% endif %}
+
+            {% if f.non_field_errors %}
+              <div class="az-ens-flash az-ens-flash-danger" style="margin-top:10px;">
+                {{ f.non_field_errors }}
+              </div>
+            {% endif %}
+          </div>
+        {% endfor %}
+      </div>
+
+      <button type="button" class="az-btn" id="btnAddAff" style="margin-top:10px;">
+        <i class="fas fa-plus"></i> Ajouter une affectation
+      </button>
+    {% endif %}
+
+    <!-- =========================
+         STATUS
+    ========================== -->
+    <div class="az-switch" style="margin-top:14px;">
       {{ form.is_active }}
       <span>Enseignant actif</span>
     </div>
 
+    <!-- =========================
+         ACTIONS
+    ========================== -->
     <div class="az-ens-actions">
       <a class="az-btn" href="{% url 'core:enseignant_list' %}">
         <i class="fas fa-arrow-left"></i> Retour
@@ -109,24 +240,9 @@
     </div>
   </form>
 </div>
-<script>
-  (function(){
-    const input = document.getElementById("id_photo");
-    const img = document.getElementById("photoPreview");
-    if(!input || !img) return;
-
-    input.addEventListener("change", function(){
-      const f = this.files && this.files[0];
-      if(!f) return;
-      const url = URL.createObjectURL(f);
-      img.src = url;
-      img.style.display = "block";
-    });
-  })();
-</script>
 
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'admin/js/enseignants/form.js' %}?v=3"></script>
+<script src="{% static 'admin/js/enseignants/form.js' %}?v=7"></script>
 {% endblock %}

@@ -1,292 +1,433 @@
-/* admin/css/enseignants/affectations.css
-   AZ — Enseignants / Affectations — FINAL
-   Style: Groupes/List (chip + focus violet + table grid premium responsive)
-*/
+/* =========================================================
+   AZ • Enseignants — Affectations (Groupe + Matière)
+   File: static/admin/css/enseignants/affectations.css
+   Theme: AZ Nebula (dark/light via html[data-theme])
+   ========================================================= */
 
-.az-aff-container{
-  grid-column: span 12;
-  display:flex;
-  flex-direction:column;
-  gap: var(--az-spacing-lg);
+/* ---------- Variables (fallback si base_admin n'en a pas) ---------- */
+:root{
+  --az-bg: #0b1220;
+  --az-surface: rgba(255,255,255,.06);
+  --az-surface-2: rgba(255,255,255,.08);
+  --az-border: rgba(255,255,255,.10);
+  --az-border-2: rgba(255,255,255,.14);
+  --az-text: #eaf0ff;
+  --az-muted: rgba(234,240,255,.68);
+
+  --az-primary: #4361ee;
+  --az-accent: #7209b7;
+  --az-ring: rgba(114,9,183,.22);
+
+  --az-success: #16a34a;
+  --az-danger: #ef4444;
+  --az-warn: #f59e0b;
+
+  --az-shadow: 0 18px 45px rgba(0,0,0,.35);
+  --az-radius: 18px;
 }
 
-/* Head */
+html[data-theme="light"]{
+  --az-bg: #f6f8fc;
+  --az-surface: #ffffff;
+  --az-surface-2: #f8fafc;
+  --az-border: #e2e8f0;
+  --az-border-2: #dbe4f0;
+  --az-text: #0f172a;
+  --az-muted: #64748b;
+
+  --az-shadow: 0 18px 40px rgba(15,23,42,.08);
+}
+
+/* ---------- Layout ---------- */
+.az-aff-container{
+  width: min(1100px, 100%);
+  margin: 18px auto 26px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* Utilise tes .az-card existants si présents ; sinon fallback */
+.az-card{
+  background: var(--az-surface);
+  border: 1px solid var(--az-border);
+  border-radius: var(--az-radius);
+  box-shadow: var(--az-shadow);
+  overflow: hidden;
+}
+
+.az-card-head{
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--az-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.az-card-title{
+  margin: 0;
+  font-size: 14px;
+  letter-spacing: .2px;
+  color: var(--az-text);
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.az-card-title i{ opacity: .85; }
+
+/* ---------- Head (profil enseignant) ---------- */
 .az-aff-head{
-  display:flex;
-  align-items:flex-start;
-  justify-content:space-between;
-  gap: var(--az-spacing-lg);
-  flex-wrap:wrap;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background:
+    radial-gradient(900px 320px at 20% 0%, rgba(114,9,183,.20), transparent 55%),
+    radial-gradient(900px 320px at 80% 0%, rgba(67,97,238,.18), transparent 55%),
+    var(--az-surface);
 }
 
 .az-aff-title{
-  margin:0 0 6px 0;
-  display:flex;
-  align-items:center;
+  margin: 0;
+  font-size: 15px;
+  color: var(--az-text);
+  display: inline-flex;
+  align-items: center;
   gap: 10px;
-  font-weight: 900;
-  color: var(--az-text-primary);
 }
 
-.az-aff-title i{ color: var(--az-primary); }
-
 .az-aff-sub{
-  font-size: .9rem;
-  color: var(--az-text-secondary);
-  font-weight: 700;
+  margin-top: 4px;
+  color: var(--az-muted);
+  font-size: 12.5px;
 }
 
 .az-aff-head-actions{
-  display:flex;
+  display: inline-flex;
   gap: 10px;
-  flex-wrap:wrap;
+  align-items: center;
 }
 
-/* Form card */
-.az-aff-form{
-  display:grid;
-  gap: var(--az-spacing-md);
-}
-
-.az-grid-2{
-  display:grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--az-spacing-md);
-}
-
-@media (max-width: 820px){
-  .az-grid-2{ grid-template-columns: 1fr; }
-}
-
-/* Field labels */
-.az-field{
-  display:flex;
-  flex-direction:column;
+/* ---------- Buttons (fallback premium) ---------- */
+.az-btn{
+  appearance: none;
+  border: 1px solid var(--az-border-2);
+  background: rgba(255,255,255,.06);
+  color: var(--az-text);
+  padding: 9px 12px;
+  border-radius: 14px;
+  font-size: 13px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
   gap: 8px;
-  min-width: 220px;
-  position: relative;
+  transition: transform .15s ease, border-color .15s ease, background .15s ease, box-shadow .15s ease;
+  text-decoration: none;
+  user-select: none;
 }
+
+html[data-theme="light"] .az-btn{
+  background: var(--az-surface);
+}
+
+.az-btn:hover{
+  transform: translateY(-1px);
+  border-color: rgba(114,9,183,.35);
+  box-shadow: 0 0 0 4px var(--az-ring);
+}
+
+.az-btn:active{ transform: translateY(0); }
+
+.az-btn-ghost{
+  background: transparent;
+}
+
+.az-btn-gradient{
+  border-color: rgba(114,9,183,.35);
+  background: linear-gradient(135deg, rgba(114,9,183,.92), rgba(67,97,238,.92));
+}
+
+.az-btn-gradient:hover{
+  box-shadow: 0 0 0 5px var(--az-ring), 0 14px 30px rgba(114,9,183,.22);
+}
+
+.az-btn-danger-soft{
+  border-color: rgba(239,68,68,.28);
+  color: #ff6b6b;
+  background: rgba(239,68,68,.08);
+}
+
+.az-btn-danger-soft:hover{
+  border-color: rgba(239,68,68,.45);
+  box-shadow: 0 0 0 4px rgba(239,68,68,.12);
+}
+
+/* ---------- Alerts ---------- */
+.az-alert{
+  border-radius: 14px;
+  padding: 10px 12px;
+  border: 1px solid var(--az-border);
+  background: rgba(255,255,255,.05);
+  color: var(--az-text);
+  font-size: 13px;
+}
+
+html[data-theme="light"] .az-alert{
+  background: var(--az-surface-2);
+}
+
+.az-alert-danger{
+  border-color: rgba(239,68,68,.25);
+  background: rgba(239,68,68,.10);
+}
+
+.az-strong{ font-weight: 700; }
+
+/* ---------- Form ---------- */
+.az-aff-form-card .az-aff-form{
+  padding: 14px 16px 16px;
+}
+
+.az-grid-3{
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+}
+
+@media (max-width: 920px){
+  .az-grid-3{ grid-template-columns: 1fr; }
+  .az-aff-head{
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .az-aff-head-actions{
+    width: 100%;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+  }
+}
+
+.az-field{ display: flex; flex-direction: column; gap: 6px; }
 
 .az-field-label{
-  font-size: .9rem;
-  font-weight: 800;
-  color: var(--az-text-secondary);
+  font-size: 12px;
+  letter-spacing: .18px;
+  text-transform: uppercase;
+  color: var(--az-muted);
 }
 
-/* Inputs/selects inside form */
-.az-aff-form select,
-.az-aff-form input,
-.az-aff-form textarea{
-  width:100%;
-  min-height: 46px;
-  padding: 12px 14px;
+.az-help{
+  font-size: 12px;
+  color: var(--az-muted);
+  opacity: .95;
+}
+
+/* selects = look premium */
+.az-input,
+.az-aff-form select{
+  width: 100%;
+  padding: 10px 12px;
   border-radius: 14px;
-  border: 1px solid rgba(148, 163, 184, .35);
-  background: var(--az-bg-primary);
-  color: var(--az-text-primary);
-  font-family: inherit;
-  font-size: .95rem;
-  transition: var(--az-transition-fast);
+  border: 1px solid var(--az-border);
+  background: rgba(255,255,255,.04);
+  color: var(--az-text);
+  outline: none;
+  transition: box-shadow .15s ease, border-color .15s ease, background .15s ease;
 }
 
-html[data-theme="dark"] .az-aff-form select,
-html[data-theme="dark"] .az-aff-form input,
-html[data-theme="dark"] .az-aff-form textarea{
-  border-color: rgba(148, 163, 184, .22);
-  background: rgba(2,6,23,.18);
+html[data-theme="light"] .az-input,
+html[data-theme="light"] .az-aff-form select{
+  background: var(--az-surface);
 }
 
-/* Focus violet */
 .az-aff-form select:focus,
-.az-aff-form input:focus,
-.az-aff-form textarea:focus{
-  outline:none;
-  border-color: rgba(99,102,241,.65);
-  box-shadow:
-    0 0 0 4px rgba(99,102,241,.18),
-    0 10px 22px rgba(99,102,241,.10);
-  transform: translateY(-1px);
+.az-input:focus{
+  border-color: rgba(114,9,183,.45);
+  box-shadow: 0 0 0 4px var(--az-ring);
 }
 
-/* Fix dropdown options dark */
-html[data-theme="dark"] .az-aff-form select{ color-scheme: dark; }
-html[data-theme="dark"] .az-aff-form select option,
-html[data-theme="dark"] .az-aff-form select optgroup{
-  background-color:#0b1220 !important;
-  color: rgba(241,245,249,.95) !important;
-}
-html[data-theme="dark"] .az-aff-form select option:checked{
-  background:#1d4ed8 !important;
-  color:#fff !important;
+.az-aff-form select:disabled{
+  opacity: .65;
+  cursor: not-allowed;
 }
 
-/* caret icon without changing HTML (if browser supports :has) */
-.az-field:has(select)::after{
-  content:"\f078";
-  font-family:"Font Awesome 6 Free";
-  font-weight:900;
-  position:absolute;
-  right: 14px;
-  bottom: 14px;
-  font-size: .85rem;
-  color: var(--az-text-tertiary);
-  pointer-events:none;
-  opacity:.9;
-}
-
-html[data-theme="dark"] .az-field:has(select)::after{
-  color: rgba(148,163,184,.9);
-}
-
-/* Actions */
 .az-aff-actions{
-  display:flex;
-  justify-content:flex-end;
+  margin-top: 12px;
+  display: flex;
+  justify-content: flex-end;
 }
 
-/* Table (grid) */
-.az-table{ width:100%; }
+/* ---------- Table premium ---------- */
+.az-aff-list-card .az-table{
+  width: 100%;
+}
 
 .az-thead{
-  display:grid;
-  grid-template-columns: 160px 170px 1fr 160px 1fr 220px;
+  display: grid;
+  grid-template-columns: 140px 140px 1fr 220px 160px;
   gap: 10px;
-  padding: 12px 12px;
-  border-radius: 12px;
-  background: var(--az-bg-secondary);
-  border: 1px solid var(--az-border);
-  color: var(--az-text-tertiary);
-  font-weight: 900;
-  font-size: .78rem;
+  padding: 12px 16px;
+  border-top: 1px solid var(--az-border);
+  border-bottom: 1px solid var(--az-border);
+  background: rgba(255,255,255,.04);
+  color: var(--az-muted);
+  font-size: 12px;
   text-transform: uppercase;
-  letter-spacing: .08em;
+  letter-spacing: .18px;
 }
 
-.az-th-actions{ text-align:right; }
+html[data-theme="light"] .az-thead{
+  background: var(--az-surface-2);
+}
 
-.az-tbody{
-  display:flex;
-  flex-direction:column;
+.az-th-actions{
+  text-align: right;
+}
+
+.az-tbody .az-row{
+  display: grid;
+  grid-template-columns: 140px 140px 1fr 220px 160px;
   gap: 10px;
-  margin-top: 12px;
+  padding: 12px 16px;
+  align-items: center;
+  border-bottom: 1px solid var(--az-border);
 }
 
-.az-row{
-  display:grid;
-  grid-template-columns: 160px 170px 1fr 160px 1fr 220px;
-  gap: 10px;
-  align-items:center;
-  padding: 12px 12px;
-  border-radius: 14px;
-  border: 1px solid var(--az-border);
-  background: var(--az-bg-primary);
-  box-shadow: var(--az-shadow-sm);
-  transition: var(--az-transition-fast);
-  position:relative;
-  overflow:hidden;
+.az-tbody .az-row:hover{
+  background: rgba(255,255,255,.03);
 }
 
-.az-row:hover{
-  border-color: rgba(99, 102, 241, .45);
-  box-shadow: var(--az-shadow-md);
-  transform: translateY(-2px);
+html[data-theme="light"] .az-tbody .az-row:hover{
+  background: rgba(15,23,42,.03);
 }
-
-.az-row::before{
-  content:"";
-  position:absolute;
-  left:0; top:0; bottom:0;
-  width: 3px;
-  background: linear-gradient(180deg, var(--az-primary), var(--az-primary-light));
-  opacity:0;
-  transition: var(--az-transition-fast);
-}
-.az-row:hover::before{ opacity:1; }
 
 .az-cell{
-  color: var(--az-text-secondary);
+  color: var(--az-text);
+  font-size: 13.5px;
   min-width: 0;
 }
 
-.az-strong{
-  color: var(--az-text-primary);
-  font-weight: 900;
+.az-cell .az-sub{
+  color: var(--az-muted);
+  font-size: 12.5px;
+  margin-left: 6px;
 }
 
 .az-actions{
-  display:flex;
-  justify-content:flex-end;
-  gap: 10px;
+  display: flex;
+  justify-content: flex-end;
 }
 
-/* Empty */
+/* Badge matière */
+.az-badge{
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--az-border);
+  background: rgba(255,255,255,.05);
+  font-size: 12.5px;
+  color: var(--az-text);
+}
+
+.az-badge-info{
+  border-color: rgba(67,97,238,.30);
+  background: rgba(67,97,238,.12);
+}
+
+.az-badge-muted{
+  opacity: .75;
+}
+
+/* ---------- Empty state ---------- */
 .az-empty{
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  justify-content:center;
-  gap: 10px;
-  padding: 28px 18px;
-  border-radius: 16px;
-  border: 1px dashed var(--az-border);
-  background: var(--az-bg-secondary);
-  color: var(--az-text-secondary);
-  text-align:center;
+  padding: 22px 16px;
+  text-align: center;
+  color: var(--az-muted);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
 }
 
 .az-empty i{
-  font-size: 1.6rem;
-  color: var(--az-primary);
+  font-size: 18px;
+  opacity: .75;
 }
 
-/* Responsive: div-table -> stacked */
-@media (max-width: 980px){
-  .az-thead{ display:none; }
+/* ---------- Mobile table -> stacked labels ---------- */
+@media (max-width: 780px){
+  .az-thead{ display: none; }
 
-  .az-row{
+  .az-tbody .az-row{
     grid-template-columns: 1fr;
     gap: 10px;
-    padding: 14px;
+    padding: 14px 14px;
   }
 
   .az-cell{
-    display:flex;
-    justify-content:space-between;
-    gap: 12px;
+    display: grid;
+    grid-template-columns: 120px 1fr;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border: 1px solid var(--az-border);
+    border-radius: 14px;
+    background: rgba(255,255,255,.03);
   }
 
-  .az-row .az-cell:nth-child(1)::before{ content:"Année"; }
-  .az-row .az-cell:nth-child(2)::before{ content:"Groupe"; }
-  .az-row .az-cell:nth-child(3)::before{ content:"Niveau"; }
-  .az-row .az-cell:nth-child(4)::before{ content:"Degré"; }
-  .az-row .az-cell:nth-child(5)::before{ content:"Matière"; }
-  .az-row .az-cell:nth-child(6)::before{ content:"Action"; }
-
-  .az-row .az-cell::before{
-    color: var(--az-text-tertiary);
-    font-weight: 900;
-    font-size: .78rem;
-    text-transform: uppercase;
-    letter-spacing: .08em;
+  html[data-theme="light"] .az-cell{
+    background: var(--az-surface-2);
   }
 
-  .az-actions{ justify-content:flex-start; }
-}
-/* ===== FIX SELECT CARET (GLOBAL AZ) ===== */
+  /* labels via :before (simple et robuste) */
+  .az-tbody .az-row .az-cell:nth-child(1)::before{ content:"Année"; color: var(--az-muted); font-size: 12px; text-transform: uppercase; letter-spacing: .18px; }
+  .az-tbody .az-row .az-cell:nth-child(2)::before{ content:"Groupe"; color: var(--az-muted); font-size: 12px; text-transform: uppercase; letter-spacing: .18px; }
+  .az-tbody .az-row .az-cell:nth-child(3)::before{ content:"Niveau"; color: var(--az-muted); font-size: 12px; text-transform: uppercase; letter-spacing: .18px; }
+  .az-tbody .az-row .az-cell:nth-child(4)::before{ content:"Matière"; color: var(--az-muted); font-size: 12px; text-transform: uppercase; letter-spacing: .18px; }
 
-/* Supprimer flèche native */
-.az-field select,
-.az-select,
-.az-input select {
-  appearance: none;
-  -webkit-appearance: none;
-  -moz-appearance: none;
+  .az-actions{
+    justify-content: stretch;
+  }
+  .az-actions form, .az-actions .az-btn{
+    width: 100%;
+  }
 }
 
-/* Forcer cohérence thème */
-html[data-theme="dark"] select {
-  color-scheme: dark;
+/* ---------- Small polish ---------- */
+.az-aff-form-card,
+.az-aff-list-card{
+  background:
+    radial-gradient(800px 240px at 20% 0%, rgba(114,9,183,.12), transparent 60%),
+    radial-gradient(800px 240px at 80% 0%, rgba(67,97,238,.10), transparent 60%),
+    var(--az-surface);
 }
-html[data-theme="light"] select {
-  color-scheme: light;
+/* =========================================
+   FIX DROPDOWN SELECT DARK (OPTIONS)
+   ========================================= */
+
+html[data-theme="dark"] select,
+html[data-theme="dark"] .az-aff-form select {
+  background-color: #0b1220 !important;
+  color: #eaf0ff !important;
+  border-color: rgba(255,255,255,.12);
+  color-scheme: dark; /* IMPORTANT */
+}
+
+html[data-theme="dark"] select option {
+  background-color: #0b1220 !important;
+  color: #eaf0ff !important;
+}
+
+html[data-theme="dark"] select option:checked {
+  background-color: rgba(67,97,238,.35) !important;
+  color: #ffffff !important;
+}
+
+html[data-theme="dark"] select option:hover {
+  background-color: rgba(67,97,238,.25) !important;
 }

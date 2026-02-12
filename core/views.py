@@ -2440,6 +2440,9 @@ def groupes_par_annee(request):
 # =========================================================
 # AJAX — fratrie
 # =========================================================
+from django.http import JsonResponse
+from django.contrib.auth.decorators import login_required
+
 @login_required
 def ajax_fratrie(request):
     eleve_id_raw = (request.GET.get("eleve") or "").strip()
@@ -2451,16 +2454,20 @@ def ajax_fratrie(request):
     if not parent_ids:
         return JsonResponse({"ok": True, "items": []})
 
-    freres = (Eleve.objects
+    freres = (
+        Eleve.objects
         .filter(liens_parents__parent_id__in=list(parent_ids))
         .exclude(id=eleve_id)
+        .filter(is_active=True)  # ✅ فقط actifs (change le champ si besoin)
         .distinct()
         .order_by("nom", "prenom")
     )
 
-    items = [{"id": e.id, "matricule": e.matricule, "nom": e.nom, "prenom": e.prenom} for e in freres]
+    items = [
+        {"id": e.id, "matricule": e.matricule, "nom": e.nom, "prenom": e.prenom}
+        for e in freres
+    ]
     return JsonResponse({"ok": True, "items": items})
-
 
 # =========================================================
 # LIST
@@ -3854,6 +3861,14 @@ def recouvrement_cloturer(request, pk):
 # ============================
 # E1 — Enseignants
 # ============================
+# core/views.py
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required, permission_required
+from django.forms import modelformset_factory
+from django.shortcuts import get_object_or_404, redirect, render
+
+from .models import Enseignant, EnseignantGroupe
+from .forms import EnseignantForm, EnseignantGroupeForm
 
 
 @login_required
@@ -3983,14 +3998,86 @@ def enseignant_list(request):
         "statut": statut,
     })
 
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required, permission_required
+from django.db.models import Q
+from django.forms import modelformset_factory
+from django.shortcuts import get_object_or_404, redirect, render
+from django.db.models.deletion import ProtectedError
+
+from core.models import (
+    Enseignant,
+    EnseignantGroupe,
+    ProfGroupe,          # optionnel (compat)
+    AnneeScolaire,
+    AbsenceProf,
+    Seance,
+)
+from core.forms import EnseignantForm, EnseignantGroupeForm
+from .utils_users import get_or_create_user_with_group
+
+
+# =========================================================
+# Helper: garantir la ligne group-only (matiere_fk NULL)
+# =========================================================
+def _ensure_group_only(enseignant: Enseignant, annee_id: int, groupe_id: int):
+    """
+    Crée (si absent) la ligne qui donne accès au groupe côté PROF:
+    EnseignantGroupe(matiere_fk = NULL)
+    """
+    if not (enseignant and annee_id and groupe_id):
+        return
+
+    EnseignantGroupe.objects.get_or_create(
+        enseignant=enseignant,
+        annee_id=annee_id,
+        groupe_id=groupe_id,
+        matiere_fk=None,
+    )
+
+
+def _sync_prof_groupe(enseignant: Enseignant, groupe_id: int):
+    """
+    OPTIONNEL (compat): si ton portail prof utilise ProfGroupe quelque part.
+    """
+    if not (enseignant and enseignant.user_id and groupe_id):
+        return
+
+    ProfGroupe.objects.get_or_create(
+        user_id=enseignant.user_id,
+        groupe_id=groupe_id,
+    )
+
+
+def _cleanup_prof_groupe_if_unused(enseignant: Enseignant, groupe_id: int):
+    """
+    OPTIONNEL: si plus aucune affectation EnseignantGroupe sur ce groupe,
+    on supprime ProfGroupe.
+    """
+    if not (enseignant and enseignant.user_id and groupe_id):
+        return
+
+    still = EnseignantGroupe.objects.filter(
+        enseignant=enseignant,
+        groupe_id=groupe_id,
+    ).exists()
+
+    if not still:
+        ProfGroupe.objects.filter(
+            user_id=enseignant.user_id,
+            groupe_id=groupe_id,
+        ).delete()
+
+
+# =========================================================
+# DETAIL
+# =========================================================
 @login_required
 @permission_required("core.view_enseignant", raise_exception=True)
 def enseignant_detail(request, pk):
     ens = get_object_or_404(Enseignant, pk=pk)
-
     annee = AnneeScolaire.objects.filter(is_active=True).first()
 
-    # mois/année (par défaut aujourd’hui)
     today = date.today()
     year = int(request.GET.get("year", today.year))
     month = int(request.GET.get("month", today.month))
@@ -4000,7 +4087,6 @@ def enseignant_detail(request, pk):
 
     if annee:
         stats = stats_mensuelles_prof(enseignant=ens, annee=annee, year=year, month=month)
-
         absences = (
             AbsenceProf.objects
             .filter(annee=annee, enseignant=ens, date__year=year, date__month=month)
@@ -4008,27 +4094,51 @@ def enseignant_detail(request, pk):
             .order_by("-date")
         )
 
+    aff_qs = (
+        EnseignantGroupe.objects
+        .filter(enseignant=ens)
+        .select_related("annee", "groupe", "groupe__niveau", "groupe__niveau__degre", "matiere_fk")
+        .order_by("-annee__date_debut", "groupe__niveau__ordre", "groupe__nom", "matiere_fk__nom")
+    )
+
+    affectations_active = aff_qs.filter(annee=annee) if annee else aff_qs.none()
+    affectations_autres = aff_qs.exclude(annee=annee) if annee else aff_qs
+
     return render(request, "admin/enseignants/detail.html", {
         "ens": ens,
         "annee": annee,
         "year": year,
         "month": month,
         "stats": stats,
-        "absences_profs": absences,  # 👈 important
+        "absences_profs": absences,
+        "affectations_active": affectations_active,
+        "affectations_autres": affectations_autres,
     })
 
 
+# =========================================================
+# CREATE
+# =========================================================
 @login_required
 @permission_required("core.add_enseignant", raise_exception=True)
 def enseignant_create(request):
+    AffectFormSet = modelformset_factory(
+        EnseignantGroupe,
+        form=EnseignantGroupeForm,
+        extra=1,
+        can_delete=True
+    )
+
     if request.method == "POST":
-        form = EnseignantForm(request.POST, request.FILES)  # ✅ IMPORTANT
-        if form.is_valid():
+        form = EnseignantForm(request.POST, request.FILES)
+        formset = AffectFormSet(request.POST, queryset=EnseignantGroupe.objects.none(), prefix="aff")
+
+        if form.is_valid() and formset.is_valid():
             ens = form.save()
 
+            # ✅ assurer user PROF
             try:
                 user, pwd, created = get_or_create_user_with_group(ens.matricule, "PROF")
-
                 if ens.user_id != user.id:
                     ens.user = user
                     ens.save(update_fields=["user"])
@@ -4040,38 +4150,162 @@ def enseignant_create(request):
             except Exception as e:
                 messages.warning(request, f"⚠️ Enseignant créé mais user non créé: {e}")
 
+            saved = 0
+
+            for f in formset.forms:
+                if not getattr(f, "cleaned_data", None):
+                    continue
+                if f.cleaned_data.get("DELETE"):
+                    continue
+
+                annee = f.cleaned_data.get("annee")
+                groupe = f.cleaned_data.get("groupe")
+                matiere = f.cleaned_data.get("matiere_fk")
+
+                # skip ligne extra vide
+                if not annee and not groupe and not matiere:
+                    continue
+
+                obj = f.save(commit=False)
+                obj.enseignant = ens
+                obj.save()
+                saved += 1
+
+                # ✅ CRITIQUE: garantir group-only pour accès prof
+                if obj.annee_id and obj.groupe_id:
+                    _ensure_group_only(ens, obj.annee_id, obj.groupe_id)
+                    _sync_prof_groupe(ens, obj.groupe_id)  # optionnel
+
+            if saved:
+                messages.success(request, f"✅ {saved} affectation(s) enregistrée(s).")
+            else:
+                messages.info(request, "ℹ️ Enseignant créé sans affectation.")
+
             return redirect("core:enseignant_detail", pk=ens.pk)
+
+        messages.error(request, "⚠️ Formulaire invalide. Vérifie les champs et les affectations.")
+
     else:
         form = EnseignantForm()
+        formset = AffectFormSet(queryset=EnseignantGroupe.objects.none(), prefix="aff")
 
-    return render(request, "admin/enseignants/form.html", {"form": form, "mode": "create"})
+    return render(request, "admin/enseignants/form.html", {
+        "form": form,
+        "formset": formset,
+        "mode": "create",
+    })
 
+
+# =========================================================
+# UPDATE
+# =========================================================
 @login_required
 @permission_required("core.change_enseignant", raise_exception=True)
 def enseignant_update(request, pk):
     ens = get_object_or_404(Enseignant, pk=pk)
+
+    AffectFormSet = modelformset_factory(
+        EnseignantGroupe,
+        form=EnseignantGroupeForm,
+        extra=1,
+        can_delete=True
+    )
+
+    qs = (
+        EnseignantGroupe.objects
+        .filter(enseignant=ens)
+        .select_related("annee", "groupe", "matiere_fk")
+        .order_by("id")
+    )
+
     if request.method == "POST":
-        form = EnseignantForm(request.POST, request.FILES, instance=ens)  # ✅ IMPORTANT
-        if form.is_valid():
+        form = EnseignantForm(request.POST, request.FILES, instance=ens)
+        formset = AffectFormSet(request.POST, queryset=qs, prefix="aff")
+
+        if form.is_valid() and formset.is_valid():
             form.save()
+            ens.refresh_from_db()
+
+            # ✅ assurer user PROF
+            try:
+                user, pwd, created = get_or_create_user_with_group(ens.matricule, "PROF")
+                if ens.user_id != user.id:
+                    ens.user = user
+                    ens.save(update_fields=["user"])
+            except Exception:
+                pass
+
+            saved = 0
+            deleted = 0
+
+            # 1) DELETE (ligne par ligne)
+            for f in formset.forms:
+                if not getattr(f, "cleaned_data", None):
+                    continue
+
+                if f.cleaned_data.get("DELETE") and f.instance and f.instance.pk:
+                    grp_id = f.instance.groupe_id
+                    f.instance.delete()
+                    deleted += 1
+
+                    # optionnel cleanup ProfGroupe si plus aucune affectation
+                    _cleanup_prof_groupe_if_unused(ens, grp_id)
+
+            # 2) SAVE / CREATE
+            for f in formset.forms:
+                if not getattr(f, "cleaned_data", None):
+                    continue
+                if f.cleaned_data.get("DELETE"):
+                    continue
+
+                annee = f.cleaned_data.get("annee")
+                groupe = f.cleaned_data.get("groupe")
+                matiere = f.cleaned_data.get("matiere_fk")
+
+                # skip ligne extra totalement vide
+                if not annee and not groupe and not matiere and not (f.instance and f.instance.pk):
+                    continue
+
+                obj = f.save(commit=False)
+                obj.enseignant = ens
+                obj.save()
+                saved += 1
+
+                # ✅ CRITIQUE: garantir group-only pour accès prof
+                if obj.annee_id and obj.groupe_id:
+                    _ensure_group_only(ens, obj.annee_id, obj.groupe_id)
+                    _sync_prof_groupe(ens, obj.groupe_id)  # optionnel
+
             messages.success(request, "✅ Enseignant mis à jour.")
+            if saved:
+                messages.success(request, f"✅ {saved} affectation(s) enregistrée(s).")
+            if deleted:
+                messages.success(request, f"🗑️ {deleted} affectation(s) supprimée(s).")
+
             return redirect("core:enseignant_detail", pk=ens.pk)
+
+        messages.error(request, "⚠️ Formulaire invalide. Vérifie les champs et les affectations.")
+
     else:
         form = EnseignantForm(instance=ens)
+        formset = AffectFormSet(queryset=qs, prefix="aff")
 
     return render(request, "admin/enseignants/form.html", {
         "form": form,
+        "formset": formset,
         "mode": "update",
         "ens": ens,
     })
 
 
+# =========================================================
+# DELETE
+# =========================================================
 @login_required
 @permission_required("core.delete_enseignant", raise_exception=True)
 def enseignant_delete(request, pk):
     ens = get_object_or_404(Enseignant, pk=pk)
 
-    # Séances qui bloquent la suppression
     seances_bloquantes = (
         Seance.objects
         .filter(enseignant=ens)
@@ -4084,12 +4318,8 @@ def enseignant_delete(request, pk):
             ens.delete()
             messages.success(request, "✅ Enseignant supprimé avec succès.")
             return redirect("core:enseignant_list")
-
         except ProtectedError:
-            messages.error(
-                request,
-                "❌ Suppression impossible : cet enseignant est utilisé dans l'emploi du temps."
-            )
+            messages.error(request, "❌ Suppression impossible : cet enseignant est utilisé dans l'emploi du temps.")
 
     return render(request, "admin/enseignants/delete.html", {
         "ens": ens,
@@ -4097,8 +4327,7 @@ def enseignant_delete(request, pk):
     })
 
 
-# E1.5 — Affectations Enseignant <-> Groupes
-# ============================
+
 @login_required
 @permission_required("core.view_enseignant", raise_exception=True)
 def enseignant_affectations(request, pk):
@@ -4106,9 +4335,9 @@ def enseignant_affectations(request, pk):
 
     affectations = (
         EnseignantGroupe.objects
-        .select_related("annee", "groupe", "groupe__niveau", "groupe__niveau__degre")
-        .filter(enseignant=ens, matiere_fk__isnull=True)  # ✅ group-only
-        .order_by("-created_at")
+        .select_related("annee", "groupe", "groupe__niveau", "groupe__niveau__degre", "matiere_fk")
+        .filter(enseignant=ens)   # ✅ plus de matiere_fk__isnull
+        .order_by("-id")
     )
 
     form = EnseignantGroupeForm()
@@ -4121,7 +4350,7 @@ def enseignant_affectations(request, pk):
 
 
 @login_required
-@permission_required("core.add_enseignant", raise_exception=True)
+@permission_required("core.add_enseignantgroupe", raise_exception=True)
 def enseignant_affectation_add(request, pk):
     ens = get_object_or_404(Enseignant, pk=pk)
 
@@ -4129,36 +4358,46 @@ def enseignant_affectation_add(request, pk):
         return redirect("core:enseignant_affectations", pk=ens.pk)
 
     form = EnseignantGroupeForm(request.POST)
-    if form.is_valid():
-        obj = form.save(commit=False)
-        obj.enseignant = ens
-        obj.matiere_fk = None  # ✅ group-only
+    if not form.is_valid():
+        messages.error(request, "⚠️ Formulaire invalide. Vérifie les champs.")
+        return redirect("core:enseignant_affectations", pk=ens.pk)
 
-        if obj.groupe_id:
-            obj.annee_id = obj.groupe.annee_id
+    annee = form.cleaned_data["annee"]
+    groupe = form.cleaned_data["groupe"]
+    matiere = form.cleaned_data.get("matiere_fk")
 
-        try:
-            obj.full_clean()
-            obj.save()
-            messages.success(request, "✅ Groupe affecté au professeur.")
-        except Exception as e:
-            messages.error(request, f"⚠️ Erreur: {e}")
+    if not matiere:
+        messages.error(request, "⚠️ Choisis une matière.")
+        return redirect("core:enseignant_affectations", pk=ens.pk)
+
+    # ✅ 1) GARANTIR la ligne group-only (autorisation portail prof)
+    EnseignantGroupe.objects.get_or_create(
+        enseignant=ens,
+        annee=annee,
+        groupe=groupe,
+        matiere_fk=None,
+    )
+
+    # ✅ 2) Créer/MAJ la ligne groupe + matière
+    obj, created = EnseignantGroupe.objects.get_or_create(
+        enseignant=ens,
+        annee=annee,
+        groupe=groupe,
+        matiere_fk=matiere,
+    )
+
+    if created:
+        messages.success(request, "✅ Groupe + matière affectés.")
     else:
-        messages.error(request, "⚠️ Formulaire invalide. Vérifie l’année et le groupe.")
+        messages.success(request, "✅ Affectation déjà existante (OK).")
 
     return redirect("core:enseignant_affectations", pk=ens.pk)
 
-
 @login_required
-@permission_required("core.delete_enseignant", raise_exception=True)
+@permission_required("core.delete_enseignantgroupe", raise_exception=True)
 def enseignant_affectation_delete(request, pk, aff_id):
     ens = get_object_or_404(Enseignant, pk=pk)
-    aff = get_object_or_404(
-        EnseignantGroupe,
-        pk=aff_id,
-        enseignant=ens,
-        matiere_fk__isnull=True
-    )
+    aff = get_object_or_404(EnseignantGroupe, pk=aff_id, enseignant=ens)
 
     if request.method == "POST":
         aff.delete()
@@ -4990,22 +5229,20 @@ def absences_jour(request):
 # G1 — Parents + liens (Formset)
 # ============================
 
-
 @login_required
 @permission_required("core.view_parent", raise_exception=True)
 def parent_list(request):
-    q = request.GET.get("q", "").strip()
-    statut = request.GET.get("statut", "").strip()
+    q = (request.GET.get("q") or "").strip()
+    statut = (request.GET.get("statut") or "").strip()
 
-    # ✅ nouveaux filtres
     annee_active = AnneeScolaire.objects.filter(is_active=True).first()
-    annee_id = request.GET.get("annee", "").strip()
-    niveau_id = request.GET.get("niveau", "").strip()
-    groupe_id = request.GET.get("groupe", "").strip()
+    annee_id = (request.GET.get("annee") or "").strip()
+    niveau_id = (request.GET.get("niveau") or "").strip()
+    groupe_id = (request.GET.get("groupe") or "").strip()
 
     parents = Parent.objects.all()
 
-    # ✅ statut
+    # ✅ filtre statut parent
     if statut == "actifs":
         parents = parents.filter(is_active=True)
     elif statut == "inactifs":
@@ -5024,21 +5261,32 @@ def parent_list(request):
     if not annee_id and annee_active:
         annee_id = str(annee_active.id)
 
-    # ✅ filtres via enfants -> inscriptions
+    # =========================================================
+    # ✅ Filtrage via enfants -> inscriptions VALIDEE/EN_COURS
+    # ✅ + élève actif uniquement
+    # =========================================================
     if annee_id:
-        parents = parents.filter(liens__eleve__inscriptions__annee_id=annee_id)
+        parents = parents.filter(
+            liens__eleve__is_active=True,
+            liens__eleve__inscriptions__annee_id=annee_id,
+            liens__eleve__inscriptions__statut__in=["VALIDEE", "EN_COURS"],
+        )
 
     if niveau_id:
-        parents = parents.filter(liens__eleve__inscriptions__groupe__niveau_id=niveau_id)
+        parents = parents.filter(
+            liens__eleve__inscriptions__groupe__niveau_id=niveau_id,
+        )
 
     if groupe_id:
-        parents = parents.filter(liens__eleve__inscriptions__groupe_id=groupe_id)
+        parents = parents.filter(
+            liens__eleve__inscriptions__groupe_id=groupe_id,
+        )
 
     # ✅ éviter doublons (un parent peut avoir plusieurs enfants)
     parents = parents.distinct()
 
     # ✅ dropdowns
-    annees = AnneeScolaire.objects.all()
+    annees = AnneeScolaire.objects.all().order_by("-date_debut", "-id")
 
     niveaux = Niveau.objects.all()
     if annee_id:
@@ -5068,12 +5316,18 @@ def parent_list(request):
 @permission_required("core.view_parent", raise_exception=True)
 def parent_detail(request, pk):
     p = get_object_or_404(Parent, pk=pk)
-    liens = ParentEleve.objects.select_related("eleve").filter(parent=p)
+
+    liens = (
+        ParentEleve.objects
+        .select_related("eleve")
+        .filter(parent=p, eleve__is_active=True)   # ✅ ONLY actifs
+        .order_by("eleve__nom", "eleve__prenom")
+    )
+
     return render(request, "admin/parents/detail.html", {
         "p": p,
         "liens": liens,
     })
-
 
 @login_required
 @permission_required("core.add_parent", raise_exception=True)
@@ -5133,11 +5387,25 @@ def parent_update(request, pk):
 @permission_required("core.delete_parent", raise_exception=True)
 def parent_delete(request, pk):
     p = get_object_or_404(Parent, pk=pk)
+
+    # (optionnel) compteur pour afficher dans la page de confirmation
+    tx_count = TransactionFinance.objects.filter(parent=p).count()
+
     if request.method == "POST":
-        p.delete()
-        messages.success(request, "🗑️ Parent supprimé.")
-        return redirect("core:parent_list")
-    return render(request, "admin/parents/delete.html", {"p": p})
+        try:
+            p.delete()
+            messages.success(request, "🗑️ Parent supprimé.")
+            return redirect("core:parent_list")
+
+        except ProtectedError:
+            messages.error(
+                request,
+                f"⛔ Impossible de supprimer ce parent : il est lié à {tx_count} transaction(s) finance. "
+                f"Supprime/réaffecte d'abord ces transactions, ou désactive le parent."
+            )
+            return redirect("core:parent_detail", pk=p.pk)  # adapte si ton url est différente
+
+    return render(request, "admin/parents/delete.html", {"p": p, "tx_count": tx_count})
 
 
 #================================================================
@@ -7098,24 +7366,22 @@ def api_enseignants(request):
     return JsonResponse({"results": data})
 
 
+
 @login_required
 def api_matieres_par_groupe(request):
-    """
-    GET /api/matieres/?groupe_id=XX
-    Retour: {"results": [{id, label}]}
-
-    Règles:
-    - Sécurité: uniquement groupes autorisés pour l'utilisateur.
-    - Catalogue: matières filtrées par Niveau via Matiere.niveaux.
-    - Pas de fallback "toutes les matières" si le niveau n'a rien.
-    - Optionnel: pour un PROF, filtrer aussi par Matiere.enseignants (compétences).
-    """
     groupe_id = (request.GET.get("groupe_id") or "").strip()
     if not groupe_id.isdigit():
         return JsonResponse({"results": []})
 
-    allowed = _allowed_groupes_for_user(request.user)
-    g = allowed.filter(id=int(groupe_id)).select_related("niveau").first()
+    gid = int(groupe_id)
+
+    # ✅ STAFF/SUPERUSER: accès total
+    if request.user.is_staff or request.user.is_superuser:
+        g = Groupe.objects.filter(id=gid).select_related("niveau").first()
+    else:
+        allowed = _allowed_groupes_for_user(request.user)
+        g = allowed.filter(id=gid).select_related("niveau").first()
+
     if not g or not getattr(g, "niveau_id", None):
         return JsonResponse({"results": []})
 
@@ -7126,18 +7392,16 @@ def api_matieres_par_groupe(request):
         .order_by("nom")
     )
 
-    # ✅ option: si c'est un PROF, limiter aux matières où il est "capable"
-    # (si tu utilises Matiere.enseignants comme catalogue)
+    # ✅ option PROF (uniquement si l’utilisateur est un prof, et pas admin)
     ens = getattr(request.user, "enseignant_profile", None)
-    if ens:
+    if ens and not (request.user.is_staff or request.user.is_superuser):
         qs_prof = qs.filter(enseignants=ens)
-        # si tu veux STRICT (prof ne voit que ses matières):
-        qs = qs_prof
-        # si tu veux LOOSE (si pas paramétré, il voit quand même tout du niveau):
-        # qs = qs_prof if qs_prof.exists() else qs
+        # LOOSE (recommandé)
+        qs = qs_prof if qs_prof.exists() else qs
 
     data = [{"id": m.id, "label": m.nom} for m in qs]
     return JsonResponse({"results": data})
+
 
 
 @login_required
@@ -8080,39 +8344,52 @@ def edt_prof_week(request, pk=None):
         "has_slots": bool(seances),
     })
     
+from django.http import JsonResponse
+from django.db.models import Q
+from django.contrib.auth.decorators import login_required
+
 @login_required
-@permission_required("core.view_eleve", raise_exception=True)
+@group_required("SUPER_ADMIN", "ADMIN", "COMPTABLE", "SCOLARITE")
 def ajax_eleves_search(request):
     """
-    AJAX — Autocomplete élèves
-    ✅ Ne retourne QUE les élèves actifs (et, si groupe_id fourni, inscrits sur l'année active).
+    AJAX — Autocomplete élèves (wizard)
+    ✅ Elèves actifs + inscription sur année active (VALIDEE/EN_COURS)
+    Retour compatible TomSelect: {items: [...], results: [...]}
     """
     q = (request.GET.get("q") or "").strip()
-    gid = (request.GET.get("groupe_id") or request.GET.get("groupe") or "").strip()
 
     annee_active = AnneeScolaire.objects.filter(is_active=True).first()
+    if not annee_active:
+        return JsonResponse({"items": [], "results": []})
 
-    qs = Eleve.objects.filter(is_active=True)
-
-    if gid.isdigit():
-        qs = qs.filter(inscriptions__groupe_id=int(gid))
-        if annee_active:
-            qs = qs.filter(inscriptions__annee=annee_active)
-        if "statut" in [f.name for f in Inscription._meta.fields]:
-            qs = qs.filter(inscriptions__statut__in=["EN_COURS", "VALIDE"])
+    # ✅ IMPORTANT: filtre direct (évite helper qui casse en prod)
+    insc_qs = (
+        Inscription.objects
+        .select_related("eleve")
+        .filter(
+            annee=annee_active,
+            statut__in=["VALIDEE", "EN_COURS"],
+            eleve__is_active=True,   # ✅ filtre safe
+        )
+    )
 
     if q:
-        qs = qs.filter(
-            Q(matricule__icontains=q) |
-            Q(nom__icontains=q) |
-            Q(prenom__icontains=q)
+        insc_qs = insc_qs.filter(
+            Q(eleve__matricule__icontains=q) |
+            Q(eleve__nom__icontains=q) |
+            Q(eleve__prenom__icontains=q)
         )
 
-    qs = qs.order_by("nom", "prenom").distinct()[:50]
+    insc_qs = insc_qs.order_by("eleve__nom", "eleve__prenom")[:50]
 
-    items = [
-        {"id": e.id, "label": f'{(e.matricule or "").strip()} — {e.nom} {e.prenom}'.strip(" —")}
-        for e in qs
-    ]
-    return JsonResponse({"items": items})
+    items = []
+    for insc in insc_qs:
+        e = insc.eleve
+        label = f'{(e.matricule or "").strip()} — {e.nom} {e.prenom}'.strip(" —")
+        items.append({
+            "id": str(e.id),
+            "label": label,
+            "inscription_id": str(insc.id),
+        })
 
+    return JsonResponse({"items": items, "results": items})

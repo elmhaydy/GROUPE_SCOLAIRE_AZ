@@ -1,80 +1,183 @@
+/* static/admin/js/enseignants/form.js — FINAL (AZ) */
 (() => {
-  const form = document.querySelector(".az-ens-form");
-  const saveBtn = document.getElementById("saveBtn");
-  if (!form) return;
+  "use strict";
+  if (window.__AZ_ENS_FORM__) return;
+  window.__AZ_ENS_FORM__ = true;
 
-  function fieldWrapByName(name){
-    const input = form.querySelector(`[name="${name}"]`);
-    if (!input) return null;
-    return input.closest(".az-field");
+  const $ = (sel, root = document) => root.querySelector(sel);
+  const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
+
+  // =========================================================
+  // Photo preview
+  // =========================================================
+  const photoInput = $("#id_photo");
+  const photoImg = $("#photoPreview");
+  if (photoInput && photoImg) {
+    photoInput.addEventListener("change", function () {
+      const f = this.files && this.files[0];
+      if (!f) return;
+      photoImg.src = URL.createObjectURL(f);
+      photoImg.style.display = "block";
+    });
   }
 
-  function setError(name, msg){
-    const wrap = fieldWrapByName(name);
-    const box = form.querySelector(`.az-error[data-error-for="${name}"]`);
-    if (wrap) wrap.classList.add("is-invalid");
-    if (box){
-      box.textContent = msg || "";
-      box.style.display = msg ? "block" : "none";
+  // =========================================================
+  // API matières
+  // =========================================================
+  const apiUrlEl = $("#apiMatieresUrl");
+  const API_URL = apiUrlEl ? String(apiUrlEl.value || "") : "";
+
+  function escapeHtml(s) {
+    return String(s ?? "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
+  }
+
+  function setOptions(selectEl, items, placeholder, keepValue = "") {
+    if (!selectEl) return;
+
+    const cur = String(keepValue || selectEl.value || "");
+    const opts = [];
+
+    opts.push(`<option value="">${escapeHtml(placeholder || "— Choisir —")}</option>`);
+    (items || []).forEach((it) => {
+      opts.push(`<option value="${escapeHtml(it.id)}">${escapeHtml(it.label)}</option>`);
+    });
+
+    selectEl.innerHTML = opts.join("");
+
+    if (cur && [...selectEl.options].some((o) => o.value === cur)) {
+      selectEl.value = cur;
+    } else {
+      selectEl.value = "";
     }
   }
 
-  function clearError(name){
-    const wrap = fieldWrapByName(name);
-    const box = form.querySelector(`.az-error[data-error-for="${name}"]`);
-    if (wrap) wrap.classList.remove("is-invalid");
-    if (box){
-      box.textContent = "";
-      box.style.display = "none";
+  function setLoading(selectEl, text = "Chargement...") {
+    if (!selectEl) return;
+    selectEl.disabled = true;
+    selectEl.innerHTML = `<option value="">${escapeHtml(text)}</option>`;
+  }
+
+  function setEmptyDisabled(selectEl, text = "— Choisir un groupe —") {
+    if (!selectEl) return;
+    selectEl.disabled = true;
+    selectEl.innerHTML = `<option value="">${escapeHtml(text)}</option>`;
+  }
+
+  async function fetchMatieres(groupeId) {
+    if (!API_URL) return [];
+    try {
+      const url = new URL(API_URL, window.location.origin);
+      url.searchParams.set("groupe_id", String(groupeId));
+
+      const resp = await fetch(url.toString(), {
+        headers: { "X-Requested-With": "XMLHttpRequest" },
+      });
+      if (!resp.ok) return [];
+      const data = await resp.json();
+      return Array.isArray(data.results) ? data.results : [];
+    } catch (e) {
+      return [];
     }
   }
 
-  function isValidEmail(v){
-    // simple + safe
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+  function getRowElements(row) {
+    const groupeSel = $('select[id$="-groupe"]', row);
+    const matiereSel = $('select[id$="-matiere_fk"]', row);
+    return { groupeSel, matiereSel };
   }
 
-  // Clear errors on input
-  ["nom","prenom","telephone","email","specialite"].forEach(n => {
-    const el = form.querySelector(`[name="${n}"]`);
-    if (!el) return;
-    el.addEventListener("input", () => clearError(n));
-    el.addEventListener("change", () => clearError(n));
-  });
+  async function refreshRowMatieres(row) {
+    const { groupeSel, matiereSel } = getRowElements(row);
+    if (!groupeSel || !matiereSel) return;
 
-  form.addEventListener("submit", (e) => {
-    // front validation légère
-    let ok = true;
+    const groupeId = String(groupeSel.value || "").trim();
+    const current = String(matiereSel.value || "").trim();
 
-    const nom = (form.querySelector('[name="nom"]')?.value || "").trim();
-    const prenom = (form.querySelector('[name="prenom"]')?.value || "").trim();
-    const email = (form.querySelector('[name="email"]')?.value || "").trim();
-
-    // reset
-    ["nom","prenom","email"].forEach(clearError);
-
-    if (!nom){
-      ok = false;
-      setError("nom", "Le nom est obligatoire.");
-    }
-    if (!prenom){
-      ok = false;
-      setError("prenom", "Le prénom est obligatoire.");
-    }
-    if (email && !isValidEmail(email)){
-      ok = false;
-      setError("email", "Email invalide (ex: prof@ecole.ma).");
-    }
-
-    if (!ok){
-      e.preventDefault();
+    if (!groupeId) {
+      setEmptyDisabled(matiereSel, "— Choisir un groupe —");
       return;
     }
 
-    // UX submit
-    if (saveBtn){
-      saveBtn.disabled = true;
-      saveBtn.style.opacity = "0.85";
+    setLoading(matiereSel, "Chargement...");
+    const items = await fetchMatieres(groupeId);
+
+    if (!items.length) {
+      setEmptyDisabled(matiereSel, "Aucune matière disponible");
+      return;
     }
-  });
+
+    // ⚠️ IMPORTANT: on évite de laisser disabled => sinon Django ne reçoit pas la valeur
+    matiereSel.disabled = false;
+    setOptions(matiereSel, items, "— Sélectionner une matière —", current);
+  }
+
+  function bindRow(row) {
+    if (!row || row.__azBound) return;
+    row.__azBound = true;
+
+    const { groupeSel, matiereSel } = getRowElements(row);
+    if (!groupeSel || !matiereSel) return;
+
+    // init
+    refreshRowMatieres(row);
+
+    // change groupe => reload matières
+    groupeSel.addEventListener("change", () => {
+      setLoading(matiereSel, "Chargement...");
+      refreshRowMatieres(row);
+    });
+  }
+
+  function bindAllRows() {
+    $$("#affRows .aff-row").forEach(bindRow);
+  }
+
+  // =========================================================
+  // Add row (formset empty_form)
+  // =========================================================
+  const btnAdd = $("#btnAddAff");
+  const rowsWrap = $("#affRows");
+  const totalFormsEl = $("#id_aff-TOTAL_FORMS");
+  const tpl = $("#affRowTpl");
+
+  function addRow() {
+    if (!rowsWrap || !totalFormsEl || !tpl) return;
+
+    const index = parseInt(String(totalFormsEl.value || "0"), 10);
+    const html = tpl.innerHTML.replaceAll("__prefix__", String(index));
+    rowsWrap.insertAdjacentHTML("beforeend", html);
+    totalFormsEl.value = String(index + 1);
+
+    const newRow = $$("#affRows .aff-row").at(-1);
+    if (newRow) bindRow(newRow);
+  }
+
+  if (btnAdd) btnAdd.addEventListener("click", addRow);
+
+  // =========================================================
+  // ✅ FIX CRITIQUE: au submit, ne jamais laisser un select disabled
+  // (sinon Django ne reçoit pas la valeur => matiere_fk devient NULL => crash unique sans_matiere)
+  // =========================================================
+  const form = $(".az-ens-form");
+  if (form) {
+    form.addEventListener("submit", () => {
+      // matières
+      $$('#affRows select[id$="-matiere_fk"]').forEach((sel) => {
+        if (sel.value) sel.disabled = false;
+      });
+
+      // groupe / année (au cas où)
+      $$('#affRows select[id$="-groupe"], #affRows select[id$="-annee"]').forEach((sel) => {
+        if (sel.value) sel.disabled = false;
+      });
+    });
+  }
+
+  // init
+  bindAllRows();
 })();

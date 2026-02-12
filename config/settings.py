@@ -62,6 +62,13 @@ INSTALLED_APPS = [
     "accounts",
     "core.apps.CoreConfig",
 ]
+# =============================
+# SESSION TIMEOUT (inactivité)
+# =============================
+AZ_IDLE_TIMEOUT_SECONDS = int(os.getenv("AZ_IDLE_TIMEOUT_SECONDS", "10800"))  # 3h
+
+# Optionnel mais recommandé: rafraîchit la session à chaque request
+SESSION_SAVE_EVERY_REQUEST = True
 
 # =============================
 # MIDDLEWARE
@@ -77,6 +84,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "accounts.middleware.InactivityLogoutMiddleware",
 
     "accounts.middleware.CurrentUserMiddleware",
 ]

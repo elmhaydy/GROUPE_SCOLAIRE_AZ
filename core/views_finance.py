@@ -1116,33 +1116,59 @@ def api_eleves_par_groupe(request):
 # =========================================================
 # 13) AJAX — search parents / enfants by parent (FILTRÉ actifs)
 # =========================================================
+
+from django.http import JsonResponse
+from django.db.models import Q
+
 @login_required
 @group_required("SUPER_ADMIN", "ADMIN", "COMPTABLE", "SCOLARITE")
 def ajax_parents_search(request):
     q = (request.GET.get("q") or "").strip()
-    qs = Parent.objects.all()
+
+    annee_active = AnneeScolaire.objects.filter(is_active=True).first()
+    if not annee_active:
+        return JsonResponse({"items": [], "results": []})
+
+    # ✅ Filtre: parent actif + au moins 1 élève actif + inscription VALIDEE année active
+    qs = (
+        Parent.objects
+        .filter(is_active=True)
+        .filter(
+            liens__eleve__inscriptions__annee=annee_active,
+            liens__eleve__inscriptions__statut__in=["VALIDEE", "EN_COURS"],
+        )
+        .distinct()
+    )
+
+    # ✅ Si tu as un helper "élève actif", mets-le ici.
+    # Si ton helper ne supporte pas prefix, commente cette ligne.
+    try:
+        qs = qs.filter(_eleve_active_filter_q(prefix="liens__eleve__"))
+    except TypeError:
+        # helper sans prefix -> on ignore pour éviter de tout casser
+        pass
 
     if q:
         qs = qs.filter(
             Q(nom__icontains=q) |
             Q(prenom__icontains=q) |
-            Q(cin__icontains=q) |
-            Q(telephone__icontains=q)
+            Q(telephone__icontains=q) |
+            Q(telephone_norm__icontains=q) |
+            Q(email__icontains=q)
         )
 
-    qs = qs.order_by("-id")[:50]
+    qs = qs.order_by("nom", "prenom")[:50]
 
     items = []
     for p in qs:
-        label = f"{getattr(p, 'nom', '')} {getattr(p, 'prenom', '')}".strip()
-        cin = (getattr(p, "cin", "") or "").strip()
-        tel = (getattr(p, "telephone", "") or "").strip()
-        extra = " • ".join([x for x in [cin, tel] if x])
-        if extra:
-            label = f"{label} — {extra}"
+        label = f"{p.nom} {p.prenom}".strip()
+        tel = (p.telephone or "").strip()
+        if tel:
+            label = f"{label} — {tel}"
         items.append({"id": p.id, "label": label})
 
-    return JsonResponse({"items": items})
+    # ✅ renvoyer items + results pour compat TomSelect
+    return JsonResponse({"items": items, "results": items})
 
 
 @login_required
@@ -1164,25 +1190,27 @@ def ajax_enfants_by_parent(request):
     if not eleve_ids:
         return JsonResponse({"items": []})
 
-    # map inscription active par élève
-    insc_map = {
-        i.eleve_id: i
-        for i in (
-            Inscription.objects
-            .select_related("groupe", "eleve")
-            .filter(annee_id=annee_active.id, eleve_id__in=eleve_ids)
-            .filter(_eleve_active_filter_q())  # ✅ filtre actifs
-        )
-    }
+    # ✅ uniquement inscriptions VALIDEE sur année active + élève actif
+    insc_qs = (
+        Inscription.objects
+        .select_related("groupe", "eleve")
+        .filter(annee_id=annee_active.id, eleve_id__in=eleve_ids, statut="VALIDEE")
+        .filter(_eleve_active_filter_q())  # ton helper actuel
+    )
+
+    insc_map = {i.eleve_id: i for i in insc_qs}
+    allowed_eleve_ids = list(insc_map.keys())
+    if not allowed_eleve_ids:
+        return JsonResponse({"items": []})
 
     items = []
-    for e in Eleve.objects.filter(id__in=eleve_ids).order_by("nom", "prenom"):
+    for e in Eleve.objects.filter(id__in=allowed_eleve_ids).order_by("nom", "prenom"):
         if not _eleve_is_active_obj(e):
             continue
         insc = insc_map.get(e.id)
         items.append({
             "eleve_id": e.id,
-            "inscription_id": insc.id if insc else None,
+            "inscription_id": insc.id,
             "label": f"{e.matricule} — {e.nom} {e.prenom}".strip(),
         })
 

@@ -481,3 +481,332 @@ html[data-theme="dark"] .az-select:focus{
   box-shadow: 0 0 0 3px rgba(114, 9, 183, .22);
   border-color: rgba(114, 9, 183, .45);
 }
+/* ================================
+   AZ Wizard layout (2 colonnes)
+================================ */
+.az-layout{
+  display:grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: 16px;
+  align-items:start;
+}
+
+.az-main{ min-width: 0; }
+
+.az-side{
+  position: sticky;
+  top: 14px;
+}
+
+@media (max-width: 980px){
+  .az-layout{ grid-template-columns: 1fr; }
+  .az-side{ position: static; }
+}
+
+/* ================================
+   Cart sidebar
+================================ */
+.az-cart{
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-2);
+  padding: 14px;
+}
+
+html[data-theme="dark"] .az-cart{
+  background: radial-gradient(900px 400px at 20% -20%, rgba(67,97,238,.18), transparent 60%),
+              radial-gradient(900px 400px at 90% -20%, rgba(114,9,183,.16), transparent 60%),
+              var(--surface);
+}
+
+.az-cart-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap: 12px;
+}
+
+.az-cart-title{
+  font-weight: 900;
+  font-size: 14px;
+  letter-spacing: -.01em;
+}
+
+.az-cart-empty{
+  margin-top: 12px;
+  padding: 14px;
+  border-radius: 14px;
+  border: 1px dashed var(--border-2);
+  background: linear-gradient(90deg, rgba(67,97,238,.08), rgba(114,9,183,.06));
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.az-cart-list{
+  margin-top: 12px;
+  display:flex;
+  flex-direction:column;
+  gap: 10px;
+}
+
+.az-cart-item{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,.04);
+}
+
+html[data-theme="dark"] .az-cart-item{
+  background: rgba(255,255,255,.02);
+}
+
+.az-cart-item-name{
+  font-weight: 900;
+  font-size: 13px;
+}
+
+.az-cart-item-sub{
+  font-size: 12px;
+  margin-top: 2px;
+}
+
+.az-cart-remove{
+  width: 32px;
+  height: 32px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  cursor: pointer;
+  font-weight: 900;
+}
+
+.az-cart-remove:hover{
+  box-shadow: 0 0 0 4px var(--ring);
+  border-color: rgba(114,9,183,.35);
+}
+
+/* payeur toggle row */
+.az-payeur-toggle{
+  display:flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+/* =========================================================
+   AZ • Wizard — Layout main + sidebar (PANIER à droite)
+   Colle ce bloc à la FIN de wizard.css
+========================================================= */
+
+/* Layout container inside .az-card */
+.az-layout{
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 330px;
+  gap: 16px;
+  align-items: start;
+}
+
+/* Main side */
+.az-main{
+  min-width: 0; /* important pour éviter overflow */
+}
+
+/* Sidebar */
+.az-side{
+  position: relative;
+}
+
+/* Sticky cart (reste visible) */
+.az-cart{
+  position: sticky;
+  top: 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: linear-gradient(180deg, rgba(67,97,238,.08), rgba(114,9,183,.05));
+  box-shadow: var(--shadow-2);
+  padding: 14px;
+}
+
+/* Dark : plus profond + glass */
+html[data-theme="dark"] .az-cart{
+  background:
+    radial-gradient(900px 420px at 10% -10%, rgba(67,97,238,.18), transparent 55%),
+    radial-gradient(900px 420px at 90% -20%, rgba(114,9,183,.16), transparent 60%),
+    rgba(15,23,42,.75);
+  backdrop-filter: blur(8px);
+}
+
+/* Cart header */
+.az-cart-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.az-cart-title{
+  font-weight: 900;
+  letter-spacing: -.01em;
+  font-size: 14px;
+}
+
+/* Empty */
+.az-cart-empty{
+  border: 1px dashed var(--border-2);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  color: var(--muted);
+  background: rgba(255,255,255,.04);
+}
+
+html[data-theme="dark"] .az-cart-empty{
+  background: rgba(255,255,255,.03);
+}
+
+/* List items */
+.az-cart-list{
+  display:flex;
+  flex-direction:column;
+  gap: 10px;
+}
+
+/* Item card */
+.az-cart-item{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap: 10px;
+  padding: 10px 10px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  box-shadow: 0 10px 22px rgba(2,8,23,.06);
+}
+
+html[data-theme="dark"] .az-cart-item{
+  background: rgba(255,255,255,.03);
+  box-shadow: 0 14px 30px rgba(0,0,0,.25);
+}
+
+/* Label (matricule + nom) */
+.az-cart-item .label{
+  min-width: 0;
+  display:flex;
+  flex-direction:column;
+  gap: 2px;
+}
+
+.az-cart-item .label strong{
+  font-size: 13px;
+  font-weight: 900;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.az-cart-item .label span{
+  font-size: 12px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Remove button */
+.az-cart-rm{
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: rgba(239,68,68,.08);
+  color: var(--danger);
+  cursor: pointer;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  transition: transform .05s ease, box-shadow .15s ease, border-color .15s ease;
+}
+.az-cart-rm:hover{
+  border-color: rgba(239,68,68,.35);
+  box-shadow: 0 0 0 4px rgba(239,68,68,.10);
+  transform: translateY(-1px);
+}
+.az-cart-rm:active{ transform: translateY(0); }
+
+/* State: déjà dans panier (à utiliser via JS) */
+.az-is-in-cart{
+  opacity: .65;
+  filter: saturate(.9);
+}
+.az-is-in-cart .label strong{
+  text-decoration: line-through;
+  text-decoration-thickness: 2px;
+  text-decoration-color: rgba(148,163,184,.65);
+}
+
+/* Payeur toggle row */
+.az-payeur-toggle{
+  display:flex;
+  flex-wrap:wrap;
+  gap: 10px;
+}
+
+/* Responsive: sidebar passe en bas */
+@media (max-width: 980px){
+  .az-layout{
+    grid-template-columns: 1fr;
+  }
+  .az-cart{
+    position: relative;
+    top: auto;
+  }
+}
+/* =========================================
+   TOMSELECT — LIGHT MODE FIX COMPLET
+   ========================================= */
+
+html[data-theme="light"] .ts-control {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border: 1px solid #dbe3f0 !important;
+}
+
+html[data-theme="light"] .ts-control .item {
+  color: #0f172a !important;
+}
+
+html[data-theme="light"] .ts-control input {
+  color: #0f172a !important;
+}
+
+html[data-theme="light"] .ts-dropdown {
+  background: #ffffff !important;
+  border: 1px solid #dbe3f0 !important;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+}
+
+html[data-theme="light"] .ts-dropdown .option {
+  color: #0f172a !important;
+}
+
+html[data-theme="light"] .ts-dropdown .option.active {
+  background: #f1f5ff !important;
+}
+
+html[data-theme="light"] .ts-dropdown .option:hover {
+  background: #eef2ff !important;
+}
+
+html[data-theme="light"] .ts-dropdown .no-results {
+  color: #64748b !important;
+}
+
+html[data-theme="light"] .ts-control.focus {
+  border-color: #7209b7 !important;
+  box-shadow: 0 0 0 3px rgba(114,9,183,0.15) !important;
+}

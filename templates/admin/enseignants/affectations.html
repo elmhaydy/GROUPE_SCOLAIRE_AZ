@@ -6,7 +6,7 @@
 {% block breadcrumb %}Pédagogie / Enseignants / Affectations{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'admin/css/enseignants/affectations.css' %}?v=3">
+<link rel="stylesheet" href="{% static 'admin/css/enseignants/affectations.css' %}?v=8">
 {% endblock %}
 
 {% block content %}
@@ -35,12 +35,12 @@
     </div>
   </div>
 
-  <!-- ADD FORM (GROUPES UNIQUEMENT) -->
+  <!-- ADD FORM (GROUPE + MATIERE) -->
   <div class="az-card az-aff-form-card">
     <div class="az-card-head">
       <h3 class="az-card-title">
         <i class="fa-solid fa-plus"></i>
-        Ajouter une affectation (Groupe)
+        Ajouter une affectation (Groupe + Matière)
       </h3>
     </div>
 
@@ -69,7 +69,7 @@
         </div>
       {% endif %}
 
-      <div class="az-grid-2">
+      <div class="az-grid-3">
         <div class="az-field">
           <div class="az-field-label">Année</div>
           {{ form.annee }}
@@ -78,7 +78,13 @@
         <div class="az-field">
           <div class="az-field-label">Groupe</div>
           {{ form.groupe }}
-          <div class="az-help">Les groupes sont filtrés automatiquement selon l’année choisie.</div>
+          <div class="az-help">Les groupes sont filtrés selon l’année.</div>
+        </div>
+
+        <div class="az-field">
+          <div class="az-field-label">Matière</div>
+          {{ form.matiere_fk }}
+          <div class="az-help">Les matières sont filtrées selon le niveau du groupe.</div>
         </div>
       </div>
 
@@ -95,7 +101,7 @@
     <div class="az-card-head">
       <h3 class="az-card-title">
         <i class="fa-solid fa-thumbtack"></i>
-        Affectations actuelles (Groupes)
+        Affectations actuelles (Groupe + Matière)
       </h3>
     </div>
 
@@ -104,7 +110,7 @@
         <div>Année</div>
         <div>Groupe</div>
         <div>Niveau</div>
-        <div>Degré</div>
+        <div>Matière</div>
         <div class="az-th-actions">Action</div>
       </div>
 
@@ -114,11 +120,23 @@
             <div class="az-cell">
               <span class="az-strong">{{ a.annee.nom }}</span>
             </div>
+
             <div class="az-cell">
               <span class="az-strong">{{ a.groupe.nom }}</span>
             </div>
-            <div class="az-cell">{{ a.groupe.niveau.nom }}</div>
-            <div class="az-cell">{{ a.groupe.niveau.degre.nom }}</div>
+
+            <div class="az-cell">
+              {{ a.groupe.niveau.nom }}
+              <span class="az-sub">• {{ a.groupe.niveau.degre.nom }}</span>
+            </div>
+
+            <div class="az-cell">
+              {% if a.matiere_fk %}
+                <span class="az-badge az-badge-info">{{ a.matiere_fk.nom }}</span>
+              {% else %}
+                <span class="az-badge az-badge-muted">—</span>
+              {% endif %}
+            </div>
 
             <div class="az-cell az-actions">
               <form method="post" action="{% url 'core:enseignant_affectation_delete' ens.id a.id %}">
@@ -145,12 +163,14 @@
 <script>
   window.AZ_AFF = {
     urlGroupesParAnnee: "{% url 'core:api_groupes_par_annee' %}",
+    urlMatieresParGroupe: "{% url 'core:api_matieres_par_groupe' %}",
     selectedGroupe: "{{ form.groupe.value|default_if_none:'' }}",
+    selectedMatiere: "{{ form.matiere_fk.value|default_if_none:'' }}",
   };
 </script>
 
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'admin/js/enseignants/affectations.js' %}?v=4" defer></script>
+<script src="{% static 'admin/js/enseignants/affectations.js' %}?v=7" defer></script>
 {% endblock %}

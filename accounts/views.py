@@ -119,3 +119,7 @@ def eleve_password_change(request):
     update_session_auth_hash(request, user)  # ✅ reste connecté
     messages.success(request, "Mot de passe mis à jour avec succès ✅")
     return redirect(request.META.get("HTTP_REFERER", "eleve:dashboard"))
+
+
+
+

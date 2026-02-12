@@ -105,33 +105,31 @@
     <div class="az-section">
       <div class="az-section-head">
         <div>
-          <h4 class="az-section-title"><i class="fas fa-layer-group"></i> Affectations</h4>
-          <p class="az-section-sub">Choisir niveaux et enseignants (recherche activée).</p>
+          <h4 class="az-section-title">
+            <i class="fas fa-layer-group"></i> Niveaux
+          </h4>
+          <p class="az-section-sub">Choisir les niveaux concernés par cette matière.</p>
         </div>
       </div>
 
-      <div class="az-grid-2">
+      <div class="az-grid-1">
         <div class="az-field">
-          <label for="{{ form.niveaux.id_for_label }}">{{ form.niveaux.label }}</label>
+          <label for="{{ form.niveaux.id_for_label }}">
+            {{ form.niveaux.label }}
+          </label>
           {{ form.niveaux }}
+
           {% if form.niveaux.errors %}
             <div class="az-err">
-              {% for e in form.niveaux.errors %}<div>{{ e }}</div>{% endfor %}
-            </div>
-          {% endif %}
-        </div>
-
-        <div class="az-field">
-          <label for="{{ form.enseignants.id_for_label }}">{{ form.enseignants.label }}</label>
-          {{ form.enseignants }}
-          {% if form.enseignants.errors %}
-            <div class="az-err">
-              {% for e in form.enseignants.errors %}<div>{{ e }}</div>{% endfor %}
+              {% for e in form.niveaux.errors %}
+                <div>{{ e }}</div>
+              {% endfor %}
             </div>
           {% endif %}
         </div>
       </div>
     </div>
+
 
     <div class="az-matiere-actions az-matiere-actions--sticky">
       <div class="az-actions-left">

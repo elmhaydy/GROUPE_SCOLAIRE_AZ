@@ -258,6 +258,7 @@ urlpatterns = [
     path("ajax/matieres/", views.ajax_matieres, name="ajax_matieres"),
     path("ajax/eleves-par-groupe/", views.ajax_eleves_par_groupe, name="ajax_eleves_par_groupe"),
     path("ajax/eleves/search/", views.ajax_eleves_search, name="ajax_eleves_search"),
+    path("ajax/fratrie/", views.ajax_fratrie, name="ajax_fratrie"),
 
     # Finance AJAX
     path("ajax/echeances/", views_finance.ajax_echeances, name="ajax_echeances"),

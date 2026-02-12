@@ -82,7 +82,6 @@
       <div>Nom</div>
       <div>Code</div>
       <div>Niveaux</div>
-      <div>Enseignants</div>
       <div>Actif</div>
       <div class="az-th-actions">Actions</div>
     </div>
@@ -107,18 +106,6 @@
             <div class="az-tags">
               {% for n in m.niveaux.all %}
                 <span class="az-badge az-badge-muted">{{ n.nom }}</span>
-              {% empty %}
-                <span class="az-sub">—</span>
-              {% endfor %}
-            </div>
-          </div>
-
-          <div class="az-cell" data-label="Enseignants">
-            <div class="az-tags">
-              {% for e in m.enseignants.all %}
-                <span class="az-badge az-badge-info">
-                  {{ e.nom }} {{ e.prenom }}
-                </span>
               {% empty %}
                 <span class="az-sub">—</span>
               {% endfor %}

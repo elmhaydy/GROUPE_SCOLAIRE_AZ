@@ -113,3 +113,37 @@
 .ts-wrapper {
   margin-bottom: 10px;
 }
+
+
+
+/* ===========================
+   TOMSELECT — LIGHT MODE
+   =========================== */
+
+html[data-theme="light"] .ts-control {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border: 1px solid #dbe3f0 !important;
+}
+
+html[data-theme="light"] .ts-control input {
+  color: #0f172a !important;
+}
+
+html[data-theme="light"] .ts-dropdown {
+  background: #ffffff !important;
+  border: 1px solid #dbe3f0 !important;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+}
+
+html[data-theme="light"] .ts-dropdown .option {
+  color: #0f172a !important;
+}
+
+html[data-theme="light"] .ts-dropdown .option:hover {
+  background: #f1f5ff !important;
+}
+
+html[data-theme="light"] .ts-dropdown .no-results {
+  color: #64748b !important;
+}

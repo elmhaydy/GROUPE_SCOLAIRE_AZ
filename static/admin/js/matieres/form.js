@@ -1,30 +1,32 @@
-/* =========================================================
-   AZ — Matières (FORM) — Tom Select init
-   - auto sur tous les selects du formulaire
-   ========================================================= */
-(function(){
-  const root = document.querySelector(".az-matiere-form");
-  if (!root) return;
+/* static/admin/js/matieres/form.js */
+/* AZ • Matières — Form (FINAL) */
 
-  const selects = root.querySelectorAll("select");
-  selects.forEach((sel) => {
-    // évite double init
-    if (sel.dataset.ts === "1") return;
-    sel.dataset.ts = "1";
+(function () {
+  "use strict";
 
-    const isMultiple = sel.hasAttribute("multiple");
+  function initTomSelect(id, placeholder) {
+    const el = document.getElementById(id);
+    if (!el || el.tomselect) return null;
 
-    new TomSelect(sel, {
-      create: false,
-      allowEmptyOption: true,
-      plugins: isMultiple ? ["remove_button", "clear_button"] : ["clear_button"],
-      maxOptions: 500,
+    return new TomSelect(el, {
+      plugins: ["remove_button"],
+      maxOptions: 5000,
       hideSelected: true,
-      closeAfterSelect: !isMultiple,
-      placeholder: sel.getAttribute("data-placeholder") || "Sélectionner…",
+      closeAfterSelect: false,
+      persist: false,
+      create: false,
+      placeholder: placeholder || "Rechercher...",
       render: {
-        no_results: () => `<div class="no-results">Aucun résultat</div>`,
+        no_results: function () {
+          return `<div class="no-results">Aucun résultat</div>`;
+        },
       },
     });
+  }
+
+  document.addEventListener("DOMContentLoaded", function () {
+    // Multi-select Niveaux + Enseignants
+    initTomSelect("id_niveaux", "Rechercher un niveau…");
+    
   });
 })();

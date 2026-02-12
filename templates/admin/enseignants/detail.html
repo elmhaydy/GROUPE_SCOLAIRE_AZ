@@ -46,7 +46,7 @@
       <a class="az-btn az-btn-soft" href="{% url 'core:enseignant_delete' ens.id %}" style="border-color: rgba(239,68,68,.25); color:#ef4444;">
         <i class="fa-solid fa-trash"></i> Supprimer
       </a>
-<a class="az-btn az-btn-primary" href="{% url 'core:edt_prof_week' %}?enseignant={{ enseignant.id }}">
+<a class="az-btn az-btn-primary" href="{% url 'core:edt_prof_week' %}?enseignant={{ ens.id }}">
   <i class="fa-solid fa-calendar-days"></i> EDT
 </a>
 
@@ -133,6 +133,112 @@
         <span>Les absences et statistiques sont calculées à partir de l’année scolaire active.</span>
       </div>
     </div>
+  </div>
+  <!-- ===== Affectations ===== -->
+  <div class="az-card az-ensd-card" style="margin-top:14px;">
+    <div class="az-ensd-card-head">
+      <div class="az-ensd-card-title">
+        <i class="fa-solid fa-diagram-project"></i>
+        <span>Affectations</span>
+      </div>
+
+      <div class="az-ensd-sub" style="margin-left:auto;">
+        {% if annee %}
+          <span class="az-chip">Année active : <b>{{ annee.nom }}</b></span>
+        {% else %}
+          <span class="az-chip az-chip-danger">Aucune année active</span>
+        {% endif %}
+      </div>
+    </div>
+
+    {% if affectations_active and affectations_active|length > 0 %}
+      <div class="az-ensd-table-wrap" style="margin-top:10px;">
+        <div class="az-ensd-table-title">
+          <i class="fa-solid fa-bolt"></i>
+          <span>Affectations — Année active</span>
+        </div>
+
+        <div class="az-ensd-table">
+          <div class="az-ensd-thead">
+            <div>Année</div>
+            <div>Niveau</div>
+            <div>Groupe</div>
+            <div>Matière</div>
+          </div>
+
+          <div class="az-ensd-tbody">
+            {% for aff in affectations_active %}
+              <div class="az-ensd-tr">
+                <div class="az-ensd-td"><span class="az-chip">{{ aff.annee.nom }}</span></div>
+                <div class="az-ensd-td">
+                  <span class="az-chip">
+                    {{ aff.groupe.niveau.degre.nom }} — {{ aff.groupe.niveau.nom }}
+                  </span>
+                </div>
+                <div class="az-ensd-td">
+                  <span class="az-chip az-chip-info">{{ aff.groupe.nom }}</span>
+                </div>
+                <div class="az-ensd-td">
+                  {% if aff.matiere_fk %}
+                    <span class="az-chip az-chip-success">{{ aff.matiere_fk.nom }}</span>
+                  {% else %}
+                    <span class="az-chip">—</span>
+                  {% endif %}
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    {% else %}
+      <div class="az-ensd-empty" style="margin-top:12px;">
+        <i class="fa-solid fa-inbox"></i>
+        <div class="az-ensd-empty-title">Aucune affectation</div>
+        <div class="az-ensd-empty-sub">Aucune affectation trouvée pour l’année active.</div>
+      </div>
+    {% endif %}
+
+    {% if affectations_autres and affectations_autres|length > 0 %}
+      <div class="az-ensd-table-wrap" style="margin-top:14px;">
+        <div class="az-ensd-table-title">
+          <i class="fa-solid fa-clock-rotate-left"></i>
+          <span>Historique (autres années)</span>
+        </div>
+
+        <div class="az-ensd-table">
+          <div class="az-ensd-thead">
+            <div>Année</div>
+            <div>Niveau</div>
+            <div>Groupe</div>
+            <div>Matière</div>
+          </div>
+
+          <div class="az-ensd-tbody">
+            {% for aff in affectations_autres %}
+              <div class="az-ensd-tr">
+                <div class="az-ensd-td"><span class="az-chip">{{ aff.annee.nom }}</span></div>
+                <div class="az-ensd-td">
+                  <span class="az-chip">
+                    {{ aff.groupe.niveau.degre.nom }} — {{ aff.groupe.niveau.nom }}
+                  </span>
+                </div>
+                <div class="az-ensd-td">
+                  <span class="az-chip az-chip-info">{{ aff.groupe.nom }}</span>
+                </div>
+                <div class="az-ensd-td">
+                  {% if aff.matiere_fk %}
+                    <span class="az-chip az-chip-success">{{ aff.matiere_fk.nom }}</span>
+                  {% else %}
+                    <span class="az-chip">—</span>
+                  {% endif %}
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    {% endif %}
+
   </div>
 
   <!-- ===== Recap Mensuel ===== -->

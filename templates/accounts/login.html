@@ -1,39 +1,43 @@
 <!-- templates/accounts/login.html -->
+{% load static %}
 <!DOCTYPE html>
 <html lang="fr">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Connexion | AZ Administration</title>
-
-{% load static %}
-<link rel="icon" type="image/x-icon" href="{% static 'img/favicon.ico' %}">
-<link rel="apple-touch-icon" href="{% static 'img/favicon.ico' %}">
+  <title>Portail Éducatif | Groupe Scolaire Excellence</title>
 
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  
-  <!-- Police Inter -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  
+
+  <link rel="icon" type="image/png" sizes="32x32" href="{% static 'img/favicon.png' %}">
+  <link rel="icon" type="image/png" sizes="16x16" href="{% static 'img/favicon.png' %}">
+  <link rel="apple-touch-icon" href="{% static 'img/favicon.png' %}">
+
   <style>
-    /* ═══════════════════════════════════════════════════════════════════════════ */
-    /* VARIABLES & RÉINITIALISATION                                              */
-    /* ═══════════════════════════════════════════════════════════════════════════ */
-
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
+    :root {
+      --primary: #2563eb;
+      --primary-dark: #1e40af;
+      --primary-light: #60a5fa;
+      --secondary: #f59e0b;
+      --secondary-dark: #d97706;
+      --success: #10b981;
+      --danger: #ef4444;
+      --dark: #0f172a;
+      --light: #f8fafc;
+      --gray: #64748b;
+      --gray-light: #e2e8f0;
+      --shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
+      --glass: rgba(255, 255, 255, 0.92);
+      --glass-border: rgba(255, 255, 255, 0.3);
     }
 
-    html {
-      scroll-behavior: smooth;
-    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
 
     body {
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
-      color: #f1f5f9;
+      color: var(--dark);
       min-height: 100vh;
       display: flex;
       align-items: center;
@@ -43,651 +47,437 @@
       overflow: hidden;
     }
 
-    /* ═══════════════════════════════════════════════════════════════════════════ */
-    /* ARRIÈRE-PLAN ANIMÉ                                                         */
-    /* ═══════════════════════════════════════════════════════════════════════════ */
-
-    body::before {
-      content: '';
+    .background-carousel {
       position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: 
-        radial-gradient(circle at 20% 50%, rgba(99, 102, 241, 0.1) 0%, transparent 50%),
-        radial-gradient(circle at 80% 80%, rgba(236, 72, 153, 0.1) 0%, transparent 50%);
-      pointer-events: none;
-      z-index: 0;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      z-index: -1;
+      overflow: hidden;
+      background-color: var(--dark);
     }
 
-    body::after {
-      content: '';
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: 
-        linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.02) 50%, transparent 100%);
-      pointer-events: none;
-      z-index: 0;
-      animation: az-shimmer 8s infinite;
+    .carousel-slide {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      opacity: 0;
+      transition: opacity 2s ease-in-out, transform 8s ease-out;
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      transform: scale(1.1);
+    }
+    .carousel-slide.active { opacity: 1; transform: scale(1); }
+
+    .slide-1 {
+      background-image: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.5)),
+                        url('https://app.groupescolaireaz.ma/uploads/images/events/event_6/front_thumb.jpg?YsiG4LUX');
+    }
+    .slide-2 {
+      background-image: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.5)),
+                        url('https://www.temaracity.com/fr/wp-content/uploads/2021/08/GROUPESCOLAIREazTEMARA-1-424x280.jpg');
+    }
+    .slide-3 {
+      background-image: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.5)),
+                        url('https://www.groupescolaireaz.ma/Web/images/frontend/Home/index/slides/5.jpg?qr50GIWR');
+    }
+    .slide-4 {
+      background-image: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.5)),
+                        url('https://www.groupescolaireaz.ma/Web/images/frontend/Home/index/slides/2.jpg');
     }
 
-    @keyframes az-shimmer {
-      0%, 100% { transform: translateX(-100%); }
-      50% { transform: translateX(100%); }
-    }
-
-    /* ═══════════════════════════════════════════════════════════════════════════ */
-    /* CONTENEUR PRINCIPAL                                                        */
-    /* ═══════════════════════════════════════════════════════════════════════════ */
-
-    .az-login-container {
-      position: relative;
+    .carousel-overlay {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: radial-gradient(circle, transparent 20%, rgba(0,0,0,0.4) 100%);
       z-index: 1;
+    }
+
+    .login-container {
       width: 100%;
-      max-width: 460px;
-      animation: az-fade-in 0.6s ease-out;
+      max-width: 480px;
+      position: relative;
+      z-index: 10;
+      opacity: 0;
+      transform: translateY(30px);
+      transition: all 1s cubic-bezier(0.22, 1, 0.36, 1);
     }
+    .login-container.visible { opacity: 1; transform: translateY(0); }
 
-    @keyframes az-fade-in {
-      from {
-        opacity: 0;
-        transform: translateY(20px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-
-    /* ═══════════════════════════════════════════════════════════════════════════ */
-    /* CARTE DE CONNEXION                                                         */
-    /* ═══════════════════════════════════════════════════════════════════════════ */
-
-    .az-login-card {
-      background: rgba(15, 23, 42, 0.8);
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(99, 102, 241, 0.2);
-      border-radius: 20px;
-      padding: 48px 32px;
-      box-shadow: 
-        0 25px 50px rgba(0, 0, 0, 0.3),
-        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    .login-card {
+      background: var(--glass);
+      backdrop-filter: blur(15px);
+      border: 1px solid var(--glass-border);
+      border-radius: 28px;
+      padding: 50px 45px;
+      box-shadow: var(--shadow);
       position: relative;
       overflow: hidden;
     }
 
-    /* Effet de bordure dégradée */
-    .az-login-card::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: linear-gradient(
-        135deg,
-        rgba(99, 102, 241, 0.1) 0%,
-        transparent 50%,
-        rgba(236, 72, 153, 0.1) 100%
-      );
-      pointer-events: none;
+    .login-header { text-align: center; margin-bottom: 35px; }
+
+    .logo-section {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: white;
+      padding: 15px;
       border-radius: 20px;
+      box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+      margin-bottom: 25px;
     }
 
-    .az-login-card > * {
-      position: relative;
-      z-index: 1;
-    }
-
-    /* ═══════════════════════════════════════════════════════════════════════════ */
-    /* HEADER DE CONNEXION                                                        */
-    /* ═══════════════════════════════════════════════════════════════════════════ */
-
-    .az-login-header {
-      text-align: center;
-      margin-bottom: 40px;
-    }
-
-    .az-login-icon {
-      width: 80px;
-      height: 80px;
-      margin: 0 auto 24px;
-      background: linear-gradient(135deg, #6366f1 0%, #ec4899 100%);
-      border-radius: 20px;
+    .logo-icon {
+      width: 55px;
+      height: 55px;
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      border-radius: 14px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 40px;
+      font-size: 26px;
       color: white;
-      box-shadow: 0 10px 30px rgba(99, 102, 241, 0.3);
-      animation: az-bounce 2s ease-in-out infinite;
     }
 
-    @keyframes az-bounce {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-10px); }
-    }
-
-    .az-login-title {
+    .login-title {
       font-size: 28px;
-      font-weight: 700;
+      font-weight: 800;
+      color: var(--dark);
       margin-bottom: 8px;
-      background: linear-gradient(135deg, #6366f1 0%, #ec4899 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+      letter-spacing: -0.5px;
     }
 
-    .az-login-subtitle {
-      font-size: 14px;
-      color: #cbd5e1;
-      opacity: 0.8;
-    }
+    .login-subtitle { font-size: 15px; color: var(--gray); font-weight: 500; }
 
-    /* ═══════════════════════════════════════════════════════════════════════════ */
-    /* MESSAGES D'ERREUR                                                          */
-    /* ═══════════════════════════════════════════════════════════════════════════ */
+    .form-group { margin-bottom: 22px; }
 
-    .az-messages {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      margin-bottom: 24px;
-    }
-
-    .az-message {
-      padding: 14px 16px;
-      border-radius: 12px;
-      border-left: 4px solid;
-      background: rgba(239, 68, 68, 0.1);
-      border-color: #ef4444;
-      color: #fca5a5;
-      font-size: 14px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      animation: az-slide-in 0.3s ease-out;
-    }
-
-    @keyframes az-slide-in {
-      from {
-        opacity: 0;
-        transform: translateX(-20px);
-      }
-      to {
-        opacity: 1;
-        transform: translateX(0);
-      }
-    }
-
-    .az-message i {
-      font-size: 16px;
-      flex-shrink: 0;
-    }
-
-    /* ═══════════════════════════════════════════════════════════════════════════ */
-    /* FORMULAIRE                                                                 */
-    /* ═══════════════════════════════════════════════════════════════════════════ */
-
-    .az-login-form {
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-    }
-
-    .az-form-group {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    .az-form-label {
+    .form-label {
+      display: block;
       font-size: 14px;
       font-weight: 600;
-      color: #e2e8f0;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
+      color: var(--dark);
+      margin-bottom: 8px;
+      padding-left: 4px;
     }
 
-    .az-form-input-wrapper {
-      position: relative;
-      display: flex;
-      align-items: center;
-    }
+    .input-wrapper { position: relative; transition: all 0.3s ease; }
 
-    .az-form-input-icon {
+    .input-icon {
       position: absolute;
-      left: 16px;
-      color: #94a3b8;
+      left: 18px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--gray);
       font-size: 18px;
+      transition: all 0.3s ease;
       pointer-events: none;
-      z-index: 2;
     }
 
-    .az-form-input {
+    .form-input {
       width: 100%;
-      padding: 14px 16px 14px 48px;
-      background: rgba(30, 41, 59, 0.6);
-      border: 1px solid rgba(99, 102, 241, 0.2);
-      border-radius: 12px;
-      color: #f1f5f9;
+      padding: 16px 16px 16px 52px;
+      background: white;
+      border: 2px solid var(--gray-light);
+      border-radius: 14px;
       font-size: 15px;
-      font-family: inherit;
+      font-weight: 500;
+      color: var(--dark);
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       outline: none;
     }
 
-    .az-form-input::placeholder {
-      color: #64748b;
+    .form-input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
     }
 
-    .az-form-input:focus {
-      background: rgba(30, 41, 59, 0.8);
-      border-color: #6366f1;
-      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+    .form-input:focus + .input-icon { color: var(--primary); }
+
+    .password-toggle {
+      position: absolute;
+      right: 18px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      color: var(--gray);
+      cursor: pointer;
+      font-size: 16px;
+      padding: 5px;
+      transition: color 0.3s;
     }
+    .password-toggle:hover { color: var(--primary); }
 
-    .az-form-input:hover {
-      border-color: rgba(99, 102, 241, 0.4);
-    }
-
-    /* ═══════════════════════════════════════════════════════════════════════════ */
-    /* OPTIONS DE CONNEXION                                                       */
-    /* ═══════════════════════════════════════════════════════════════════════════ */
-
-    .az-login-options {
+    .login-options {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      font-size: 13px;
-      gap: 12px;
-    }
-
-    .az-remember-me {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      cursor: pointer;
-    }
-
-    .az-remember-me input[type="checkbox"] {
-      width: 18px;
-      height: 18px;
-      cursor: pointer;
-      accent-color: #6366f1;
-    }
-
-    .az-remember-me label {
-      cursor: pointer;
-      color: #cbd5e1;
-      user-select: none;
-    }
-
-    .az-forgot-password {
-      color: #6366f1;
-      text-decoration: none;
-      transition: all 0.3s ease;
-      font-weight: 500;
-    }
-
-    .az-forgot-password:hover {
-      color: #ec4899;
-      text-decoration: underline;
-    }
-
-    /* ═══════════════════════════════════════════════════════════════════════════ */
-    /* BOUTON DE CONNEXION                                                        */
-    /* ═══════════════════════════════════════════════════════════════════════════ */
-
-    .az-login-button {
-      width: 100%;
-      padding: 14px 20px;
-      background: linear-gradient(135deg, #6366f1 0%, #ec4899 100%);
-      color: white;
-      border: none;
-      border-radius: 12px;
-      font-size: 15px;
-      font-weight: 700;
-      cursor: pointer;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      position: relative;
-      overflow: hidden;
-      box-shadow: 0 10px 30px rgba(99, 102, 241, 0.3);
-      margin-top: 8px;
-    }
-
-    .az-login-button::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: -100%;
-      width: 100%;
-      height: 100%;
-      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-      transition: left 0.5s ease;
-    }
-
-    .az-login-button:hover::before {
-      left: 100%;
-    }
-
-    .az-login-button:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 15px 40px rgba(99, 102, 241, 0.4);
-    }
-
-    .az-login-button:active {
-      transform: translateY(0);
-    }
-
-    .az-login-button:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-      transform: none;
-    }
-
-    /* ═══════════════════════════════════════════════════════════════════════════ */
-    /* FOOTER DE CONNEXION                                                        */
-    /* ═══════════════════════════════════════════════════════════════════════════ */
-
-    .az-login-footer {
-      margin-top: 32px;
-      padding-top: 24px;
-      border-top: 1px solid rgba(99, 102, 241, 0.1);
-      text-align: center;
-      font-size: 13px;
-      color: #cbd5e1;
-    }
-
-    .az-login-footer-text {
-      margin-bottom: 12px;
-    }
-
-    .az-login-footer-link {
-      color: #6366f1;
-      text-decoration: none;
-      font-weight: 600;
-      transition: all 0.3s ease;
-    }
-
-    .az-login-footer-link:hover {
-      color: #ec4899;
-      text-decoration: underline;
-    }
-
-    /* ═══════════════════════════════════════════════════════════════════════════ */
-    /* INDICATEUR DE SÉCURITÉ                                                     */
-    /* ═══════════════════════════════════════════════════════════════════════════ */
-
-    .az-security-badge {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-      font-size: 12px;
-      color: #10b981;
-      margin-top: 16px;
-      opacity: 0.8;
-    }
-
-    .az-security-badge i {
+      margin-bottom: 28px;
       font-size: 14px;
     }
 
-    /* ═══════════════════════════════════════════════════════════════════════════ */
-    /* RESPONSIVE - TABLETTES                                                     */
-    /* ═══════════════════════════════════════════════════════════════════════════ */
-
-    @media (max-width: 768px) {
-      .az-login-card {
-        padding: 40px 28px;
-      }
-
-      .az-login-title {
-        font-size: 24px;
-      }
-
-      .az-login-icon {
-        width: 70px;
-        height: 70px;
-        font-size: 35px;
-      }
+    .remember-me {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      font-weight: 500;
+      color: var(--gray);
+    }
+    .remember-me input {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--primary);
+      cursor: pointer;
     }
 
-    /* ═══════════════════════════════════════════════════════════════════════════ */
-    /* RESPONSIVE - MOBILES                                                       */
-    /* ═══════════════════════════════════════════════════════════════════════════ */
+    .forgot-password {
+      color: var(--primary);
+      text-decoration: none;
+      font-weight: 600;
+    }
+    .forgot-password:hover { text-decoration: underline; }
 
-    @media (max-width: 480px) {
-      body {
-        padding: 16px;
-      }
-
-      .az-login-card {
-        padding: 32px 20px;
-        border-radius: 16px;
-      }
-
-      .az-login-header {
-        margin-bottom: 32px;
-      }
-
-      .az-login-title {
-        font-size: 22px;
-      }
-
-      .az-login-subtitle {
-        font-size: 13px;
-      }
-
-      .az-login-icon {
-        width: 60px;
-        height: 60px;
-        font-size: 30px;
-        margin-bottom: 16px;
-      }
-
-      .az-form-label {
-        font-size: 13px;
-      }
-
-      .az-form-input {
-        padding: 12px 14px 12px 44px;
-        font-size: 14px;
-      }
-
-      .az-form-input-icon {
-        left: 14px;
-        font-size: 16px;
-      }
-
-      .az-login-options {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 10px;
-      }
-
-      .az-login-button {
-        padding: 12px 16px;
-        font-size: 14px;
-      }
-
-      .az-login-footer {
-        margin-top: 24px;
-        padding-top: 20px;
-      }
+    .login-button {
+      width: 100%;
+      padding: 18px;
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      color: white;
+      border: none;
+      border-radius: 14px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      box-shadow: 0 10px 20px rgba(37, 99, 235, 0.2);
     }
 
-    /* ═══════════════════════════════════════════════════════════════════════════ */
-    /* ANIMATIONS DE CHARGEMENT                                                   */
-    /* ═══════════════════════════════════════════════════════════════════════════ */
-
-    .az-login-button.loading {
-      pointer-events: none;
-      opacity: 0.8;
+    .login-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 15px 30px rgba(37, 99, 235, 0.3);
+      filter: brightness(1.1);
     }
+    .login-button:active { transform: translateY(0); }
 
-    .az-spinner {
-      display: inline-block;
-      width: 16px;
-      height: 16px;
-      border: 2px solid rgba(255, 255, 255, 0.3);
-      border-top-color: white;
+    .spinner {
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(255,255,255,0.3);
       border-radius: 50%;
-      animation: az-spin 0.8s linear infinite;
-      margin-right: 8px;
+      border-top-color: white;
+      animation: spin 0.8s linear infinite;
+      display: none;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .loading .spinner { display: block; }
+    .loading i { display: none; }
+
+    /* Bloc erreurs */
+    .alert-error {
+      background: rgba(239, 68, 68, 0.12);
+      border: 1px solid rgba(239, 68, 68, 0.35);
+      color: #991b1b;
+      padding: 12px 14px;
+      border-radius: 14px;
+      margin-bottom: 18px;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .alert-error ul { margin-left: 18px; font-weight: 600; }
+
+    .login-footer {
+      margin-top: 35px;
+      text-align: center;
+      border-top: 1px solid var(--gray-light);
+      padding-top: 25px;
     }
 
-    @keyframes az-spin {
-      to { transform: rotate(360deg); }
+    .copyright {
+      font-size: 13px;
+      color: var(--gray);
+      margin-bottom: 12px;
     }
 
-    /* ═══════════════════════════════════════════════════════════════════════════ */
-    /* SCROLLBAR PERSONNALISÉE                                                    */
-    /* ═══════════════════════════════════════════════════════════════════════════ */
-
-    ::-webkit-scrollbar {
-      width: 8px;
+    .footer-links {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      font-size: 13px;
     }
 
-    ::-webkit-scrollbar-track {
-      background: rgba(30, 41, 59, 0.5);
+    .footer-link {
+      color: var(--primary);
+      text-decoration: none;
+      font-weight: 500;
     }
+    .footer-link:hover { text-decoration: underline; }
 
-    ::-webkit-scrollbar-thumb {
-      background: rgba(99, 102, 241, 0.5);
-      border-radius: 4px;
-    }
-
-    ::-webkit-scrollbar-thumb:hover {
-      background: rgba(99, 102, 241, 0.7);
+    @media (max-width: 576px) {
+      body { padding: 15px; }
+      .login-card { padding: 40px 25px; }
+      .login-title { font-size: 24px; }
     }
   </style>
 </head>
 
 <body>
-  <div class="az-login-container">
-    <div class="az-login-card">
-      <!-- Header -->
-      <div class="az-login-header">
-        <div class="az-login-icon">
-          <i class="fas fa-lock"></i>
+  <!-- Carrousel d'Arrière-plan -->
+  <div class="background-carousel">
+    <div class="carousel-slide slide-1 active"></div>
+    <div class="carousel-slide slide-2"></div>
+    <div class="carousel-slide slide-3"></div>
+    <div class="carousel-slide slide-4"></div>
+    <div class="carousel-overlay"></div>
+  </div>
+
+  <!-- Conteneur de Connexion -->
+  <div class="login-container" id="loginContainer">
+    <div class="login-card">
+      <div class="login-header">
+        <div class="logo-section">
+          <div class="logo-icon">
+            <i class="fas fa-graduation-cap"></i>
+          </div>
         </div>
-        <h1 class="az-login-title">Connexion </h1>
-        <p class="az-login-subtitle">Accédez à votre espace AZ GROUPS</p>
+        <h1 class="login-title">Groupe Scolaire AZ</h1>
+        <p class="login-subtitle">Espace Scolaire</p>
       </div>
 
-      <!-- Messages d'erreur -->
-      {% if messages %}
-      <div class="az-messages">
-        {% for message in messages %}
-        <div class="az-message">
-          <i class="fas fa-{% if message.tags == 'error' %}exclamation-circle{% else %}info-circle{% endif %}"></i>
-          <span>{{ message }}</span>
-        </div>
-        {% endfor %}
-      </div>
-      {% endif %}
-
-      <!-- Formulaire -->
-      <form method="post" class="az-login-form">
+      <!-- ✅ IMPORTANT: action + post + csrf -->
+      <form id="loginForm" method="post" action="{% url 'accounts:login'%}">
         {% csrf_token %}
 
-        <!-- Champ Nom d'utilisateur -->
-        <div class="az-form-group">
-          <label class="az-form-label" for="username">
-            <i class="fas fa-user"></i> Nom d'utilisateur
-          </label>
-          <div class="az-form-input-wrapper">
-            <i class="az-form-input-icon fas fa-user"></i>
-            <input 
-              type="text" 
+        <!-- ✅ Affichage erreurs Django -->
+        {% if form and form.non_field_errors %}
+          <div class="alert-error">
+            {{ form.non_field_errors }}
+          </div>
+        {% endif %}
+
+        <div class="form-group">
+          <label class="form-label" for="username">Identifiant</label>
+          <div class="input-wrapper">
+            <i class="input-icon fas fa-user-graduate"></i>
+            <input
+              type="text"
               id="username"
-              name="username" 
-              class="az-form-input"
-              placeholder="Entrez votre nom d'utilisateur"
-              required 
+              name="username"
+              class="form-input"
+              placeholder="Ex: jean.dupont"
               autocomplete="username"
-            />
+              required
+              value="{{ form.username.value|default_if_none:'' }}"
+            >
           </div>
+          {% if form and form.username.errors %}
+            <div class="alert-error">{{ form.username.errors }}</div>
+          {% endif %}
         </div>
 
-        <!-- Champ Mot de passe -->
-        <div class="az-form-group">
-          <label class="az-form-label" for="password">
-            <i class="fas fa-lock"></i> Mot de passe
-          </label>
-          <div class="az-form-input-wrapper">
-            <i class="az-form-input-icon fas fa-lock"></i>
-            <input 
-              type="password" 
+        <div class="form-group">
+          <label class="form-label" for="password">Mot de passe</label>
+          <div class="input-wrapper">
+            <i class="input-icon fas fa-key"></i>
+            <input
+              type="password"
               id="password"
-              name="password" 
-              class="az-form-input"
-              placeholder="Entrez votre mot de passe"
-              required 
+              name="password"
+              class="form-input"
+              placeholder="••••••••"
               autocomplete="current-password"
-            />
+              required
+            >
+            <button type="button" class="password-toggle" id="passwordToggle">
+              <i class="fas fa-eye"></i>
+            </button>
           </div>
+          {% if form and form.password.errors %}
+            <div class="alert-error">{{ form.password.errors }}</div>
+          {% endif %}
         </div>
 
-        <!-- Options de connexion -->
+        <div class="login-options">
+          <label class="remember-me">
+            <input type="checkbox" name="remember"> Se souvenir de moi
+          </label>
+          <!-- Mets ici ton URL reset si tu en as -->
+          <a href="#" class="forgot-password">Oublié ?</a>
+        </div>
 
-
-        <!-- Bouton de connexion -->
-        <button type="submit" class="az-login-button">
-          <i class="fas fa-sign-in-alt"></i> Se connecter
+        <button type="submit" class="login-button" id="submitBtn">
+          <i class="fas fa-sign-in-alt"></i>
+          <span class="spinner"></span>
+          <span>Se connecter</span>
         </button>
-
-        <!-- Badge de sécurité -->
-        <div class="az-security-badge">
-          <i class="fas fa-shield-alt"></i>
-          <span>Connexion sécurisée</span>
-        </div>
       </form>
+{% if messages %}
+  {% for message in messages %}
+    <div class="alert-error">{{ message }}</div>
+  {% endfor %}
+{% endif %}
 
-      <!-- Footer -->
-      <div class="az-login-footer">
-        <p class="az-login-footer-text">
-          © 2026 AZ GROUPS - Tous droits réservés
-        </p>
-        <p>
-          <a href="#" class="az-login-footer-link">Aide & Support</a> • 
-          <a href="#" class="az-login-footer-link">Confidentialité</a>
-        </p>
+      <div class="login-footer">
+        <p class="copyright">© 2026 Groupe Scolaire Excellence</p>
+        <div class="footer-links">
+          <a href="#" class="footer-link">Assistance</a>
+          <a href="#" class="footer-link">Confidentialité</a>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- Script pour les interactions -->
   <script>
-    // Gestion du formulaire
-    document.querySelector('.az-login-form').addEventListener('submit', function(e) {
-      const button = this.querySelector('.az-login-button');
-      button.classList.add('loading');
-      button.innerHTML = '<span class="az-spinner"></span>Connexion en cours...';
+    // --- Gestion du Carrousel ---
+    const slides = document.querySelectorAll('.carousel-slide');
+    let currentSlide = 0;
+
+    function nextSlide() {
+      slides[currentSlide].classList.remove('active');
+      currentSlide = (currentSlide + 1) % slides.length;
+      slides[currentSlide].classList.add('active');
+    }
+    setInterval(nextSlide, 6000);
+
+    // --- Animations d'entrée ---
+    document.addEventListener('DOMContentLoaded', () => {
+      setTimeout(() => {
+        document.getElementById('loginContainer').classList.add('visible');
+      }, 300);
     });
 
-    // Animation au chargement
-    window.addEventListener('load', function() {
-      document.querySelector('.az-login-container').style.animation = 'az-fade-in 0.6s ease-out';
+    // --- Toggle Mot de Passe ---
+    const passwordToggle = document.getElementById('passwordToggle');
+    const passwordInput = document.getElementById('password');
+
+    passwordToggle.addEventListener('click', () => {
+      const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+      passwordInput.setAttribute('type', type);
+      passwordToggle.querySelector('i').classList.toggle('fa-eye');
+      passwordToggle.querySelector('i').classList.toggle('fa-eye-slash');
     });
 
-    // Gestion du focus des champs
-    const inputs = document.querySelectorAll('.az-form-input');
-    inputs.forEach(input => {
-      input.addEventListener('focus', function() {
-        this.parentElement.parentElement.style.transform = 'scale(1.02)';
-      });
-      input.addEventListener('blur', function() {
-        this.parentElement.parentElement.style.transform = 'scale(1)';
-      });
+    // --- Loading UI au submit (Django gère le POST/redirect) ---
+    const loginForm = document.getElementById('loginForm');
+    const submitBtn = document.getElementById('submitBtn');
+
+    loginForm.addEventListener('submit', () => {
+      submitBtn.classList.add('loading');
+      const label = submitBtn.querySelector('span:last-child');
+      if (label) label.textContent = 'Vérification...';
+    });
+
+    // --- Effet Parallaxe Doux (sans casser le CSS initial) ---
+    document.addEventListener('mousemove', (e) => {
+      const moveX = (e.clientX - window.innerWidth / 2) * 0.01;
+      const moveY = (e.clientY - window.innerHeight / 2) * 0.01;
+      document.getElementById('loginContainer').style.transform = `translate(${moveX}px, ${moveY}px)`;
     });
   </script>
 </body>
