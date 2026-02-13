@@ -109,3 +109,47 @@ def send_sms_via_twilio(to_phone: str, message: str) -> Tuple[bool, str, str]:
 
         print("TWILIO ERROR:", err)  # ✅ console
         return (False, "", err)
+
+import os
+import requests
+from typing import Tuple
+
+def send_sms_via_bulksms_ma(to_phone: str, message: str) -> Tuple[bool, str, str]:
+    """
+    Bulksms.ma HTTP API
+    Retour: (ok, provider_message_id, error_message)
+    """
+    token = os.getenv("BULKSMS_TOKEN", "").strip()
+    sender = os.getenv("BULKSMS_SENDER", "").strip()  # optionnel
+
+    if not token:
+        return (False, "", "BULKSMS_TOKEN manquant dans .env")
+
+    url = "https://bulksms.ma/developer/sms/send"  # endpoint doc Bulksms :contentReference[oaicite:4]{index=4}
+
+    data = {
+        "token": token,
+        "tel": to_phone,         # ex: +2126... ou 06... (toi tu normalises déjà)
+        "message": message,
+    }
+
+    # shortcode = expéditeur (si autorisé)
+    if sender:
+        data["shortcode"] = sender
+
+    try:
+        r = requests.post(url, data=data, timeout=20)
+        # Bulksms retourne généralement un JSON {success:1,...} ou {error:"..."} :contentReference[oaicite:5]{index=5}
+        try:
+            j = r.json()
+        except Exception:
+            return (False, "", f"Réponse non-JSON (HTTP {r.status_code}): {r.text[:250]}")
+
+        if "success" in j and str(j.get("success")) in ("1", "true", "True"):
+            # parfois ils renvoient un id/message; on met tout le JSON en provider_id si pas mieux
+            provider_id = str(j.get("id") or j.get("message_id") or j)
+            return (True, provider_id, "")
+
+        return (False, "", str(j.get("error") or j))
+    except Exception as e:
+        return (False, "", str(e))

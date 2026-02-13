@@ -26,9 +26,7 @@
   </div>
 
   <div class="az-page-head-right">
-    <a class="az-btn az-btn-outline" href="#" onclick="window.print();return false;">
-      <i class="fa-solid fa-print"></i> Imprimer
-    </a>
+
 
     <a class="az-btn az-btn-primary" href="{% url 'core:eleve_create' %}">
       <i class="fa-solid fa-plus"></i> Ajouter élève
@@ -87,18 +85,6 @@
     </div>
 
     <div class="az-field">
-      <div class="az-field-label">Période</div>
-      <select id="id_periode" name="periode" class="az-select">
-        <option value="">Toutes</option>
-        {% for p in periodes %}
-          <option value="{{ p.id }}" {% if p.id|stringformat:"s" == periode_selected %}selected{% endif %}>
-            {{ p.nom }}
-          </option>
-        {% endfor %}
-      </select>
-    </div>
-
-    <div class="az-field">
       <div class="az-field-label">Statut</div>
       <select name="statut" class="az-select">
         <option value="" {% if not statut %}selected{% endif %}>Tous</option>
@@ -130,10 +116,11 @@
         <i class="fa-solid fa-file-pdf"></i> PDF
       </a>
 
-      <a class="az-btn az-btn-outline"
-        href="{% url 'core:eleves_excel_export' %}?q={{ q }}&statut={{ statut }}&insc={{ insc }}&annee={{ annee_selected }}&niveau={{ niveau_selected }}&groupe={{ groupe_selected }}&periode={{ periode_selected }}">
-        <i class="fa-solid fa-file-excel"></i> Excel
-      </a>
+    <a class="az-btn az-btn-outline"
+      href="{% url 'core:eleves_excel_export' %}?q={{ q }}&statut={{ statut }}&insc={{ insc }}&annee={{ annee_selected }}&niveau={{ niveau_selected }}&groupe={{ groupe_selected }}&periode={{ periode_selected }}">
+      <i class="fa-solid fa-file-excel"></i> Excel
+    </a>
+
 
       <a class="az-btn az-btn-primary" href="{% url 'core:eleves_excel_import' %}">
         <i class="fa-solid fa-upload"></i> Import Excel

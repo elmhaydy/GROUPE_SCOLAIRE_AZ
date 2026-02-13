@@ -97,17 +97,6 @@
       <i class="fa-solid fa-rotate-right"></i> Reset
     </a>
 
-    <div class="az-export">
-      <a class="az-btn az-btn-outline"
-         href="{% url 'core:parents_excel_export' %}?annee={{ annee_selected }}&niveau={{ niveau_selected }}&groupe={{ groupe_selected }}&q={{ q|urlencode }}&statut={{ statut }}">
-        <i class="fa-solid fa-file-excel"></i> Excel
-      </a>
-
-      <a class="az-btn az-btn-primary" href="{% url 'core:parents_excel_import' %}">
-        <i class="fa-solid fa-upload"></i> Import Excel
-      </a>
-    </div>
-
   </form>
 </div>
 

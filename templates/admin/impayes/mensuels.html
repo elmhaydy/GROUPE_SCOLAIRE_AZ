@@ -52,14 +52,13 @@
   </div>
 
   <div class="az-page-head-right">
-    <a class="az-btn az-btn-outline" href="#" onclick="window.print();return false;">
-      <i class="fa-solid fa-print"></i> Imprimer
-    </a>
+
 
     <a class="az-btn az-btn-outline"
-       href="{% url 'core:impayes_mensuels_excel_export' %}?annee={{ annee_selected }}&type={{ type_selected }}&mois={{ mois_selected }}&niveau={{ niveau_selected }}&groupe={{ groupe_selected }}&periode={{ periode_selected }}&q={{ q|urlencode }}">
+      href="{% url 'core:impayes_mensuels_excel_export' %}?annee={{ annee_selected }}&type={{ type_selected }}&mois={{ mois_selected }}&niveau={{ niveau_selected }}&groupe={{ groupe_selected }}&periode={{ periode_selected }}&q={{ q|urlencode }}">
       <i class="fa-solid fa-file-excel"></i> Excel
     </a>
+
   </div>
 </div>
 

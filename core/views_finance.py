@@ -16,7 +16,8 @@ from django.db.models import (
 from django.db.models.functions import Coalesce
 from django.http import JsonResponse, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
-
+from django.db import transaction
+from django.db.models import Max
 from accounts.permissions import group_required
 from core.services.parents import get_primary_parent_for_eleve
 
@@ -30,7 +31,6 @@ from core.models import (
     TransactionFinance, TransactionLigne,
     RemboursementFinance,
 )
-
 
 # =========================================================
 # Helpers
@@ -55,6 +55,13 @@ def _D(x, default=Decimal("0.00")) -> Decimal:
         return Decimal(s)
     except (InvalidOperation, ValueError):
         return default
+
+def assign_receipt_seq_for_batch(batch_token: str) -> int:
+    with transaction.atomic():
+        last = TransactionFinance.objects.aggregate(m=Max("receipt_seq"))["m"] or 0
+        seq = int(last) + 1
+        TransactionFinance.objects.filter(batch_token=batch_token, receipt_seq__isnull=True).update(receipt_seq=seq)
+        return seq
 
 
 def _has_field(model, field_name: str) -> bool:
@@ -783,6 +790,7 @@ def transaction_create(request):
 
     tx.montant_total = total
     tx.save(update_fields=["montant_total"])
+    assign_receipt_seq_for_batch(batch_token)
 
     messages.success(request, "Transaction enregistrée ✅")
     return redirect("core:transaction_success", tx_id=tx.id)
@@ -882,6 +890,9 @@ def _transaction_create_batch(request, batch_raw: str):
 
         tx.montant_total = total
         tx.save(update_fields=["montant_total"])
+        
+        assign_receipt_seq_for_batch(batch_token)
+
         messages.success(request, "Paiement enregistré ✅")
         return redirect("core:transaction_success", tx_id=tx.id)
 
@@ -933,8 +944,10 @@ def _transaction_create_batch(request, batch_raw: str):
     if not created_ids:
         messages.error(request, "Aucune transaction créée.")
         return redirect("core:transaction_wizard")
+    assign_receipt_seq_for_batch(batch_token)
 
     messages.success(request, "Paiement fratrie enregistré ✅ (reçu unique)")
+    
     return redirect("core:transaction_batch_success", batch_token=batch_token)
 
 

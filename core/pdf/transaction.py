@@ -262,9 +262,69 @@ def _mode_value(tx):
     return str(getattr(tx, "mode", None) or "—")
 
 
-def _reference_value(tx):
+def _paiement_ref_value(tx):
+    """
+    Référence de paiement (banque/espèce/chèque/etc).
+    Exemple chez toi: 4321
+    """
     return str(getattr(tx, "reference", "") or "—")
 
+
+def _recu_seq_value(tx, txs=None):
+    """
+    ✅ Numéro de reçu INCRÉMENTAL PAR REÇU
+    - On utilise receipt_seq (doit être stocké en DB)
+    - Pour batch : toutes les tx du batch doivent avoir le même receipt_seq
+    """
+    # 1) champ direct sur tx
+    seq = getattr(tx, "receipt_seq", None)
+    if seq:
+        try:
+            return int(seq)
+        except Exception:
+            pass
+
+    # 2) si batch : chercher sur la 1ère tx qui a receipt_seq
+    if txs:
+        for t in txs:
+            s = getattr(t, "receipt_seq", None)
+            if s:
+                try:
+                    return int(s)
+                except Exception:
+                    continue
+
+    return None
+
+
+def _recu_value(tx, batch_token: str = "", txs=None):
+    """
+    ✅ Référence REÇU (badge violet) : AZ-PAY-YYYY-0001
+    Basée sur receipt_seq => 1 numéro pour tout le batch.
+    """
+    # priorité: champ reçu custom si tu en as un (optionnel)
+    for attr in ("numero_recu", "recu_numero", "receipt_no", "receipt_number", "code_recu"):
+        v = getattr(tx, attr, None)
+        if v:
+            return str(v)
+
+    # année (on garde année civile du paiement)
+    try:
+        year = (getattr(tx, "date_transaction", None) or datetime.now()).year
+    except Exception:
+        year = datetime.now().year
+
+    # ✅ receipt_seq (le vrai incrément “par reçu”)
+    seq = _recu_seq_value(tx, txs=txs)
+    if seq is not None:
+        return f"AZ-PAY-{year}-{seq:04d}"  # 0001..9999 (change 04d si tu veux 06d)
+
+    # fallback si receipt_seq pas encore défini (évite uuid)
+    # => on met un code lisible temporaire
+    bt = batch_token or str(getattr(tx, "batch_token", "") or "")
+    if bt:
+        return f"AZ-PAY-{year}-TEMP"
+    return f"AZ-PAY-{year}-TEMP"
 
 def _login_pwd_from_inscription(insc):
     eleve = insc.eleve
@@ -313,9 +373,8 @@ def build_transaction_batch_pdf_bytes(transactions, batch_token: str) -> bytes:
     now = datetime.now()
     date_txt = now.strftime("%Y-%m-%d %H:%M")
 
-    # Batch: si toutes les tx ont une reference -> affiche un intervalle
-    refs = [(_reference_value(tx)) for tx in transactions if _reference_value(tx) != "—"]
-    code = refs[0] if refs else "AZ-PAY-—"
+    # ✅ Reçu batch = basé sur batch_token (PAS la référence de paiement)
+    code = _recu_value(transactions[0], batch_token=batch_token, txs=transactions) if transactions else "AZ-PAY-—"
 
 
     total_global = sum((_D(getattr(tx, "montant_total", None)) for tx in transactions), Decimal("0.00"))
@@ -325,14 +384,38 @@ def build_transaction_batch_pdf_bytes(transactions, batch_token: str) -> bytes:
 
     def _months_for_tx(tx):
         months = []
+        has_inscription = False
+
         for ln in tx.lignes.all():
             e1 = getattr(ln, "echeance", None)
             e2 = getattr(ln, "echeance_transport", None)
+
             if e1 and getattr(e1, "mois_nom", None):
                 months.append(e1.mois_nom)
+                continue
+
             if e2 and getattr(e2, "mois_nom", None):
                 months.append(e2.mois_nom)
-        return _months_compact(months) or "—"
+                continue
+
+            # ✅ ligne sans échéance => Inscription (ou pack autre)
+            has_inscription = True
+
+        # unique + stable
+        out = []
+        seen = set()
+        for m in months:
+            if m and m not in seen:
+                seen.add(m)
+                out.append(m)
+
+        # ✅ si inscription incluse
+        if has_inscription:
+            out.insert(0, "Inscription")
+
+        return _months_compact(out) or ("Inscription" if has_inscription else "—")
+
+
 
     def _student_label(tx):
         insc = tx.inscription
@@ -572,14 +655,14 @@ def build_transaction_pdf_bytes(tx) -> bytes:
 
     created = getattr(tx, "created_at", None) or getattr(tx, "date_transaction", None) or datetime.now()
     date_txt = created.strftime("%Y-%m-%d %H:%M")
-    code = _reference_value(tx)  # ex: AZ-PAY-2026-1
+    code = _recu_value(tx)
 
 
     type_label = getattr(tx, "get_type_transaction_display", None)
     type_value = type_label() if callable(type_label) else (getattr(tx, "type_transaction", None) or "—")
 
     mode_value = _mode_value(tx)
-    reference = _reference_value(tx)
+    reference = _paiement_ref_value(tx)
     total = _D(getattr(tx, "montant_total", None))
 
     portal_url = "https://groupescolaireaz.cloud/"

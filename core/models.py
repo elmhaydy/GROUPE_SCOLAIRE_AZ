@@ -498,7 +498,6 @@ class Paiement(models.Model):
 
     MODE_CHOICES = [
         ("ESPECES", "Espèces"),
-        ("CARTE", "Carte"),
         ("VIREMENT", "Virement"),
         ("CHEQUE", "Chèque"),
     ]
@@ -1553,6 +1552,7 @@ class TransactionFinance(AuditBase):
     )
     inscription = models.ForeignKey("Inscription", on_delete=models.PROTECT, related_name="transactions")
     date_transaction = models.DateTimeField(auto_now_add=True)
+    receipt_seq = models.PositiveIntegerField(null=True, blank=True, db_index=True)
 
     TYPE_CHOICES = [
         ("INSCRIPTION", "Inscription"),
@@ -1566,7 +1566,6 @@ class TransactionFinance(AuditBase):
 
     MODE_CHOICES = [
         ("ESPECES", "Espèces"),
-        ("CARTE", "Carte"),
         ("VIREMENT", "Virement"),
         ("CHEQUE", "Chèque"),
     ]
@@ -1764,7 +1763,6 @@ class RemboursementFinance(models.Model):
 
     MODE_CHOICES = [
         ("ESPECES", "Espèces"),
-        ("CARTE", "Carte"),
         ("VIREMENT", "Virement"),
         ("CHEQUE", "Chèque"),
     ]

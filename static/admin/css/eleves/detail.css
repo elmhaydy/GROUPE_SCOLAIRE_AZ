@@ -875,3 +875,123 @@ html[data-theme="dark"] .az-toast{
   transform: translateX(2px);
   opacity: 1;
 }
+/* ============================
+   AZ • Parents list (Eleve detail)
+   Fix visibilité téléphone + hover + dark/light
+   ============================ */
+
+.az-parents-list{
+  display: grid;
+  gap: 10px;
+}
+
+/* Toute la carte cliquable */
+.az-parent-item.az-parent-link{
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  text-decoration: none;
+  border: 1px solid rgba(148, 163, 184, .25);
+  background: rgba(255, 255, 255, .65);
+  transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease, background .15s ease;
+}
+
+html[data-theme="dark"] .az-parent-item.az-parent-link{
+  background: rgba(15, 23, 42, .55);
+  border-color: rgba(148, 163, 184, .18);
+}
+
+.az-parent-item.az-parent-link:hover{
+  transform: translateY(-1px);
+  border-color: rgba(114, 9, 183, .35);
+  box-shadow: 0 10px 24px rgba(2, 6, 23, .10);
+}
+
+html[data-theme="dark"] .az-parent-item.az-parent-link:hover{
+  box-shadow: 0 10px 26px rgba(0, 0, 0, .35);
+}
+
+/* Icon à gauche */
+.az-parent-icon{
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: rgba(67, 97, 238, .10);
+  color: #4361ee;
+  flex: 0 0 42px;
+}
+
+html[data-theme="dark"] .az-parent-icon{
+  background: rgba(67, 97, 238, .16);
+}
+
+/* Bloc texte */
+.az-parent-details{
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  flex: 1;
+}
+
+/* Nom */
+.az-parent-details .parent-name{
+  font-weight: 700;
+  font-size: 14px;
+  line-height: 1.2;
+  color: #0f172a;
+}
+
+html[data-theme="dark"] .az-parent-details .parent-name{
+  color: #e5e7eb;
+}
+
+/* ✅ Téléphone (le plus important) */
+.az-parent-details .parent-phone{
+  font-size: 12.5px;
+  line-height: 1.2;
+  font-weight: 600;
+  color: #334155;            /* visible en light */
+  opacity: 1;                /* IMPORTANT : on force */
+}
+
+html[data-theme="dark"] .az-parent-details .parent-phone{
+  color: #cbd5e1;            /* visible en dark */
+  opacity: 1;                /* IMPORTANT : on force */
+}
+
+/* Relation (Père/Mère/Tuteur) */
+.az-parent-details .parent-relation{
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 600;
+}
+
+html[data-theme="dark"] .az-parent-details .parent-relation{
+  color: #94a3b8;
+}
+
+/* Chevron */
+.az-parent-chev{
+  opacity: .8;
+  color: #64748b;
+  flex: 0 0 auto;
+}
+
+html[data-theme="dark"] .az-parent-chev{
+  color: #94a3b8;
+}
+
+/* Focus clavier */
+.az-parent-item.az-parent-link:focus{
+  outline: none;
+}
+
+.az-parent-item.az-parent-link:focus-visible{
+  box-shadow: 0 0 0 4px rgba(114, 9, 183, .22);
+  border-color: rgba(114, 9, 183, .45);
+}

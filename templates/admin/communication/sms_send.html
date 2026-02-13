@@ -6,10 +6,12 @@
 {% block current_page %}Communication / SMS / Envoi{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'admin/css/sms/send.css' %}?v=1">
+<link rel="stylesheet" href="{% static 'admin/css/sms/send.css' %}?v=2">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css">
 {% endblock %}
 
 {% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
 <script>
   window.AZ_SMS = {
     urlNiveaux: "{% url 'core:ajax_niveaux' %}",
@@ -17,8 +19,9 @@
     urlEleves: "{% url 'core:ajax_eleves_par_groupe' %}"
   };
 </script>
-<script src="{% static 'admin/js/sms/send.js' %}?v=1" defer></script>
+<script src="{% static 'admin/js/sms/send.js' %}?v=3" defer></script>
 {% endblock %}
+
 
 {% block content %}
 

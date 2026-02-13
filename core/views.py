@@ -59,7 +59,7 @@ import csv
 from django.contrib.auth import get_user_model
 from .models import Avis, SmsHistorique, Parent, ParentEleve, Eleve, Groupe, Niveau, Degre
 from .forms_communication import AvisForm, SmsSendForm
-from .services.sms_provider import normalize_phone, send_sms_via_twilio
+from .services.sms_provider import normalize_phone, send_sms_via_bulksms_ma
 import calendar
 from datetime import date as date_cls
 from datetime import date
@@ -78,6 +78,7 @@ from core.models import Niveau, Groupe, Inscription, FraisNiveau, TransactionFin
 # ⚠️ adapte ces imports si tes noms diffèrent
 from core.models import TransactionLigne, RemboursementFinance, RemboursementFinanceLigne
 
+from openpyxl.styles import Font, Alignment, PatternFill
 
 from core.models import (
     AnneeScolaire, Eleve, Groupe, Paiement, Inscription, Absence
@@ -167,6 +168,13 @@ from django.db import models
 from core.services.notes_stats import moyenne_classe
 
 from core.models import Depense
+from decimal import Decimal
+from django.http import HttpResponse
+from django.utils import timezone
+from django.db.models import Q
+from openpyxl import Workbook
+from openpyxl.styles import Font, Alignment
+from openpyxl.utils import get_column_letter
 
 def _as_datetime_safe(value):
     """
@@ -1543,9 +1551,6 @@ def niveau_prix_edit(request, niveau_id):
         "frais_niveau": frais_niveau,
     })
 
-
-# ... tes imports existants ...
-
 @login_required
 @permission_required("core.view_niveau", raise_exception=True)
 def niveau_list(request):
@@ -1607,7 +1612,6 @@ def niveau_list(request):
         "rows": rows,
     })
 
-
 @login_required
 @permission_required("core.add_niveau", raise_exception=True)
 def niveau_create(request):
@@ -1621,7 +1625,6 @@ def niveau_create(request):
         form = NiveauForm()
 
     return render(request, "admin/niveaux/form.html", {"form": form, "mode": "create"})
-
 
 @login_required
 @permission_required("core.change_niveau", raise_exception=True)
@@ -1637,7 +1640,6 @@ def niveau_update(request, pk):
         form = NiveauForm(instance=niveau)
 
     return render(request, "admin/niveaux/form.html", {"form": form, "mode": "update", "niveau": niveau})
-
 
 @login_required
 @permission_required("core.delete_niveau", raise_exception=True)
@@ -1937,6 +1939,332 @@ def eleve_list(request):
         "periode_selected": periode_id,
     })
 
+@login_required
+@permission_required("core.view_eleve", raise_exception=True)
+def eleves_pdf_view(request):
+    # =========================
+    # GET params (mêmes que la page)
+    # =========================
+    q = (request.GET.get("q") or "").strip()
+    statut = (request.GET.get("statut") or "").strip()
+
+    # "", "inscrits", "non_inscrits"
+    insc = (request.GET.get("insc") or "").strip()
+
+    annee_active = AnneeScolaire.objects.filter(is_active=True).first()
+    annee_id = (request.GET.get("annee") or "").strip()
+    niveau_id = (request.GET.get("niveau") or "").strip()
+    groupe_id = (request.GET.get("groupe") or "").strip()
+    periode_id = (request.GET.get("periode") or "").strip()
+
+    # ✅ année par défaut = active (comme page)
+    if not annee_id and annee_active:
+        annee_id = str(annee_active.id)
+
+    # =========================
+    # Base queryset élèves (comme page)
+    # =========================
+    if statut == "inactifs":
+        statut = "inactifs"
+        eleves = Eleve.objects.filter(is_active=False)
+    else:
+        statut = "actifs"
+        eleves = Eleve.objects.filter(is_active=True)
+
+    if q:
+        eleves = eleves.filter(
+            Q(matricule__icontains=q) |
+            Q(nom__icontains=q) |
+            Q(prenom__icontains=q) |
+            Q(telephone__icontains=q)
+        )
+
+    # ===============================
+    # LOGIQUE "INSCRIPTION" (IDENTIQUE À eleve_list)
+    # ===============================
+    if annee_id:
+        insc_year = Inscription.objects.filter(eleve_id=OuterRef("pk"), annee_id=annee_id)
+        insc_year_validee = Inscription.objects.filter(
+            eleve_id=OuterRef("pk"),
+            annee_id=annee_id,
+            statut="VALIDEE",
+        )
+        insc_year_en_cours = Inscription.objects.filter(
+            eleve_id=OuterRef("pk"),
+            annee_id=annee_id,
+            statut="EN_COURS",
+        )
+
+        eleves = eleves.annotate(
+            has_insc_year=Exists(insc_year),
+            has_insc_validee=Exists(insc_year_validee),
+            has_insc_en_cours=Exists(insc_year_en_cours),
+        )
+
+        # 🔹 cas 1: inscrits = validée
+        if insc == "inscrits":
+            eleves = eleves.filter(has_insc_validee=True)
+
+        # 🔹 cas 2: non_inscrits = (aucune inscription) OU (inscription EN_COURS)
+        elif insc == "non_inscrits":
+            eleves = eleves.filter(Q(has_insc_year=False) | Q(has_insc_en_cours=True))
+
+        # 🔹 défaut = élèves ayant une inscription sur l'année
+        else:
+            eleves = eleves.filter(has_insc_year=True)
+
+        # ✅ filtres niveau/groupe/période via inscriptions
+        if niveau_id:
+            eleves = eleves.filter(inscriptions__annee_id=annee_id, inscriptions__groupe__niveau_id=niveau_id)
+        if groupe_id:
+            eleves = eleves.filter(inscriptions__annee_id=annee_id, inscriptions__groupe_id=groupe_id)
+        if periode_id:
+            eleves = eleves.filter(inscriptions__annee_id=annee_id, inscriptions__periode_id=periode_id)
+
+    eleves = eleves.distinct().order_by("nom", "prenom")
+
+    title = (
+        f"Filtres: q={q or '—'} / statut={statut or '—'} / insc={insc or '—'} "
+        f"/ annee={annee_id or '—'} / niveau={niveau_id or '—'} / groupe={groupe_id or '—'} / periode={periode_id or '—'}"
+    )
+
+    return pdf_utils.eleves_list_pdf(title, eleves)
+
+@login_required
+@permission_required("core.view_eleve", raise_exception=True)
+def eleves_excel_export(request):
+    # =========================
+    # GET params (mêmes que la page)
+    # =========================
+    q = (request.GET.get("q") or "").strip()
+    statut = (request.GET.get("statut") or "").strip()
+
+    # "", "inscrits", "non_inscrits"
+    insc = (request.GET.get("insc") or "").strip()
+
+    annee_active = AnneeScolaire.objects.filter(is_active=True).first()
+    annee_id = (request.GET.get("annee") or "").strip()
+    niveau_id = (request.GET.get("niveau") or "").strip()
+    groupe_id = (request.GET.get("groupe") or "").strip()
+    periode_id = (request.GET.get("periode") or "").strip()
+
+    # ✅ année par défaut = active (comme page)
+    if not annee_id and annee_active:
+        annee_id = str(annee_active.id)
+
+    # =========================
+    # Base queryset élèves (comme page)
+    # =========================
+    if statut == "inactifs":
+        eleves = Eleve.objects.filter(is_active=False)
+    else:
+        statut = "actifs"
+        eleves = Eleve.objects.filter(is_active=True)
+
+    if q:
+        eleves = eleves.filter(
+            Q(matricule__icontains=q) |
+            Q(nom__icontains=q) |
+            Q(prenom__icontains=q) |
+            Q(telephone__icontains=q)
+        )
+
+    # ===============================
+    # LOGIQUE "INSCRIPTION" (IDENTIQUE À eleve_list)
+    # ===============================
+    if annee_id:
+        insc_year = Inscription.objects.filter(eleve_id=OuterRef("pk"), annee_id=annee_id)
+        insc_year_validee = Inscription.objects.filter(
+            eleve_id=OuterRef("pk"),
+            annee_id=annee_id,
+            statut="VALIDEE",
+        )
+        insc_year_en_cours = Inscription.objects.filter(
+            eleve_id=OuterRef("pk"),
+            annee_id=annee_id,
+            statut="EN_COURS",
+        )
+
+        eleves = eleves.annotate(
+            has_insc_year=Exists(insc_year),
+            has_insc_validee=Exists(insc_year_validee),
+            has_insc_en_cours=Exists(insc_year_en_cours),
+        )
+
+        if insc == "inscrits":
+            eleves = eleves.filter(has_insc_validee=True)
+        elif insc == "non_inscrits":
+            eleves = eleves.filter(Q(has_insc_year=False) | Q(has_insc_en_cours=True))
+        else:
+            eleves = eleves.filter(has_insc_year=True)
+
+        if niveau_id:
+            eleves = eleves.filter(inscriptions__annee_id=annee_id, inscriptions__groupe__niveau_id=niveau_id)
+        if groupe_id:
+            eleves = eleves.filter(inscriptions__annee_id=annee_id, inscriptions__groupe_id=groupe_id)
+        if periode_id:
+            eleves = eleves.filter(inscriptions__annee_id=annee_id, inscriptions__periode_id=periode_id)
+
+    eleves = eleves.distinct().order_by("nom", "prenom")
+
+    # =========================
+    # Précharger les inscriptions utiles pour afficher "Groupe"
+    # On récupère toutes les inscriptions de l'année (pour les élèves exportés)
+    # =========================
+    eleve_ids = list(eleves.values_list("id", flat=True))
+    insc_qs = (
+        Inscription.objects
+        .select_related("groupe", "groupe__niveau")
+        .filter(eleve_id__in=eleve_ids)
+    )
+    if annee_id:
+        insc_qs = insc_qs.filter(annee_id=annee_id)
+
+    # Priorité: VALIDEE > EN_COURS > (reste)
+    # On trie pour que la 1ère inscription rencontrée soit la meilleure
+    statut_rank = {"VALIDEE": 0, "EN_COURS": 1}
+    insc_qs = insc_qs.order_by("eleve_id", "statut", "-id")
+
+    insc_by_eleve = {}
+    for insc_obj in insc_qs:
+        # on force la priorité manuellement (plus sûr)
+        eid = insc_obj.eleve_id
+        if eid not in insc_by_eleve:
+            insc_by_eleve[eid] = insc_obj
+        else:
+            cur = insc_by_eleve[eid]
+            cur_r = statut_rank.get(cur.statut, 9)
+            new_r = statut_rank.get(insc_obj.statut, 9)
+            if new_r < cur_r:
+                insc_by_eleve[eid] = insc_obj
+
+    # =========================
+    # Excel PRO
+    # =========================
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Eleves"
+
+    headers = ["#", "Nom", "Prenom", "Groupe", "Téléphone"]
+    ws.append(headers)
+
+    header_font = Font(bold=True)
+    for col in range(1, len(headers) + 1):
+        c = ws.cell(row=1, column=col)
+        c.font = header_font
+        c.alignment = Alignment(horizontal="center", vertical="center")
+
+    i = 0
+    for e in eleves:
+        i += 1
+        insc_obj = insc_by_eleve.get(e.id)
+
+        if insc_obj and insc_obj.groupe:
+            g_nom = insc_obj.groupe.nom or ""
+            niv_nom = insc_obj.groupe.niveau.nom if getattr(insc_obj.groupe, "niveau", None) else ""
+            groupe_str = f"{g_nom} ({niv_nom})" if niv_nom else g_nom
+        else:
+            groupe_str = ""
+
+        ws.append([
+            i,
+            e.nom or "",
+            e.prenom or "",
+            groupe_str,
+            e.telephone or "",
+        ])
+
+    ws.freeze_panes = "A2"
+    ws.auto_filter.ref = f"A1:{get_column_letter(len(headers))}1"
+
+    # largeur auto
+    for col_idx in range(1, len(headers) + 1):
+        letter = get_column_letter(col_idx)
+        max_len = 0
+        for cell in ws[letter]:
+            val = str(cell.value) if cell.value is not None else ""
+            max_len = max(max_len, len(val))
+        ws.column_dimensions[letter].width = min(max_len + 2, 42)
+
+    response = HttpResponse(
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+    response["Content-Disposition"] = 'attachment; filename="eleves_pro.xlsx"'
+    wb.save(response)
+    return response
+
+@login_required
+@permission_required("core.change_eleve", raise_exception=True)
+def eleves_excel_import(request):
+    """
+    Import Excel format:
+    matricule | nom | prenom | telephone | is_active(1/0)
+    """
+    errors = []
+    created = 0
+    updated = 0
+
+    if request.method == "POST":
+        f = request.FILES.get("file")
+        if not f:
+            messages.error(request, "⚠️ Aucun fichier uploadé.")
+            return redirect("core:eleve_list")
+
+        try:
+            wb = openpyxl.load_workbook(f)
+            ws = wb.active
+        except Exception:
+            messages.error(request, "⚠️ Fichier Excel invalide.")
+            return redirect("core:eleve_list")
+
+        # headers
+        headers = [str(c.value).strip().lower() if c.value else "" for c in ws[1]]
+        expected = ["matricule", "nom", "prenom", "telephone", "is_active"]
+        if headers[:5] != expected:
+            messages.error(request, f"⚠️ Colonnes attendues: {expected}")
+            return redirect("core:eleve_list")
+
+        for idx, row in enumerate(ws.iter_rows(min_row=2, values_only=True), start=2):
+            matricule, nom, prenom, telephone, is_active = row[:5]
+
+            if not matricule or not nom or not prenom:
+                errors.append(f"Ligne {idx}: matricule/nom/prenom obligatoire.")
+                continue
+
+            matricule = str(matricule).strip()
+            nom = str(nom).strip()
+            prenom = str(prenom).strip()
+            telephone = str(telephone).strip() if telephone else ""
+            is_active = str(is_active).strip() if is_active is not None else "1"
+            active_bool = True if is_active in ["1", "true", "True", "OUI", "oui", "YES", "yes"] else False
+
+            obj, created_flag = Eleve.objects.update_or_create(
+                matricule=matricule,
+                defaults={
+                    "nom": nom,
+                    "prenom": prenom,
+                    "telephone": telephone,
+                    "is_active": active_bool,
+                }
+            )
+
+            if created_flag:
+                created += 1
+            else:
+                updated += 1
+
+        if errors:
+            messages.warning(request, f"⚠️ Import terminé avec erreurs ({len(errors)}).")
+        messages.success(request, f"✅ Import terminé: {created} créés / {updated} mis à jour.")
+        # On affiche erreurs dans une page dédiée
+        return render(request, "admin/eleves/import_result.html", {
+            "errors": errors,
+            "created": created,
+            "updated": updated,
+        })
+
+    # GET -> page upload
+    return render(request, "admin/eleves/import.html")
 
 @login_required
 def eleve_detail(request, pk):
@@ -2019,7 +2347,6 @@ def eleve_detail(request, pk):
         "finance": finance,
     })
 
-
 @login_required
 @permission_required("core.add_eleve", raise_exception=True)
 def eleve_create(request):
@@ -2075,7 +2402,6 @@ def eleve_update(request, pk):
 
     return render(request, "admin/eleves/form.html", {"form": form, "mode": "update", "eleve": eleve})
 
-
 def _eleve_hard_delete(eleve: Eleve) -> None:
     """
     Supprime TOUT ce qui bloque (paiements, recouvrement, echeances, inscriptions, etc.)
@@ -2107,7 +2433,6 @@ def _eleve_hard_delete(eleve: Eleve) -> None:
 
     # 3) Delete final
     eleve.delete()
-
 
 @login_required
 @permission_required("core.delete_eleve", raise_exception=True)
@@ -2188,6 +2513,7 @@ def eleve_delete(request, pk):
         "nb_inscriptions": nb_inscriptions,
         "nb_paiements": nb_paiements,
     })
+
 
 # ============================
 # C3 — Inscriptions
@@ -2840,6 +3166,327 @@ def paiement_list(request):
 
         "groups": list(groups.values()),
     })
+
+
+
+@login_required
+@permission_required("core.view_paiement", raise_exception=True)
+def paiements_excel_export(request):
+    annee_active = AnneeScolaire.objects.filter(is_active=True).first()
+
+    # mêmes filtres que ta page
+    q = (request.GET.get("q") or "").strip()
+    mode = (request.GET.get("mode") or "").strip()
+    periode_id = (request.GET.get("periode") or "").strip()
+    annee_id = (request.GET.get("annee") or "").strip()
+    niveau_id = (request.GET.get("niveau") or "").strip()
+    groupe_id = (request.GET.get("groupe") or "").strip()
+    date_from = (request.GET.get("date_from") or "").strip()
+    date_to = (request.GET.get("date_to") or "").strip()
+
+    if not annee_id and annee_active:
+        annee_id = str(annee_active.id)
+
+    txs = (
+        TransactionFinance.objects
+        .select_related(
+            "parent",
+            "inscription",
+            "inscription__eleve",
+            "inscription__annee",
+            "inscription__groupe",
+            "inscription__groupe__niveau",
+            "inscription__groupe__niveau__degre",
+            "inscription__periode",
+        )
+        .prefetch_related("lignes", "lignes__echeance", "lignes__echeance_transport", "remboursements")
+        .annotate(
+            montant_rembourse=Coalesce(
+                Sum("remboursements__montant"),
+                Value(Decimal("0.00")),
+                output_field=DecimalField(max_digits=10, decimal_places=2),
+            ),
+        )
+    )
+
+    # filtres
+    if annee_id:
+        txs = txs.filter(inscription__annee_id=annee_id)
+    if niveau_id:
+        txs = txs.filter(inscription__groupe__niveau_id=niveau_id)
+    if groupe_id:
+        txs = txs.filter(inscription__groupe_id=groupe_id)
+    if periode_id:
+        txs = txs.filter(inscription__periode_id=periode_id)
+
+    d_from = parse_date(date_from) if date_from else None
+    d_to = parse_date(date_to) if date_to else None
+    if d_from:
+        txs = txs.filter(date_transaction__date__gte=d_from)
+    if d_to:
+        txs = txs.filter(date_transaction__date__lte=d_to)
+
+    if mode:
+        txs = txs.filter(mode=mode)
+
+    if q:
+        txs = txs.filter(
+            Q(inscription__eleve__matricule__icontains=q) |
+            Q(inscription__eleve__nom__icontains=q) |
+            Q(inscription__eleve__prenom__icontains=q) |
+            Q(inscription__eleve__telephone__icontains=q) |
+            Q(inscription__groupe__nom__icontains=q) |
+            Q(inscription__groupe__niveau__nom__icontains=q) |
+            Q(inscription__groupe__niveau__degre__nom__icontains=q)
+        )
+
+    txs = txs.order_by("-date_transaction", "-id")
+
+    # -------------------------
+    # helpers
+    # -------------------------
+    def _mode_label(tx):
+        fn = getattr(tx, "get_mode_display", None)
+        return str(fn() if callable(fn) else (getattr(tx, "mode", "") or "—"))
+
+    def _type_label(tx):
+        # si tu as get_type_transaction_display
+        fn = getattr(tx, "get_type_transaction_display", None)
+        if callable(fn):
+            return str(fn() or "—")
+        return str(getattr(tx, "type_transaction", None) or "—")
+
+    def _ref_paiement(tx):
+        # référence “4321” etc
+        return str(getattr(tx, "reference", "") or "—")
+
+    def _tel_parent(tx):
+        p = getattr(tx, "parent", None)
+        return (
+            getattr(p, "telephone", None)
+            or getattr(p, "phone", None)
+            or getattr(p, "tel", None)
+            or "—"
+        )
+
+    def _recu_label(tx):
+        # ✅ reçu = receipt_seq (identique dans un batch)
+        dt = getattr(tx, "date_transaction", None) or timezone.now()
+        year = int(dt.year)
+        seq = getattr(tx, "receipt_seq", None)
+        if seq:
+            return f"AZ-PAY-{year}-{int(seq):04d}"
+        return f"AZ-PAY-{year}-TEMP"
+
+    def _months_for_tx(tx):
+        months = []
+        has_inscription = False
+
+        lignes = tx.lignes.all().order_by("id")  # ordre stable
+
+        for ln in lignes:
+            e1 = getattr(ln, "echeance", None)
+            e2 = getattr(ln, "echeance_transport", None)
+
+            if e1 and getattr(e1, "mois_nom", None):
+                months.append(str(e1.mois_nom))
+                continue
+
+            if e2 and getattr(e2, "mois_nom", None):
+                months.append(str(e2.mois_nom))
+                continue
+
+            # ✅ ligne sans échéance => inscription/pack/autre
+            has_inscription = True
+
+        # unique + stable
+        out = []
+        seen = set()
+        for m in months:
+            if m and m not in seen:
+                seen.add(m)
+                out.append(m)
+
+        if has_inscription:
+            out.insert(0, "Inscription")
+
+        return ", ".join(out) if out else ("Inscription" if has_inscription else "—")
+
+    # -------------------------
+    # Excel
+    # -------------------------
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Paiements"
+
+    headers = [
+        "#",
+        "Type",
+        "Nom",
+        "Prenom",
+        "Niveau",
+
+        "Inscription (MAD)",
+        "Scolarité (mois)",
+        "Transport (mois)",
+
+        "Montant (MAD)",
+        "Mode",
+        "Réf Reçu",
+        "Réf Paiement",
+        "Tél Parent",
+    ]
+    ws.append(headers)
+
+    # style header
+    header_fill = PatternFill("solid", fgColor="EEF2FF")
+    header_font = Font(bold=True)
+    for col in range(1, len(headers) + 1):
+        cell = ws.cell(row=1, column=col)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = Alignment(horizontal="center", vertical="center")
+
+
+    def _split_for_tx(tx):
+        """
+        Retourne:
+        - insc_amount: Decimal (somme des lignes sans échéance)
+        - sco_months:  "Septembre, Octobre..."
+        - tr_months:   "Septembre, Octobre..."
+        """
+        insc_amount = Decimal("0.00")
+        sco = []
+        tr = []
+
+        lignes = tx.lignes.all().order_by("id")  # ordre stable
+
+        for ln in lignes:
+            e1 = getattr(ln, "echeance", None)
+            e2 = getattr(ln, "echeance_transport", None)
+
+            if e1 and getattr(e1, "mois_nom", None):
+                sco.append(str(e1.mois_nom))
+                continue
+
+            if e2 and getattr(e2, "mois_nom", None):
+                tr.append(str(e2.mois_nom))
+                continue
+
+            # ✅ pas d'échéance => inscription / pack / autre (sans mois)
+            try:
+                insc_amount += (getattr(ln, "montant", None) or Decimal("0.00"))
+            except Exception:
+                pass
+
+        # unique + stable
+        def _uniq(lst):
+            out, seen = [], set()
+            for m in lst:
+                if m and m not in seen:
+                    seen.add(m)
+                    out.append(m)
+            return out
+
+        sco = _uniq(sco)
+        tr = _uniq(tr)
+
+        return insc_amount, ", ".join(sco) if sco else "", ", ".join(tr) if tr else ""
+
+    from collections import defaultdict
+
+    totaux_mode = defaultdict(Decimal)
+    # rows
+    i = 0
+    for tx in txs:
+        eleve = tx.inscription.eleve
+        groupe = tx.inscription.groupe
+        niveau = getattr(groupe, "niveau", None)
+
+        nom = getattr(eleve, "nom", "") or ""
+        prenom = getattr(eleve, "prenom", "") or ""
+        niveau_nom = getattr(niveau, "nom", None) or "—"
+
+        brut = tx.montant_total or Decimal("0.00")
+        remb = getattr(tx, "montant_rembourse", None) or Decimal("0.00")
+        net = brut - remb
+        
+        mode_lbl = _mode_label(tx)  # "Espèces", "Chèque", "Virement", etc.
+        totaux_mode[mode_lbl] += (net or Decimal("0.00"))
+
+        insc_amount, sco_months, tr_months = _split_for_tx(tx)
+
+        i += 1
+        ws.append([
+            i,
+            _type_label(tx),
+            nom,
+            prenom,
+            niveau_nom,
+
+            float(insc_amount),
+            sco_months,
+            tr_months,
+
+            float(net),
+            _mode_label(tx),
+            _recu_label(tx),
+            _ref_paiement(tx),
+            _tel_parent(tx),
+        ])
+
+    # -------------------------
+    # Totaux par mode (en bas)
+    # -------------------------
+    ws.append([])  # ligne vide
+
+    title_row = ws.max_row + 1
+    ws.append(["", "", "", "", "TOTAUX PAR MODE", "", "", "", "", "", "", "", ""])
+
+    # style titre
+    for col in range(1, len(headers) + 1):
+        cell = ws.cell(row=title_row, column=col)
+        cell.font = Font(bold=True)
+        cell.fill = PatternFill("solid", fgColor="F8FAFC")
+
+    def _mode_total_row(label, amount):
+        r = ws.max_row + 1
+        ws.append(["", "", "", "", label, "", "", "", float(amount), "", "", "", ""])
+        ws.cell(row=r, column=5).font = Font(bold=True)
+        ws.cell(row=r, column=9).font = Font(bold=True)
+        ws.cell(row=r, column=9).alignment = Alignment(horizontal="right")
+
+    # ✅ Tes 3 totaux demandés (même si à 0)
+    total_especes = totaux_mode.get("Espèces", Decimal("0.00"))
+    total_cheque  = totaux_mode.get("Chèque",  Decimal("0.00"))
+    total_virement = totaux_mode.get("Virement", Decimal("0.00"))
+
+    _mode_total_row("Total Espèces", total_especes)
+    _mode_total_row("Total Chèque", total_cheque)
+    _mode_total_row("Total Virement", total_virement)
+
+    total_general = total_especes + total_cheque + total_virement
+    _mode_total_row("TOTAL GÉNÉRAL", total_general)
+
+    # auto width
+    for col_idx in range(1, len(headers) + 1):
+        col_letter = get_column_letter(col_idx)
+        max_len = 0
+        for cell in ws[col_letter]:
+            val = str(cell.value) if cell.value is not None else ""
+            max_len = max(max_len, len(val))
+        ws.column_dimensions[col_letter].width = min(max_len + 2, 55)
+
+    ws.freeze_panes = "A2"
+    ws.auto_filter.ref = f"A1:{get_column_letter(len(headers))}1"
+
+
+    response = HttpResponse(
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+    response["Content-Disposition"] = 'attachment; filename="paiements.xlsx"'
+    wb.save(response)
+    return response
 
 # =========================================================
 # DETAILS PAIEMENT PARENT (batch)
@@ -3546,7 +4193,13 @@ def impayes_mensuels_list(request):
 @permission_required("core.view_echeancemensuelle", raise_exception=True)
 def impayes_mensuels_excel_export(request):
     """
-    Export EXACT du même écran (NEW) : scolarité + transport + inscription
+    Export Excel PRO (1 ligne par élève) :
+    #, Nom, Prenom, Num Parent, Inscription, M1..M10, Prix total
+
+    ✅ Affiche UNIQUEMENT les impayés (cellules vides si 0)
+    ✅ Cache automatiquement les colonnes mois 100% vides
+    ✅ Filtres identiques à l'écran
+    ✅ Elèves actifs uniquement
     """
     annee_active = AnneeScolaire.objects.filter(is_active=True).first()
     if not annee_active:
@@ -3554,6 +4207,9 @@ def impayes_mensuels_excel_export(request):
 
     today = timezone.now().date()
 
+    # =========================
+    # Filters (comme page)
+    # =========================
     annee_id = (request.GET.get("annee") or "").strip() or str(annee_active.id)
     type_selected = (request.GET.get("type") or "ALL").strip().upper()
     mois_selected = (request.GET.get("mois") or "").strip()
@@ -3563,17 +4219,25 @@ def impayes_mensuels_excel_export(request):
     periode_id = (request.GET.get("periode") or "").strip()
 
     annee_obj = AnneeScolaire.objects.filter(id=annee_id).first() or annee_active
+
+    # mois courant (1..10)
     idx_courant = mois_index_courant(annee_obj, today)
+
+    # limite : mois courant par défaut, sinon mois choisi
     idx_limit = idx_courant
     if mois_selected and mois_selected.isdigit():
-        idx_limit = min(int(mois_selected), idx_courant)
+        idx_limit = int(mois_selected)
+    idx_limit = max(1, min(10, idx_limit))
 
-    # base inscriptions filtrées (comme page)
+    # =========================
+    # Inscriptions filtrées (base) + élèves actifs
+    # =========================
     inscs = (
         Inscription.objects
         .select_related("eleve", "annee", "groupe", "groupe__niveau", "groupe__niveau__degre", "periode")
-        .filter(annee_id=annee_obj.id)
+        .filter(annee_id=annee_obj.id, eleve__is_active=True)
     )
+
     if niveau_id:
         inscs = inscs.filter(groupe__niveau_id=niveau_id)
     if groupe_id:
@@ -3589,23 +4253,63 @@ def impayes_mensuels_excel_export(request):
             Q(groupe__niveau__nom__icontains=q)
         )
 
-    insc_by_eleve = {i.eleve_id: i for i in inscs}
-    eleve_ids = list(insc_by_eleve.keys())
+    eleve_ids = list(inscs.values_list("eleve_id", flat=True).distinct())
+    if not eleve_ids:
+        return HttpResponse("Aucune donnée à exporter (filtres vides).", status=200)
 
-    rows = []
+    # =========================
+    # Helper: numéro parent (1er parent lié)
+    # =========================
+    def get_parent_phone(eleve_id: int) -> str:
+        lien = (
+            ParentEleve.objects
+            .select_related("parent")
+            .filter(eleve_id=eleve_id)
+            .order_by("id")
+            .first()
+        )
+        if not lien or not lien.parent:
+            return ""
+        p = lien.parent
+        # fallback champs possibles
+        for attr in ("telephone", "tel", "phone", "gsm", "numero", "numero_tel"):
+            val = getattr(p, attr, None)
+            if val:
+                return str(val)
+        return ""
 
-    # scolarité
-    if type_selected in ["ALL", "SCOLARITE"]:
+    # =========================
+    # AGRÉGATION PRO (1 ligne / élève)
+    # =========================
+    agg = {}
+
+    def ensure_bucket(eleve):
+        if eleve.id not in agg:
+            agg[eleve.id] = {
+                "eleve": eleve,
+                "parent_phone": get_parent_phone(eleve.id),
+                "inscription": Decimal("0.00"),
+                "mois": {i: Decimal("0.00") for i in range(1, 11)},
+                "total": Decimal("0.00"),
+            }
+        return agg[eleve.id]
+
+    # =========================
+    # SCOLARITE (reste par mois)
+    # =========================
+    if type_selected in ("ALL", "SCOLARITE"):
         sco_qs = (
-    EcheanceMensuelle.objects
-    .select_related("eleve", "groupe", "annee")
-    .filter(
-        annee_id=annee_obj.id,
-        eleve_id__in=eleve_ids,
-        mois_index__lte=idx_limit,
-    )
-    .order_by("eleve__matricule", "mois_index")
-)
+            EcheanceMensuelle.objects
+            .select_related("eleve")
+            .filter(
+                annee_id=annee_obj.id,
+                eleve_id__in=eleve_ids,
+                eleve__is_active=True,
+                mois_index__lte=idx_limit,
+            )
+            .order_by("eleve__matricule", "mois_index")
+        )
+
         for e in sco_qs:
             du = e.montant_du or Decimal("0.00")
             paye = e.montant_paye or Decimal("0.00")
@@ -3613,21 +4317,23 @@ def impayes_mensuels_excel_export(request):
             if reste <= 0:
                 continue
 
-            eleve = e.eleve
-            insc = insc_by_eleve.get(e.eleve_id)
-            g = insc.groupe if insc else None
-            rows.append(("SCOLARITE", eleve, g, mois_nom(int(e.mois_index)), e.date_echeance, du, paye, reste))
+            b = ensure_bucket(e.eleve)
+            mi = int(e.mois_index)
+            if 1 <= mi <= 10:
+                b["mois"][mi] += reste
+                b["total"] += reste
 
-
-    # transport
-
-    if type_selected in ["ALL", "TRANSPORT"]:
+    # =========================
+    # TRANSPORT (reste par mois)
+    # =========================
+    if type_selected in ("ALL", "TRANSPORT"):
         tr_qs = (
             EcheanceTransportMensuelle.objects
-            .select_related("eleve", "groupe", "annee")
+            .select_related("eleve")
             .filter(
                 annee_id=annee_obj.id,
                 eleve_id__in=eleve_ids,
+                eleve__is_active=True,
                 mois_index__lte=idx_limit,
             )
             .order_by("eleve__matricule", "mois_index")
@@ -3640,46 +4346,118 @@ def impayes_mensuels_excel_export(request):
             if reste <= 0:
                 continue
 
-            eleve = e.eleve
-            insc = insc_by_eleve.get(e.eleve_id)
-            g = insc.groupe if insc else None
+            b = ensure_bucket(e.eleve)
+            mi = int(e.mois_index)
+            if 1 <= mi <= 10:
+                b["mois"][mi] += reste
+                b["total"] += reste
 
-            rows.append(("TRANSPORT", eleve, g, mois_nom(int(e.mois_index)), e.date_echeance, du, paye, reste))
-
-
-    # inscription
-    if type_selected in ["ALL", "INSCRIPTION"]:
-        for insc in inscs:
+    # =========================
+    # INSCRIPTION (reste global)
+    # =========================
+    if type_selected in ("ALL", "INSCRIPTION"):
+        # ici inscs est déjà filtré sur élèves actifs + filtres page
+        for insc in inscs.select_related("eleve"):
             du = insc.frais_inscription_du or Decimal("0.00")
             paye = insc.frais_inscription_paye or Decimal("0.00")
             reste = max(du - paye, Decimal("0.00"))
             if reste <= 0:
                 continue
-            rows.append(("INSCRIPTION", insc.eleve, insc.groupe, "Inscription", insc.date_inscription, du, paye, reste))
 
-    # build excel
+            b = ensure_bucket(insc.eleve)
+            b["inscription"] += reste
+            b["total"] += reste
+
+    # =========================
+    # Excel PRO
+    # =========================
     wb = Workbook()
     ws = wb.active
-    ws.title = "Impayes"
+    ws.title = "Impayes (PRO)"
 
-    ws.append(["Type", "Matricule", "Nom", "Prenom", "Groupe", "Mois", "Date", "Du", "Paye", "Reste"])
+    headers = (
+        ["#", "Nom", "Prenom", "Num Parent", "Inscription"]
+        + [f"M{i} ({mois_nom(i)})" for i in range(1, 11)]
+        + ["Prix total"]
+    )
+    ws.append(headers)
 
-    for t, eleve, groupe, mois_nom_str, dte, du, paye, reste in rows:
-        ws.append([
-            t,
-            getattr(eleve, "matricule", "") if eleve else "",
-            getattr(eleve, "nom", "") if eleve else "",
-            getattr(eleve, "prenom", "") if eleve else "",
-            (groupe.nom if groupe else ""),
-            mois_nom_str,
-            str(dte),
-            float(du),
-            float(paye),
-            float(reste),
-        ])
+    # Style header
+    header_font = Font(bold=True)
+    for col in range(1, len(headers) + 1):
+        c = ws.cell(row=1, column=col)
+        c.font = header_font
+        c.alignment = Alignment(horizontal="center", vertical="center")
 
-    resp = HttpResponse(content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-    resp["Content-Disposition"] = 'attachment; filename="impayes.xlsx"'
+    def to_cell(v: Decimal):
+        v = v or Decimal("0.00")
+        return "" if v == Decimal("0.00") else float(v)
+
+    # tri nom/prenom
+    items = list(agg.items())
+    items.sort(key=lambda kv: (
+        (getattr(kv[1]["eleve"], "nom", "") or "").lower(),
+        (getattr(kv[1]["eleve"], "prenom", "") or "").lower(),
+    ))
+
+    i = 0
+    for _eid, data in items:
+        if (data["total"] or Decimal("0.00")) <= 0:
+            continue
+
+        i += 1
+        eleve = data["eleve"]
+
+        ws.append(
+            [
+                i,
+                getattr(eleve, "nom", "") or "",
+                getattr(eleve, "prenom", "") or "",
+                data["parent_phone"] or "",
+                to_cell(data["inscription"]),
+            ]
+            + [to_cell(data["mois"][m]) for m in range(1, 11)]
+            + [to_cell(data["total"])]
+        )
+
+    # UX Excel
+    ws.freeze_panes = "A2"
+    ws.auto_filter.ref = f"A1:{get_column_letter(len(headers))}1"
+
+    # Largeurs
+    widths = {1: 5, 2: 18, 3: 18, 4: 16, 5: 14}
+    for col in range(6, 16):  # M1..M10 (col 6..15)
+        widths[col] = 14
+    widths[16] = 14  # total
+    for col_idx, w in widths.items():
+        ws.column_dimensions[get_column_letter(col_idx)].width = w
+
+    # Format nombre seulement si cellule non vide
+    for r in range(2, ws.max_row + 1):
+        for c in range(5, len(headers) + 1):  # Inscription -> total
+            cell = ws.cell(row=r, column=c)
+            if cell.value not in ("", None):
+                cell.number_format = '#,##0.00'
+
+    # ✅ cacher colonnes mois 100% vides
+    first_data_row = 2
+    last_row = ws.max_row
+    # colonnes mois : M1..M10 = 6..15
+    for col in range(6, 16):
+        all_empty = True
+        for r in range(first_data_row, last_row + 1):
+            val = ws.cell(row=r, column=col).value
+            if val not in ("", None, 0, 0.0):
+                all_empty = False
+                break
+        if all_empty:
+            ws.column_dimensions[get_column_letter(col)].hidden = True
+
+    # Response
+    resp = HttpResponse(
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+    resp["Content-Disposition"] = 'attachment; filename="impayes_groupe_pro.xlsx"'
     wb.save(resp)
     return resp
 
@@ -5410,6 +6188,53 @@ def parent_delete(request, pk):
 
 #================================================================
 
+@login_required
+@permission_required("core.view_echeancemensuelle", raise_exception=True)
+def impayes_pdf_view(request):
+    annee_active = AnneeScolaire.objects.filter(is_active=True).first()
+    annee_id = request.GET.get("annee", "") or (str(annee_active.id) if annee_active else "")
+
+    inscriptions = Inscription.objects.select_related(
+        "eleve", "annee", "groupe", "groupe__niveau", "groupe__niveau__degre"
+    )
+
+    annee_obj = None
+    if annee_id:
+        inscriptions = inscriptions.filter(annee_id=annee_id)
+        annee_obj = AnneeScolaire.objects.filter(id=annee_id).first()
+
+
+    inscriptions = inscriptions.annotate(
+        total_paye=Coalesce(
+            Sum("paiements__montant"),
+            Decimal("0.00"),
+            output_field=DecimalField(max_digits=10, decimal_places=2),
+        )
+    ).annotate(
+        reste=ExpressionWrapper(
+            Coalesce(F("montant_total"), Decimal("0.00")) - Coalesce(F("total_paye"), Decimal("0.00")),
+            output_field=DecimalField(max_digits=10, decimal_places=2),
+        )
+    ).filter(
+        reste__gt=Decimal("0.00")
+    )
+
+    total_du = inscriptions.aggregate(
+        s=Coalesce(Sum("montant_total"), Decimal("0.00"),
+                output_field=DecimalField(max_digits=10, decimal_places=2))
+    )["s"]
+
+    total_encaisse = inscriptions.aggregate(
+        s=Coalesce(Sum("paiements__montant"), Decimal("0.00"),
+                output_field=DecimalField(max_digits=10, decimal_places=2))
+    )["s"]
+
+    total_impaye = inscriptions.aggregate(
+        s=Coalesce(Sum("reste"), Decimal("0.00"),
+                output_field=DecimalField(max_digits=10, decimal_places=2))
+    )["s"]
+
+    return pdf_utils.impayes_pdf(annee_obj, inscriptions, total_du, total_encaisse, total_impaye)
 
 @login_required
 @permission_required("core.view_paiement", raise_exception=True)
@@ -5477,204 +6302,9 @@ def absences_jour_pdf_view(request):
     return pdf_utils.absences_jour_pdf(date_str or "—", annee_obj, groupe_label, absences.order_by("eleve__nom"))
 
 
-@login_required
-@permission_required("core.view_echeancemensuelle", raise_exception=True)
-def impayes_pdf_view(request):
-    annee_active = AnneeScolaire.objects.filter(is_active=True).first()
-    annee_id = request.GET.get("annee", "") or (str(annee_active.id) if annee_active else "")
-
-    inscriptions = Inscription.objects.select_related(
-        "eleve", "annee", "groupe", "groupe__niveau", "groupe__niveau__degre"
-    )
-
-    annee_obj = None
-    if annee_id:
-        inscriptions = inscriptions.filter(annee_id=annee_id)
-        annee_obj = AnneeScolaire.objects.filter(id=annee_id).first()
 
 
-    inscriptions = inscriptions.annotate(
-        total_paye=Coalesce(
-            Sum("paiements__montant"),
-            Decimal("0.00"),
-            output_field=DecimalField(max_digits=10, decimal_places=2),
-        )
-    ).annotate(
-        reste=ExpressionWrapper(
-            Coalesce(F("montant_total"), Decimal("0.00")) - Coalesce(F("total_paye"), Decimal("0.00")),
-            output_field=DecimalField(max_digits=10, decimal_places=2),
-        )
-    ).filter(
-        reste__gt=Decimal("0.00")
-    )
 
-    total_du = inscriptions.aggregate(
-        s=Coalesce(Sum("montant_total"), Decimal("0.00"),
-                output_field=DecimalField(max_digits=10, decimal_places=2))
-    )["s"]
-
-    total_encaisse = inscriptions.aggregate(
-        s=Coalesce(Sum("paiements__montant"), Decimal("0.00"),
-                output_field=DecimalField(max_digits=10, decimal_places=2))
-    )["s"]
-
-    total_impaye = inscriptions.aggregate(
-        s=Coalesce(Sum("reste"), Decimal("0.00"),
-                output_field=DecimalField(max_digits=10, decimal_places=2))
-    )["s"]
-
-    return pdf_utils.impayes_pdf(annee_obj, inscriptions, total_du, total_encaisse, total_impaye)
-
-
-@login_required
-@permission_required("core.view_eleve", raise_exception=True)
-def eleves_pdf_view(request):
-    q = request.GET.get("q", "").strip()
-    statut = request.GET.get("statut", "")
-
-    eleves = Eleve.objects.all()
-
-    if statut == "actifs":
-        eleves = eleves.filter(is_active=True)
-    elif statut == "inactifs":
-        eleves = eleves.filter(is_active=False)
-
-    if q:
-        eleves = eleves.filter(
-            Q(matricule__icontains=q) |
-            Q(nom__icontains=q) |
-            Q(prenom__icontains=q) |
-            Q(telephone__icontains=q)
-        )
-
-    title = f"Filtre: q={q or '—'} / statut={statut or '—'}"
-    return pdf_utils.eleves_list_pdf(title, eleves.order_by("nom", "prenom"))
-
-@login_required
-@permission_required("core.view_eleve", raise_exception=True)
-def eleves_excel_export(request):
-    q = request.GET.get("q", "").strip()
-    statut = request.GET.get("statut", "")
-
-    qs = Eleve.objects.all()
-
-    if statut == "actifs":
-        qs = qs.filter(is_active=True)
-    elif statut == "inactifs":
-        qs = qs.filter(is_active=False)
-
-    if q:
-        qs = qs.filter(
-            Q(matricule__icontains=q) |
-            Q(nom__icontains=q) |
-            Q(prenom__icontains=q) |
-            Q(telephone__icontains=q)
-        )
-
-    wb = openpyxl.Workbook()
-    ws = wb.active
-    ws.title = "Eleves"
-
-    headers = ["matricule", "nom", "prenom", "telephone", "is_active"]
-    ws.append(headers)
-
-    # style header
-    for col in range(1, len(headers)+1):
-        cell = ws.cell(row=1, column=col)
-        cell.font = Font(bold=True)
-        cell.alignment = Alignment(horizontal="center")
-
-    for e in qs.order_by("nom", "prenom"):
-        ws.append([e.matricule, e.nom, e.prenom, e.telephone or "", "1" if e.is_active else "0"])
-
-    # auto width simple
-    for col in ws.columns:
-        max_len = 0
-        col_letter = col[0].column_letter
-        for cell in col:
-            val = str(cell.value) if cell.value is not None else ""
-            max_len = max(max_len, len(val))
-        ws.column_dimensions[col_letter].width = min(max_len + 2, 40)
-
-    response = HttpResponse(
-        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    )
-    response["Content-Disposition"] = 'attachment; filename="eleves.xlsx"'
-    wb.save(response)
-    return response
-
-@login_required
-@permission_required("core.change_eleve", raise_exception=True)
-def eleves_excel_import(request):
-    """
-    Import Excel format:
-    matricule | nom | prenom | telephone | is_active(1/0)
-    """
-    errors = []
-    created = 0
-    updated = 0
-
-    if request.method == "POST":
-        f = request.FILES.get("file")
-        if not f:
-            messages.error(request, "⚠️ Aucun fichier uploadé.")
-            return redirect("core:eleve_list")
-
-        try:
-            wb = openpyxl.load_workbook(f)
-            ws = wb.active
-        except Exception:
-            messages.error(request, "⚠️ Fichier Excel invalide.")
-            return redirect("core:eleve_list")
-
-        # headers
-        headers = [str(c.value).strip().lower() if c.value else "" for c in ws[1]]
-        expected = ["matricule", "nom", "prenom", "telephone", "is_active"]
-        if headers[:5] != expected:
-            messages.error(request, f"⚠️ Colonnes attendues: {expected}")
-            return redirect("core:eleve_list")
-
-        for idx, row in enumerate(ws.iter_rows(min_row=2, values_only=True), start=2):
-            matricule, nom, prenom, telephone, is_active = row[:5]
-
-            if not matricule or not nom or not prenom:
-                errors.append(f"Ligne {idx}: matricule/nom/prenom obligatoire.")
-                continue
-
-            matricule = str(matricule).strip()
-            nom = str(nom).strip()
-            prenom = str(prenom).strip()
-            telephone = str(telephone).strip() if telephone else ""
-            is_active = str(is_active).strip() if is_active is not None else "1"
-            active_bool = True if is_active in ["1", "true", "True", "OUI", "oui", "YES", "yes"] else False
-
-            obj, created_flag = Eleve.objects.update_or_create(
-                matricule=matricule,
-                defaults={
-                    "nom": nom,
-                    "prenom": prenom,
-                    "telephone": telephone,
-                    "is_active": active_bool,
-                }
-            )
-
-            if created_flag:
-                created += 1
-            else:
-                updated += 1
-
-        if errors:
-            messages.warning(request, f"⚠️ Import terminé avec erreurs ({len(errors)}).")
-        messages.success(request, f"✅ Import terminé: {created} créés / {updated} mis à jour.")
-        # On affiche erreurs dans une page dédiée
-        return render(request, "admin/eleves/import_result.html", {
-            "errors": errors,
-            "created": created,
-            "updated": updated,
-        })
-
-    # GET -> page upload
-    return render(request, "admin/eleves/import.html")
 
 @login_required
 @permission_required("core.view_parent", raise_exception=True)
@@ -6045,61 +6675,6 @@ def inscriptions_excel_import(request):
     return render(request, "admin/inscriptions/import.html")
 
 
-@login_required
-@permission_required("core.view_paiement", raise_exception=True)
-def paiements_excel_export(request):
-    annee_active = AnneeScolaire.objects.filter(is_active=True).first()
-    annee_id = request.GET.get("annee", "") or (str(annee_active.id) if annee_active else "")
-
-    qs = Paiement.objects.select_related(
-        "inscription", "inscription__eleve", "inscription__annee"
-    )
-
-    if annee_id:
-        qs = qs.filter(inscription__annee_id=annee_id)
-
-    wb = openpyxl.Workbook()
-    ws = wb.active
-    ws.title = "Paiements"
-
-    headers = ["eleve_matricule", "annee_nom", "date_paiement", "montant", "mode", "reference"]
-    ws.append(headers)
-
-    for col in range(1, len(headers)+1):
-        c = ws.cell(row=1, column=col)
-        c.font = Font(bold=True)
-        c.alignment = Alignment(horizontal="center")
-
-    for p in qs.order_by("-date_paiement", "-id"):
-        # champs optionnels
-        mode = getattr(p, "mode", "") or ""
-        reference = getattr(p, "reference", "") or ""
-        date_val = getattr(p, "date_paiement", None)
-        date_str = date_val.strftime("%Y-%m-%d") if date_val else ""
-        ws.append([
-            p.inscription.eleve.matricule,
-            p.inscription.annee.nom,
-            date_str,
-            str(p.montant),
-            mode,
-            reference,
-        ])
-
-    for col in ws.columns:
-        max_len = 0
-        col_letter = col[0].column_letter
-        for cell in col:
-            val = str(cell.value) if cell.value is not None else ""
-            max_len = max(max_len, len(val))
-        ws.column_dimensions[col_letter].width = min(max_len + 2, 45)
-
-    response = HttpResponse(
-        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    )
-    response["Content-Disposition"] = 'attachment; filename="paiements.xlsx"'
-    wb.save(response)
-    return response
-
 
 @login_required
 @permission_required("core.change_paiement", raise_exception=True)
@@ -6197,6 +6772,7 @@ def paiements_excel_import(request):
         })
 
     return render(request, "admin/paiements/import.html")
+
 # ============================
 # O1 — Notes & Evaluations
 # ============================
@@ -6311,9 +6887,13 @@ def ajax_eleves_par_groupe(request):
     if annee_active:
         qs = qs.filter(inscriptions__annee=annee_active)
 
-    # si ton Inscription a un champ statut, on limite aux statuts utiles
+    # si ton Inscription a un champ statut, on ESSAIE de filtrer, sinon on ne bloque pas
     if "statut" in [f.name for f in Inscription._meta.fields]:
-        qs = qs.filter(inscriptions__statut__in=["EN_COURS", "VALIDE"])
+        wanted = ["EN_COURS", "VALIDE"]
+        qs_statut = qs.filter(inscriptions__statut__in=wanted)
+        # si ça donne 0 résultats, on garde qs sans filtrer (évite liste vide)
+        if qs_statut.exists():
+            qs = qs_statut
 
     qs = (qs
           .distinct()
@@ -7634,7 +8214,7 @@ def sms_send(request):
                     provider="twilio",
                 )
 
-                ok, provider_id, err = send_sms_via_twilio(tel, msg)
+                ok, provider_id, err = send_sms_via_bulksms_ma(tel, msg)
 
                 if ok:
                     hist.status = "SENT"

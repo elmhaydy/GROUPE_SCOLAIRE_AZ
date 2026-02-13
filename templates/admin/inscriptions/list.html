@@ -101,18 +101,6 @@
       <input class="az-input" type="date" name="date" value="{{ date_selected }}">
     </div>
 
-    <div class="az-field">
-      <div class="az-field-label">Période</div>
-      <select id="id_periode" name="periode" class="az-select">
-        <option value="">Toutes</option>
-        {% for p in periodes %}
-          <option value="{{ p.id }}" {% if p.id|stringformat:"s" == periode_selected %}selected{% endif %}>
-            {{ p.nom }}
-          </option>
-        {% endfor %}
-      </select>
-    </div>
-
     <button class="az-btn az-btn-soft" type="submit">
       <i class="fa-solid fa-magnifying-glass"></i> Filtrer
     </button>
@@ -120,17 +108,6 @@
     <a class="az-btn az-btn-ghost" href="{% url 'core:inscription_list' %}">
       <i class="fa-solid fa-rotate-right"></i> Reset
     </a>
-
-    <div class="az-export">
-      <a class="az-btn az-btn-outline"
-         href="{% url 'core:inscriptions_excel_export' %}?annee={{ annee_selected }}&niveau={{ niveau_selected }}&groupe={{ groupe_selected }}&periode={{ periode_selected }}&date={{ date_selected }}&statut={{ statut_selected }}&q={{ q|urlencode }}">
-        <i class="fa-solid fa-file-excel"></i> Excel
-      </a>
-
-      <a class="az-btn az-btn-primary" href="{% url 'core:inscriptions_excel_import' %}">
-        <i class="fa-solid fa-upload"></i> Import Excel
-      </a>
-    </div>
 
   </form>
 </div>
