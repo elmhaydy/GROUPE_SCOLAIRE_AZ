@@ -1,25 +1,25 @@
 /* =========================================================
-   AZ — Portail Élève (BASE JS)
-   - Sidebar drawer (mobile/tablet) + block scroll content
-   - Overlay click closes + ESC
-   - Theme toggle (mobile + desktop) with localStorage
-   - User dropdown (desktop)
+   AZ — Portail Élève (BASE JS) — FINAL CLEAN
+   - Theme toggle (mobile + desktop) + localStorage
+   - Sidebar drawer (mobile/tablet) + overlay + ESC
+   - User dropdown (desktop) + click outside
    - Close alerts
    - Date/time
+   - Badges (optionnel)
+   - Password modal
    ========================================================= */
 
 (function () {
+  "use strict";
+
   const html = document.documentElement;
 
   // -----------------------------
-  // THEME (persist)
+  // THEME (Light par défaut)
   // -----------------------------
   const THEME_KEY = "AZ_ELEVE_THEME";
 
-  function setTheme(theme) {
-    html.setAttribute("data-theme", theme);
-    localStorage.setItem(THEME_KEY, theme);
-
+  function syncThemeIcons(theme) {
     const isDark = theme === "dark";
     document.querySelectorAll("#themeToggle i, #themeToggleDesk i").forEach((ico) => {
       if (!ico) return;
@@ -28,14 +28,30 @@
     });
   }
 
+  function setTheme(theme) {
+    html.setAttribute("data-theme", theme);
+    try { localStorage.setItem(THEME_KEY, theme); } catch (e) {}
+    syncThemeIcons(theme);
+  }
+
   function toggleTheme() {
     const current = html.getAttribute("data-theme") || "light";
     setTheme(current === "dark" ? "light" : "dark");
   }
 
-  // init theme
-  const saved = localStorage.getItem(THEME_KEY);
-  if (saved === "dark" || saved === "light") setTheme(saved);
+  // init theme (✅ light par défaut si rien)
+  (function initTheme() {
+    let saved = null;
+    try { saved = localStorage.getItem(THEME_KEY); } catch (e) {}
+
+    const theme = (saved === "dark" || saved === "light") ? saved : "light";
+    setTheme(theme);
+
+    // si rien n'existe, on écrit light
+    if (!saved) {
+      try { localStorage.setItem(THEME_KEY, "light"); } catch (e) {}
+    }
+  })();
 
   const themeBtn = document.getElementById("themeToggle");
   const themeBtnDesk = document.getElementById("themeToggleDesk");
@@ -71,22 +87,24 @@
     overlay.setAttribute("aria-hidden", "true");
   }
 
-  if (openBtn) openBtn.addEventListener("click", () => {
-    sidebar && sidebar.classList.contains("open") ? closeSidebar() : openSidebar();
-  });
-
+  if (openBtn) {
+    openBtn.addEventListener("click", () => {
+      sidebar && sidebar.classList.contains("open") ? closeSidebar() : openSidebar();
+    });
+  }
   if (closeBtn) closeBtn.addEventListener("click", closeSidebar);
   if (overlay) overlay.addEventListener("click", closeSidebar);
 
   document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") closeSidebar();
+    if (e.key === "Escape") {
+      closeSidebar();
+      closePwdModal(); // (si modal ouverte)
+    }
   });
 
-  // When back to desktop, ensure sidebar is not stuck open
+  // reset quand retour desktop
   function handleResize() {
-    if (window.matchMedia("(min-width: 1025px)").matches) {
-      closeSidebar();
-    }
+    if (window.matchMedia("(min-width: 1025px)").matches) closeSidebar();
   }
   window.addEventListener("resize", handleResize);
   handleResize();
@@ -143,65 +161,34 @@
   // DATETIME
   // -----------------------------
   const dt = document.getElementById("currentDateTime");
-  function pad(n){ return String(n).padStart(2,"0"); }
+  function pad(n) { return String(n).padStart(2, "0"); }
 
   function renderDT() {
     if (!dt) return;
     const span = dt.querySelector("span") || dt;
     const d = new Date();
-    const days = ["Dim","Lun","Mar","Mer","Jeu","Ven","Sam"];
+    const days = ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"];
     span.textContent =
-      `${days[d.getDay()]} ${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()} • ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+      `${days[d.getDay()]} ${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} • ${pad(d.getHours())}:${pad(d.getMinutes())}`;
   }
-
   renderDT();
   setInterval(renderDT, 30000);
-})();
 
-(function(){
-  const sidebar = document.getElementById("sidebar");
-  const overlay = document.getElementById("azOverlay");       // ton overlay
-  const openBtn = document.getElementById("sidebarToggle");   // ton bouton menu (mobile)
-  const closeBtn = document.getElementById("sidebarClose");   // bouton X dans sidebar
-
-  function openSidebar(){
-    if (!sidebar || !overlay) return;
-    sidebar.classList.add("open");
-    overlay.classList.add("show");
-    document.body.classList.add("no-scroll");
-  }
-  function closeSidebar(){
-    if (!sidebar || !overlay) return;
-    sidebar.classList.remove("open");
-    overlay.classList.remove("show");
-    document.body.classList.remove("no-scroll");
-  }
-
-  if (openBtn) openBtn.addEventListener("click", openSidebar);
-  if (closeBtn) closeBtn.addEventListener("click", closeSidebar);
-  if (overlay) overlay.addEventListener("click", closeSidebar);
-  document.addEventListener("keydown", (e)=>{ if(e.key==="Escape") closeSidebar(); });
-
-  // ✅ reset quand on revient desktop
-  window.addEventListener("resize", ()=>{
-    if (window.matchMedia("(min-width: 1025px)").matches) closeSidebar();
-  });
-
-  /* =======================================================
-     BADGES (OPTIONNEL)
-     - Tu peux alimenter ça via Django (data-*)
-     - Ici c'est juste un exemple (0/—)
-     ======================================================= */
+  // -----------------------------
+  // BADGES (OPTIONNEL)
+  // -----------------------------
   const badgeMap = {
-    avis: 0,   // ex: nb avis non lus
-    notes: 0,  // ex: nouvelles notes
-    abs: 0     // ex: absences ce mois
+    avis: 0,
+    notes: 0,
+    abs: 0,
+    pdf: 0,
+    edt: 0
   };
 
-  Object.entries(badgeMap).forEach(([k,v])=>{
+  Object.entries(badgeMap).forEach(([k, v]) => {
     const el = document.querySelector(`[data-badge="${k}"]`);
     if (!el) return;
-    if (!v){
+    if (!v) {
       el.textContent = "—";
       el.style.opacity = ".65";
       return;
@@ -209,51 +196,42 @@
     el.textContent = String(v);
     el.style.opacity = "1";
   });
-})();
-/* =========================================================
-   AZ — Password Modal
-   - open/close (click outside, ESC)
-   - lock scroll
-   ========================================================= */
-(function(){
-  const modal = document.getElementById("pwdModal");
-  if(!modal) return;
 
+  // -----------------------------
+  // PASSWORD MODAL
+  // -----------------------------
+  const modal = document.getElementById("pwdModal");
   const openers = document.querySelectorAll("[data-open-password-modal]");
-  const closers = modal.querySelectorAll("[data-modal-close]");
+  const closers = modal ? modal.querySelectorAll("[data-modal-close]") : [];
   let lastFocus = null;
 
-  function openModal(){
+  function openPwdModal() {
+    if (!modal) return;
     lastFocus = document.activeElement;
     modal.classList.add("show");
-    modal.setAttribute("aria-hidden","false");
+    modal.setAttribute("aria-hidden", "false");
     document.body.classList.add("az-modal-open");
 
-    // focus first input
     setTimeout(() => {
       const first = modal.querySelector("input, button, [tabindex]:not([tabindex='-1'])");
-      if(first) first.focus();
+      if (first) first.focus();
     }, 0);
   }
 
-  function closeModal(){
+  function closePwdModal() {
+    if (!modal) return;
     modal.classList.remove("show");
-    modal.setAttribute("aria-hidden","true");
+    modal.setAttribute("aria-hidden", "true");
     document.body.classList.remove("az-modal-open");
-    if(lastFocus && typeof lastFocus.focus === "function") lastFocus.focus();
+    if (lastFocus && typeof lastFocus.focus === "function") lastFocus.focus();
   }
 
-  openers.forEach(btn => btn.addEventListener("click", openModal));
-  closers.forEach(btn => btn.addEventListener("click", closeModal));
+  openers.forEach((btn) => btn.addEventListener("click", openPwdModal));
+  closers.forEach((btn) => btn.addEventListener("click", closePwdModal));
 
-  // click backdrop closes
-  modal.addEventListener("click", (e) => {
-    if(e.target.classList.contains("az-modal__backdrop")) closeModal();
-  });
-
-  // ESC closes
-  document.addEventListener("keydown", (e) => {
-    if(!modal.classList.contains("show")) return;
-    if(e.key === "Escape") closeModal();
-  });
+  if (modal) {
+    modal.addEventListener("click", (e) => {
+      if (e.target.classList.contains("az-modal__backdrop")) closePwdModal();
+    });
+  }
 })();

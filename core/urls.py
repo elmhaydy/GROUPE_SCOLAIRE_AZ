@@ -247,6 +247,12 @@ urlpatterns = [
     path("finance/transactions/batch/<str:batch_token>/success/", views_finance.transaction_success, name="transaction_batch_success"),
 
     path("finance/inscription/<int:inscription_id>/", vf.inscription_finance_detail, name="inscription_finance_detail"),
+    path("ajax/eleve-meta/", views_finance.ajax_eleve_meta, name="ajax_eleve_meta"),
+
+
+
+    path("ajax/default-sco/", views_finance.ajax_set_default_sco_price, name="ajax_set_default_sco_price"),
+    path("ajax/default-tr/", views_finance.ajax_set_default_tr_price, name="ajax_set_default_tr_price"),
 
     # =========================================================
     # M — AJAX (GLOBAL + FINANCE)
@@ -263,7 +269,7 @@ urlpatterns = [
     # Finance AJAX
     path("ajax/echeances/", views_finance.ajax_echeances, name="ajax_echeances"),
     path("ajax/inscription-by-eleve/", views_finance.ajax_inscription_by_eleve, name="ajax_inscription_by_eleve"),
-    path("ajax/transport-echeances/", views.ajax_transport_echeances, name="ajax_transport_echeances"),
+    path("ajax/transport-echeances/", views_finance.ajax_transport_echeances, name="ajax_transport_echeances"),
 
     # API finance
     path("api/groupes-par-niveau/", views_finance.api_groupes_par_niveau, name="api_groupes_par_niveau"),

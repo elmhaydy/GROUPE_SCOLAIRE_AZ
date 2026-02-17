@@ -518,3 +518,34 @@ html[data-theme="dark"] .az-select:focus{
   box-shadow: 0 0 0 3px rgba(114, 9, 183, .22);
   border-color: rgba(114, 9, 183, .45);
 }
+/* ===== AZ Counter Pill ===== */
+.az-counter-pill{
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border, #e2e8f0);
+  background: var(--surface, #fff);
+  box-shadow: 0 6px 16px rgba(15,23,42,.06);
+  font-weight: 700;
+}
+
+.az-counter-pill i{
+  font-size: 14px;
+}
+
+.az-counter-pill span{
+  font-size: 14px;
+}
+
+.az-counter-pill small{
+  font-size: 12px;
+  opacity: .7;
+  font-weight: 600;
+}
+
+html[data-theme="dark"] .az-counter-pill{
+  background: #0b1220;
+  border-color: rgba(148,163,184,.18);
+}

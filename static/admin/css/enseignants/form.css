@@ -323,3 +323,86 @@ html[data-theme="light"] .az-ens-form select optgroup{
   height: 18px;
   accent-color: var(--danger);
 }
+/* =========================================================
+   AZ • TomSelect — Dark mode FIX (NEBULA)
+   Colle en bas (après tes styles)
+   ========================================================= */
+
+/* Base: on s'assure que TomSelect prend 100% */
+.ts-wrapper{ width:100%; }
+
+/* ---------- DARK THEME ---------- */
+html[data-theme="dark"] .ts-wrapper .ts-control{
+  background: rgba(2,6,23,.30) !important;
+  border: 1px solid rgba(148,163,184,.18) !important;
+  color: rgba(241,245,249,.95) !important;
+  border-radius: 14px !important;
+  min-height: 52px;
+  padding: 10px 12px !important;
+  box-shadow: none !important;
+}
+
+/* Texte tapé */
+html[data-theme="dark"] .ts-wrapper .ts-control input{
+  color: rgba(241,245,249,.95) !important;
+}
+
+/* Placeholder */
+html[data-theme="dark"] .ts-wrapper .ts-control input::placeholder{
+  color: rgba(148,163,184,.85) !important;
+}
+
+/* Item sélectionné (single) */
+html[data-theme="dark"] .ts-wrapper.single .ts-control .item{
+  color: rgba(241,245,249,.95) !important;
+}
+
+/* Focus ring AZ */
+html[data-theme="dark"] .ts-wrapper .ts-control:focus,
+html[data-theme="dark"] .ts-wrapper .ts-control.focus{
+  border-color: rgba(99,102,241,.70) !important;
+  box-shadow: 0 0 0 4px rgba(99,102,241,.18), 0 18px 40px rgba(99,102,241,.14) !important;
+}
+
+/* Dropdown panel */
+html[data-theme="dark"] .ts-dropdown{
+  background: #0b1220 !important;
+  border: 1px solid rgba(255,255,255,.10) !important;
+  box-shadow: 0 22px 80px rgba(0,0,0,.45) !important;
+  border-radius: 14px !important;
+  overflow: hidden;
+}
+
+/* Options */
+html[data-theme="dark"] .ts-dropdown .ts-dropdown-content .option{
+  color: rgba(241,245,249,.92) !important;
+  background: transparent !important;
+  padding: 10px 12px !important;
+}
+
+/* Hover */
+html[data-theme="dark"] .ts-dropdown .option:hover,
+html[data-theme="dark"] .ts-dropdown .option.active{
+  background: rgba(99,102,241,.14) !important;
+  color: #fff !important;
+}
+
+/* Selected */
+html[data-theme="dark"] .ts-dropdown .option.selected{
+  background: rgba(99,102,241,.22) !important;
+  color: #fff !important;
+}
+
+/* Si tu utilises multi-select (chips) */
+html[data-theme="dark"] .ts-wrapper.multi .ts-control .item{
+  background: rgba(99,102,241,.14) !important;
+  border: 1px solid rgba(99,102,241,.22) !important;
+  color: rgba(241,245,249,.95) !important;
+  border-radius: 999px !important;
+}
+
+/* Bouton clear / caret */
+html[data-theme="dark"] .ts-control .clear-button,
+html[data-theme="dark"] .ts-control .ts-dropdown-button{
+  color: rgba(148,163,184,.95) !important;
+}

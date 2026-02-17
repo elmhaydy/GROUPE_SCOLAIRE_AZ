@@ -6,7 +6,7 @@
 {% block current_page %}Finance / Paiements / Parents{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'admin/css/paiements/list.css' %}?v=3">
+<link rel="stylesheet" href="{% static 'admin/css/paiements/list.css' %}?v=4">
 {% endblock %}
 
 {% block content %}
@@ -25,6 +25,12 @@
   </div>
 
   <div class="az-page-head-right">
+    <div class="az-counter-pill" title="Nombre de paiements">
+      <i class="fa-solid fa-receipt"></i>
+      <span>{{ total_paiements }}</span>
+      <small>paiements</small>
+    </div>
+
     <span class="az-pill az-pill-total">
       <i class="fa-solid fa-sack-dollar"></i>
       <span>Net : <b>{{ total_net }}</b> MAD</span>

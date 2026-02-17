@@ -6,22 +6,20 @@
 {% block breadcrumb %}Finance / Paiements / Succès{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'admin/css/paiements/wizard.css' %}?v=5">
+<link rel="stylesheet" href="{% static 'admin/css/paiements/transaction_success.css' %}?v=3">
 {% endblock %}
 
 {% block content %}
 <div class="az-container">
 
-  <!-- =========================
-       HEADER
-  ========================== -->
+  <!-- HEADER -->
   <header class="az-head">
     <div>
+      <h1 class="az-title">Paiement enregistré ✅</h1>
+
       {% if mode == "BATCH" %}
-        <h1 class="az-title">Paiement enregistré ✅</h1>
-        <p class="az-sub">Un reçu unique a été créé.</p>
+        <p class="az-sub">Un reçu unique a été créé (paiement fratrie).</p>
       {% else %}
-        <h1 class="az-title">Paiement enregistré ✅</h1>
         <p class="az-sub">Transaction confirmée avec succès.</p>
       {% endif %}
 
@@ -35,13 +33,11 @@
 
   <div class="az-card">
 
-    <!-- =========================
-         TOP BAR
-    ========================== -->
+    <!-- TOP BAR -->
     <div class="az-row az-row-2" style="align-items:end;">
       <div>
         {% if mode == "BATCH" %}
-          <div class="az-muted">Token</div>
+          <div class="az-muted">Batch</div>
           <div class="az-pill az-pill-soft" style="margin-top:6px;">
             <b>{{ batch_token }}</b>
           </div>
@@ -57,12 +53,12 @@
 
       <div style="text-align:right;">
         {% if mode == "BATCH" %}
-          <a class="az-btn az-btn-secondary"
+          <a class="az-btn az-btn-secondary" target="_blank" rel="noopener"
              href="{% url 'core:transaction_batch_pdf' batch_token=batch_token %}">
             PDF
           </a>
         {% else %}
-          <a class="az-btn az-btn-secondary" target="_blank"
+          <a class="az-btn az-btn-secondary" target="_blank" rel="noopener"
              href="{% url 'core:transaction_pdf' tx_id=tx.id %}">
             PDF
           </a>
@@ -83,6 +79,59 @@
     {% if mode == "BATCH" %}
 
       {% if txs and txs|length %}
+
+        <!-- JUSTIFICATIFS BATCH (pris depuis la 1ère tx du batch) -->
+        {% with first=txs.0 %}
+          {% if first.justificatifs.all %}
+            <div class="az-block">
+              <h3 class="az-h3">Justificatifs</h3>
+
+              <div class="az-table-wrap">
+                <table class="az-table">
+                  <thead>
+                    <tr>
+                      <th>Fichier</th>
+                      <th style="width:170px;">Type</th>
+                      <th style="width:200px;">Date</th>
+                      <th style="width:140px;">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for j in first.justificatifs.all %}
+                      <tr>
+                        <td>
+                          <b>
+                            {% if j.original_name %}
+                              {{ j.original_name }}
+                            {% else %}
+                              {{ j.fichier.name }}
+                            {% endif %}
+                          </b>
+                        </td>
+                        <td>{{ j.get_type_piece_display|default:"—" }}</td>
+                        <td>{{ j.uploaded_at|date:"d/m/Y H:i" }}</td>
+                        <td>
+                          {% if j.fichier %}
+                            <a class="az-btn az-btn-secondary" target="_blank" rel="noopener"
+                               href="{{ j.fichier.url }}">
+                              Ouvrir
+                            </a>
+                          {% else %}
+                            —
+                          {% endif %}
+                        </td>
+                      </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <hr class="az-hr" style="margin:14px 0;">
+          {% endif %}
+        {% endwith %}
+
+        <!-- TABLE TRANSACTIONS -->
         <div class="az-table-wrap">
           <table class="az-table">
             <thead>
@@ -92,7 +141,6 @@
                 <th>Parent</th>
                 <th style="width:170px;">Statut</th>
                 <th style="width:140px;">Montant</th>
-                <th style="width:260px;">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -100,37 +148,21 @@
                 <tr>
                   <td><b>#{{ t.id }}</b></td>
                   <td>{{ t.inscription.eleve }}</td>
-
-                  {# si tu fournis t.parent_label dans la view #}
                   <td>{{ t.parent_label|default:parent_label|default:"—" }}</td>
-
-                  <!-- ===== STATUT REMBOURSEMENT ===== -->
                   <td>
                     {% if t.is_annulee_zero %}
                       <span class="az-badge az-badge-muted">Annulé</span>
                     {% elif t.is_rembourse %}
-                      <span class="az-badge az-badge-danger">
-                        <i class="fa-solid fa-rotate-left"></i> Remboursé
-                      </span>
+                      <span class="az-badge az-badge-danger">Remboursé</span>
                     {% elif t.is_rembourse_partiel %}
                       <span class="az-badge az-badge-warning">
-                        <i class="fa-solid fa-rotate-left"></i>
                         Partiel ({{ t.montant_rembourse }} MAD)
                       </span>
                     {% else %}
                       <span class="az-badge az-badge-success">Payé</span>
                     {% endif %}
                   </td>
-
                   <td><b>{{ t.montant_total }}</b> MAD</td>
-
-                  <!-- ===== ACTIONS ===== -->
-                  <td>
-                    <a class="az-btn az-btn-secondary"
-                       href="{% url 'core:transaction_success' tx_id=t.id %}">
-                      Détails
-                    </a>
-                  </td>
                 </tr>
               {% endfor %}
             </tbody>
@@ -139,10 +171,11 @@
 
         <div class="az-total" style="margin-top:14px;">
           <div class="az-kpi">
-            <span>Total (batch)</span>
+            <span>Total</span>
             <strong>{{ total }}</strong>
           </div>
         </div>
+
       {% else %}
         <div class="az-muted">Aucune transaction à afficher.</div>
       {% endif %}
@@ -151,7 +184,9 @@
          SINGLE MODE
     ========================== -->
     {% else %}
+
       {% if tx %}
+
         <div class="az-row az-row-3">
           <div>
             <div class="az-muted">Élève</div>
@@ -168,12 +203,9 @@
             {% if tx.is_annulee_zero %}
               <span class="az-badge az-badge-muted">Annulé</span>
             {% elif tx.is_rembourse %}
-              <span class="az-badge az-badge-danger">
-                <i class="fa-solid fa-rotate-left"></i> Remboursé
-              </span>
+              <span class="az-badge az-badge-danger">Remboursé</span>
             {% elif tx.is_rembourse_partiel %}
               <span class="az-badge az-badge-warning">
-                <i class="fa-solid fa-rotate-left"></i>
                 Partiel ({{ tx.montant_rembourse }} MAD)
               </span>
             {% else %}
@@ -182,32 +214,10 @@
           </div>
         </div>
 
-        <div class="az-row az-row-2" style="margin-top:12px;">
-          <div>
-            <div class="az-muted">Total</div>
-            <b>{{ total }}</b> MAD
-          </div>
+        <hr class="az-hr" style="margin:14px 0;">
 
-          <div style="text-align:right;">
-            {% if tx.can_refund %}
-              <a class="az-btn az-btn-danger"
-                 href="{% url 'core:paiement_remboursement_create' tx.id %}">
-                {% if tx.montant_total|floatformat:2 == "0.00" %}
-                  Annuler
-                {% else %}
-                  Rembourser
-                {% endif %}
-              </a>
-            {% else %}
-              <span class="az-btn az-btn-danger az-btn-disabled">
-                Rembourser
-              </span>
-            {% endif %}
-          </div>
-        </div>
-
+        <!-- LIGNES -->
         {% if tx.lignes.all %}
-          <hr class="az-hr" style="margin:14px 0;">
           <div class="az-table-wrap">
             <table class="az-table">
               <thead>
@@ -220,7 +230,54 @@
                 {% for ln in tx.lignes.all %}
                   <tr>
                     <td>{{ ln.libelle|default:"—" }}</td>
-                    <td><b>{{ ln.montant }}</b></td>
+                    <td><b>{{ ln.montant }}</b> MAD</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% endif %}
+
+        <!-- JUSTIFICATIFS SINGLE -->
+        {% if tx.justificatifs.all %}
+          <hr class="az-hr" style="margin:14px 0;">
+
+          <h3 class="az-h3">Justificatifs</h3>
+
+          <div class="az-table-wrap">
+            <table class="az-table">
+              <thead>
+                <tr>
+                  <th>Fichier</th>
+                  <th style="width:170px;">Type</th>
+                  <th style="width:200px;">Date</th>
+                  <th style="width:140px;">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for j in tx.justificatifs.all %}
+                  <tr>
+                    <td>
+                      <b>
+                        {% if j.original_name %}
+                          {{ j.original_name }}
+                        {% else %}
+                          {{ j.fichier.name }}
+                        {% endif %}
+                      </b>
+                    </td>
+                    <td>{{ j.get_type_piece_display|default:"—" }}</td>
+                    <td>{{ j.uploaded_at|date:"d/m/Y H:i" }}</td>
+                    <td>
+                      {% if j.fichier %}
+                        <a class="az-btn az-btn-secondary" target="_blank" rel="noopener"
+                           href="{{ j.fichier.url }}">
+                          Ouvrir
+                        </a>
+                      {% else %}
+                        —
+                      {% endif %}
+                    </td>
                   </tr>
                 {% endfor %}
               </tbody>

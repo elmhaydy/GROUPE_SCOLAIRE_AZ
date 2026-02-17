@@ -8,7 +8,7 @@
 
 {# ✅ Ajoute tes fichiers #}
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'eleve/css/edt.css' %}">
+<link rel="stylesheet" href="{% static 'eleve/css/edt.css' %}?v=1">
 {% endblock %}
 
 {% block extra_js %}
@@ -72,11 +72,19 @@
                         {% endif %}
 
                         <div class="edt-event-top">
-                          <div class="edt-subject">{{ s.matiere|default:"—" }}</div>
+                          <div class="edt-left">
+                            <div class="edt-subject">{{ s.matiere|default:"—" }}</div>
+
+                            <div class="edt-hr">
+                              {{ s.heure_debut|time:"H:i" }}–{{ s.heure_fin|time:"H:i" }}
+                            </div>
+                          </div>
+
                           {% if s.salle %}
                             <div class="edt-room">{{ s.salle }}</div>
                           {% endif %}
                         </div>
+
 
                         <div class="edt-teacher muted">
                           {{ s.enseignant.prenom }} {{ s.enseignant.nom }}
@@ -111,20 +119,24 @@
                     <div class="edt-m-card"
                          data-haystack="{{ s.matiere|default:'—' }} {{ s.salle|default:'' }} {{ s.enseignant.prenom }} {{ s.enseignant.nom }} {{ jours_labels|get_item:j }} {{ key }}">
                       <div class="edt-m-time">{{ key|slice:":5" }}–{{ key|slice:"6:11" }}</div>
+                        <div class="edt-m-body">
+                          <div class="edt-m-subject">
+                            {{ s.matiere|default:"—" }}
+                            {% if cell.part == "CONT" %}
+                              <span class="muted" style="font-weight:800"> • Suite</span>
+                            {% endif %}
+                          </div>
 
-                      <div class="edt-m-body">
-                        <div class="edt-m-subject">
-                          {{ s.matiere|default:"—" }}
-                          {% if cell.part == "CONT" %}
-                            <span class="muted" style="font-weight:800"> • Suite</span>
-                          {% endif %}
+                          <div class="edt-hr">
+                            {{ s.heure_debut|time:"H:i" }}–{{ s.heure_fin|time:"H:i" }}
+                          </div>
+
+                          <div class="muted">
+                            {% if s.salle %}Salle: {{ s.salle }} • {% endif %}
+                            {{ s.enseignant.prenom }} {{ s.enseignant.nom }}
+                          </div>
                         </div>
 
-                        <div class="muted">
-                          {% if s.salle %}Salle: {{ s.salle }} • {% endif %}
-                          {{ s.enseignant.prenom }} {{ s.enseignant.nom }}
-                        </div>
-                      </div>
                     </div>
                   {% endif %}
                 {% endwith %}

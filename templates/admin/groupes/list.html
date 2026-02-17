@@ -6,7 +6,7 @@
 {% block current_page %}Structure / Groupes{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'admin/css/groupes/list.css' %}?v=2">
+<link rel="stylesheet" href="{% static 'admin/css/groupes/list.css' %}?v=3">
 {% endblock %}
 
 {% block content %}
@@ -26,6 +26,12 @@
   </div>
 
   <div class="az-page-head-right">
+    <div class="az-counter-pill" title="Nombre de groupes">
+      <i class="fa-solid fa-people-group"></i>
+      <span>{{ total_groupes }}</span>
+      <small>groupes</small>
+    </div>
+
     <a class="az-btn az-btn-outline" href="{% url 'core:niveau_list' %}">
       <i class="fa-solid fa-book"></i> Niveaux
     </a>

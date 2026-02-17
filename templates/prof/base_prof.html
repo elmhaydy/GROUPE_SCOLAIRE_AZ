@@ -1,6 +1,6 @@
 {% load static %}
 <!doctype html>
-<html data-theme="dark" lang="fr">
+<html data-theme="light" lang="fr">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -11,8 +11,16 @@
     (function () {
       try {
         const saved = localStorage.getItem("az-theme");
-        const theme = (saved === "light" || saved === "dark") ? saved : "dark";
+
+        // ✅ Light par défaut
+        const theme = (saved === "light" || saved === "dark") ? saved : "light";
+
         document.documentElement.setAttribute("data-theme", theme);
+
+        // (optionnel mais propre) si rien, on fixe light pour la prochaine fois
+        if (!saved) {
+          localStorage.setItem("az-theme", "light");
+        }
       } catch (e) {}
     })();
   </script>

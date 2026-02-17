@@ -1,0 +1,277 @@
+/* =========================================================
+   AZ • TRANSACTION SUCCESS (NEBULA STYLE)
+   Compatible light / dark
+   ========================================================= */
+
+.az-container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* =========================
+   HEADER
+   ========================= */
+
+.az-head {
+  margin-bottom: 20px;
+}
+
+.az-title {
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  margin-bottom: 6px;
+}
+
+.az-sub {
+  font-size: 14px;
+  opacity: .75;
+}
+
+/* =========================
+   CARD
+   ========================= */
+
+.az-card {
+  padding: 24px;
+  border-radius: 18px;
+  border: 1px solid var(--az-border);
+  background: var(--az-bg-primary);
+  box-shadow: var(--az-shadow-sm);
+}
+
+/* =========================
+   TOP BAR
+   ========================= */
+
+.az-row {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.az-row-2 > div {
+  flex: 1;
+}
+
+.az-row-3 > div {
+  flex: 1;
+}
+
+.az-muted {
+  font-size: 13px;
+  opacity: .65;
+}
+
+/* =========================
+   PILL
+   ========================= */
+
+.az-pill-soft {
+  background: rgba(99,102,241,.12);
+  border: 1px solid rgba(99,102,241,.25);
+  padding: 10px 14px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+html[data-theme="dark"] .az-pill-soft {
+  background: rgba(99,102,241,.18);
+  border-color: rgba(99,102,241,.35);
+}
+
+/* =========================
+   TABLE
+   ========================= */
+
+.az-table-wrap {
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid var(--az-border);
+}
+
+.az-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.az-table thead {
+  background: var(--az-bg-secondary);
+}
+
+.az-table th {
+  text-align: left;
+  padding: 14px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  opacity: .7;
+}
+
+.az-table td {
+  padding: 14px;
+  border-top: 1px solid var(--az-border);
+  vertical-align: middle;
+}
+
+.az-table tbody tr:hover {
+  background: var(--az-bg-secondary);
+}
+
+/* =========================
+   BADGES
+   ========================= */
+
+.az-badge {
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.az-badge-success {
+  background: rgba(16,185,129,.15);
+  color: #16a34a;
+  border: 1px solid rgba(16,185,129,.3);
+}
+
+.az-badge-warning {
+  background: rgba(245,158,11,.15);
+  color: #f59e0b;
+  border: 1px solid rgba(245,158,11,.3);
+}
+
+.az-badge-danger {
+  background: rgba(239,68,68,.15);
+  color: #ef4444;
+  border: 1px solid rgba(239,68,68,.3);
+}
+
+.az-badge-muted {
+  background: rgba(148,163,184,.15);
+  color: #64748b;
+  border: 1px solid rgba(148,163,184,.3);
+}
+
+/* =========================
+   BUTTONS
+   ========================= */
+
+.az-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 16px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 14px;
+  border: 1px solid transparent;
+  text-decoration: none;
+  transition: all .2s ease;
+  cursor: pointer;
+}
+
+.az-btn-primary {
+  background: linear-gradient(135deg, #6366f1, #7209b7);
+  color: white;
+}
+
+.az-btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 25px rgba(99,102,241,.35);
+}
+
+.az-btn-secondary {
+  background: var(--az-bg-secondary);
+  border: 1px solid var(--az-border);
+  color: var(--az-text-primary);
+}
+
+.az-btn-secondary:hover {
+  background: var(--az-bg-tertiary);
+}
+
+.az-btn-danger {
+  background: #ef4444;
+  color: white;
+}
+
+.az-btn-danger:hover {
+  background: #dc2626;
+  transform: translateY(-1px);
+}
+
+.az-btn-disabled {
+  opacity: .5;
+  pointer-events: none;
+}
+
+/* =========================
+   TOTAL KPI
+   ========================= */
+
+.az-total {
+  margin-top: 20px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.az-kpi {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  font-size: 15px;
+  font-weight: 600;
+  padding: 12px 18px;
+  border-radius: 14px;
+  background: var(--az-bg-secondary);
+  border: 1px solid var(--az-border);
+}
+
+/* =========================
+   HR
+   ========================= */
+
+.az-hr {
+  border: none;
+  height: 1px;
+  background: var(--az-border);
+}
+
+/* =========================
+   RESPONSIVE
+   ========================= */
+
+@media (max-width: 768px) {
+
+  .az-row {
+    flex-direction: column;
+  }
+
+  .az-row-2 > div,
+  .az-row-3 > div {
+    flex: unset;
+    width: 100%;
+  }
+
+  .az-table {
+    font-size: 13px;
+  }
+
+  .az-card {
+    padding: 16px;
+  }
+
+  .az-title {
+    font-size: 20px;
+  }
+
+}

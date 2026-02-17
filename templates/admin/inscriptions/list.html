@@ -6,7 +6,7 @@
 {% block current_page %}Scolaire / Inscriptions{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'admin/css/inscriptions/list.css' %}?v=3">
+<link rel="stylesheet" href="{% static 'admin/css/inscriptions/list.css' %}?v=4">
 {% endblock %}
 
 {% block content %}
@@ -25,6 +25,12 @@
   </div>
 
   <div class="az-page-head-right">
+    <div class="az-counter-pill" title="Nombre d'inscriptions">
+      <i class="fa-solid fa-clipboard-check"></i>
+      <span>{{ total_inscriptions }}</span>
+      <small>inscriptions</small>
+    </div>
+
     <a class="az-btn az-btn-outline" href="{% url 'core:inscription_create' %}">
       <i class="fa-solid fa-plus"></i> Inscription (simple)
     </a>
@@ -162,10 +168,6 @@
 
             <a class="az-btn az-btn-sm az-btn-danger-soft" href="{% url 'core:inscription_delete' i.id %}">
               <i class="fas fa-trash"></i> Supprimer
-            </a>
-
-            <a class="az-btn az-btn-soft" href="{% url 'core:transaction_wizard' %}?inscription_id={{ r.inscription.id }}&type={{ r.type }}">
-              <i class="fa-solid fa-credit-card"></i> Payer
             </a>
           </div>
 

@@ -379,3 +379,38 @@
   border: 1px solid rgba(245,158,11,.35);
   color: color-mix(in srgb, #f59e0b, var(--text) 20%);
 }
+/* ✅ Colonne gauche dans la carte (matière + heure séance) */
+.edt-left{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  min-width:0;
+}
+
+/* ✅ Badge heure séance (début/fin) */
+.edt-hr{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+
+  width: fit-content;
+  padding: 6px 10px;
+  border-radius: 999px;
+
+  font-size: .78rem;
+  font-weight: 950;
+  letter-spacing: .02em;
+
+  background: rgba(99,102,241,.10);
+  border: 1px solid rgba(99,102,241,.18);
+  color: var(--text);
+}
+
+.edt-hr::before{
+  content:"";
+  width:8px;
+  height:8px;
+  border-radius:999px;
+  background: rgba(99,102,241,.90);
+  box-shadow: 0 10px 22px rgba(99,102,241,.18);
+}

@@ -6,7 +6,7 @@
 {% block current_page %}Scolaire / Parents{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'admin/css/parents/list.css' %}?v=1">
+<link rel="stylesheet" href="{% static 'admin/css/parents/list.css' %}?v=2">
 {% endblock %}
 
 {% block content %}
@@ -25,6 +25,12 @@
   </div>
 
   <div class="az-page-head-right">
+    <div class="az-counter-pill" title="Nombre de parents">
+      <i class="fa-solid fa-users"></i>
+      <span>{{ total_parents }}</span>
+      <small>parents</small>
+    </div>
+
     <a class="az-btn az-btn-primary" href="{% url 'core:parent_create' %}">
       <i class="fa-solid fa-plus"></i> Ajouter parent
     </a>

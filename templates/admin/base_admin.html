@@ -1,6 +1,6 @@
 {% load static %}
 <!DOCTYPE html>
-<html data-theme="dark" lang="fr">
+<html data-theme="light" lang="fr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,11 +9,23 @@
       (function () {
         try {
           const saved = localStorage.getItem("az-theme");
-          const theme = (saved === "light" || saved === "dark") ? saved : "dark";
+
+          // ✅ Light par défaut si rien n’est sauvegardé
+          const theme = (saved === "dark" || saved === "light")
+            ? saved
+            : "light";
+
           document.documentElement.setAttribute("data-theme", theme);
+
+          // 🔁 Si rien en localStorage, on sauvegarde light
+          if (!saved) {
+            localStorage.setItem("az-theme", "light");
+          }
+
         } catch (e) {}
       })();
     </script>
+
 
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -26,7 +38,7 @@
 
 
     <!-- CSS principal -->
-    <link rel="stylesheet" href="{% static 'admin/css/_core/admin.css' %}?v=3">
+    <link rel="stylesheet" href="{% static 'admin/css/_core/admin.css' %}?v=7">
     {% block extra_css %}{% endblock %}
 
     <!-- Favicon -->
@@ -388,43 +400,49 @@
             </div>
         </header>
 
-        <!-- Messages -->
-        {% if messages %}
-        <div class="az-messages">
-            {% for message in messages %}
-            <div class="az-alert az-alert-{{ message.tags }}">
-                <i class="fas fa-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}exclamation-circle{% else %}info-circle{% endif %}"></i>
-                <span>{{ message }}</span>
-                <button class="az-alert-close">&times;</button>
-            </div>
-            {% endfor %}
-        </div>
-        {% endif %}
+<!-- ✅ SCROLL ZONE (content + footer) -->
+<div class="az-scroll-area">
 
-        <!-- Content -->
-        <div class="az-content">
-            <div class="az-content-header">
-                <h1 class="az-page-title">{% block page_title %}Dashboard{% endblock %}</h1>
-                {% block page_actions %}{% endblock %}
-            </div>
-            
-            <div class="az-content-body">
-                {% block content %}{% endblock %}
-            </div>
-        </div>
+  <!-- Messages (optionnel: ici pour scroller avec content) -->
+  {% if messages %}
+  <div class="az-messages">
+      {% for message in messages %}
+      <div class="az-alert az-alert-{{ message.tags }}">
+          <i class="fas fa-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}exclamation-circle{% else %}info-circle{% endif %}"></i>
+          <span>{{ message }}</span>
+          <button class="az-alert-close">&times;</button>
+      </div>
+      {% endfor %}
+  </div>
+  {% endif %}
 
-        <!-- Footer -->
-        <footer class="az-footer">
-            <div class="az-footer-content">
-                <span>© 2026 AZ GROUPS - Tous droits réservés</span>
-                <div class="az-footer-links">
-                    <a href="#"><i class="fas fa-question-circle"></i> Aide</a>
-                    <a href="#"><i class="fas fa-shield-alt"></i> Confidentialité</a>
-                    <a href="#"><i class="fas fa-file-contract"></i> Conditions</a>
-                    <a href="#"><i class="fas fa-envelope"></i> Contact</a>
-                </div>
-            </div>
-        </footer>
+  <!-- Content -->
+  <div class="az-content">
+      <div class="az-content-header">
+          <h1 class="az-page-title">{% block page_title %}Dashboard{% endblock %}</h1>
+          {% block page_actions %}{% endblock %}
+      </div>
+
+      <div class="az-content-body">
+          {% block content %}{% endblock %}
+      </div>
+  </div>
+
+  <!-- ✅ Footer devient le dernier du scroll -->
+  <footer class="az-footer">
+      <div class="az-footer-content">
+          <span>© 2026 AZ GROUPS - Tous droits réservés</span>
+          <div class="az-footer-links">
+              <a href="#"><i class="fas fa-question-circle"></i> Aide</a>
+              <a href="#"><i class="fas fa-shield-alt"></i> Confidentialité</a>
+              <a href="#"><i class="fas fa-file-contract"></i> Conditions</a>
+              <a href="#"><i class="fas fa-envelope"></i> Contact</a>
+          </div>
+      </div>
+  </footer>
+
+</div>
+
     </main>
 
 

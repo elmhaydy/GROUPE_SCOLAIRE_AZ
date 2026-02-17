@@ -6,7 +6,7 @@
 {% block current_page %}Pédagogie / EDT Prof{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'admin/css/seances/edt_prof.css' %}?v=2">
+<link rel="stylesheet" href="{% static 'admin/css/seances/edt_prof.css' %}?v=3">
 {% endblock %}
 
 {% block extra_js %}
@@ -125,6 +125,9 @@
                         {% for se in c.items %}
                           <div class="az-edt-chip">
                             <div class="az-edt-matiere">{{ se.matiere|default:"—" }}</div>
+                            <div class="az-edt-time">
+                              {{ se.heure_debut|time:"H:i" }}–{{ se.heure_fin|time:"H:i" }}
+                            </div>
                             <div class="az-edt-meta">
                               <span class="tag">{{ se.groupe.niveau.nom }} • {{ se.groupe.nom }}</span>
                               {% if se.salle %}

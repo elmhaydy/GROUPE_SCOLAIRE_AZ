@@ -6,7 +6,7 @@
 {% block current_page %}Pédagogie / Matières{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'admin/css/matieres/list.css' %}?v=4">
+<link rel="stylesheet" href="{% static 'admin/css/matieres/list.css' %}?v=5">
 {% endblock %}
 
 {% block content %}
@@ -20,6 +20,12 @@
   </div>
 
   <div class="az-page-head-right">
+    <div class="az-counter-pill" title="Nombre de matières">
+      <i class="fa-solid fa-book-open"></i>
+      <span>{{ total_matieres }}</span>
+      <small>matières</small>
+    </div>
+
     <a class="az-btn az-btn-primary" href="{% url 'core:matiere_create' %}">
       <i class="fa-solid fa-plus"></i> Ajouter
     </a>

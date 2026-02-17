@@ -404,3 +404,45 @@ html[data-theme="dark"] .az-select optgroup{
 html[data-theme="dark"] select:-internal-list-box{
   background-color: #0b1220 !important;
 }
+/* ===== AZ • Counter pill (Parents) ===== */
+.az-page-head-right{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.az-counter-pill{
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border, #e2e8f0);
+  background: var(--surface, #fff);
+  box-shadow: var(--shadow-sm, 0 6px 16px rgba(15,23,42,.06));
+  font-weight: 700;
+  line-height: 1;
+}
+
+.az-counter-pill i{
+  font-size: 14px;
+  opacity: .9;
+}
+
+.az-counter-pill span{
+  font-size: 14px;
+}
+
+.az-counter-pill small{
+  font-size: 12px;
+  opacity: .7;
+  font-weight: 600;
+}
+
+/* Dark mode (si tu utilises html[data-theme]) */
+html[data-theme="dark"] .az-counter-pill{
+  background: #0b1220;
+  border-color: rgba(148,163,184,.18);
+  box-shadow: 0 10px 26px rgba(0,0,0,.35);
+}

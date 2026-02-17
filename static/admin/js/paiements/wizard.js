@@ -1,10 +1,10 @@
 /* =========================================
-   AZ • Paiements Wizard — PAYEUR: PARENT / AUTRE (FINAL + FRATRIE)
-   - Mode Parent: TomSelect parent -> enfants
-   - Mode Autre: TomSelect élève direct (TomSelect)
-   - FRATRIE: fetch ajax_fratrie + click -> récup inscription_id -> charge échéances ✅
-   - Panier sidebar + guard doublon
-   - Transport guard + Inscription guard conservés
+   AZ • Paiements Wizard — FINAL (FIX SAVE DEFAULT)
+   - Montant rapide => remplit inputs
+   - ✅ "Enregistrer comme tarif par défaut" (SCO/TR) fiable
+   - ✅ Pré-remplissage depuis insc.sco_default_mensuel / insc.tr_default_mensuel
+   - ✅ Corrige le cas Django renvoie HTML (login/403) => erreur claire
+   - ✅ credentials same-origin (cookies/CSRF OK)
    ========================================= */
 (function () {
   "use strict";
@@ -22,15 +22,15 @@
 
   // selects
   const parentSelect = $("parentSelect");
-  const eleveSelect = $("eleveSelect");             // enfants par parent
-  const eleveDirectSelect = $("eleveDirectSelect"); // recherche élève direct (AUTRE)
+  const eleveSelect = $("eleveSelect");
+  const eleveDirectSelect = $("eleveDirectSelect");
   const eleveHint = $("eleveHint");
 
-  // FRATRIE (AUTRE)
+  // FRATRIE
   const fratrieBox = $("fratrieBox");
   const fratrieList = $("fratrieList");
 
-  // switch
+  // switch type
   const btnSco = $("btnSco");
   const btnIns = $("btnIns");
   const btnTr = $("btnTr");
@@ -72,30 +72,49 @@
   const packTrDisabled = $("packTrDisabled");
   const packTrTableWrap = $("packTrTableWrap");
 
-  // cart (sidebar)
+  // cart
   const btnAddToCart = $("btnAddToCart");
   const btnClearCart = $("btnClearCart");
   const cartEmpty = $("cartEmpty");
   const cartList = $("cartList");
   const totalTxt = $("totalTxt");
 
+  // meta
+  const eleveMetaCard = $("eleveMetaCard");
+  const metaNom = $("metaNom");
+  const metaMat = $("metaMat");
+  const metaNiveau = $("metaNiveau");
+  const metaGroupe = $("metaGroupe");
+  const metaAnnee = $("metaAnnee");
+
+  // bulk
+  const bulkPriceSco = $("bulkPriceSco");
+  const bulkPriceTr = $("bulkPriceTr");
+
+  // ✅ save default switches
+  const saveScoDefault = $("saveScoDefault");
+  const saveTrDefault = $("saveTrDefault");
+
+  // justificatifs
+  const modeSel = $("mode");
+  const justifType = $("justificatifType");
+  const justifHint = $("justifHint");
+
   let parentTS = null;
   let eleveTS = null;
 
   const state = {
-    payeur_mode: "PARENT", // PARENT | AUTRE
+    payeur_mode: "PARENT",
     parent_id: null,
 
     currentEleveId: null,
     currentEleveLabel: "",
     inscription_id: null,
 
-    // scolarité
     sco_echeances: [],
     sco_selected: new Set(),
     sco_prices: {},
 
-    // transport
     tr_enabled: false,
     tr_echeances: [],
     tr_selected: new Set(),
@@ -103,8 +122,7 @@
 
     max_inscription: "0.00",
 
-    // panier multi-enfants
-    cart: new Map(), // eleve_id -> snapshot
+    cart: new Map(),
   };
 
   // ---------- utils ----------
@@ -115,30 +133,129 @@
       .replaceAll(">", "&gt;")
       .replaceAll('"', "&quot;");
   }
-
   function toNum(v) {
     return parseFloat(String(v ?? "0").replace(",", ".")) || 0;
   }
+  function safeParse(raw, fallback) {
+    try { return JSON.parse(raw); } catch { return fallback; }
+  }
+  function debounce(fn, wait = 650) {
+    let t = null;
+    return (...args) => {
+      clearTimeout(t);
+      t = setTimeout(() => fn(...args), wait);
+    };
+  }
+
+  // CSRF (cookie ou input)
+  function getCSRFToken() {
+    const input = document.querySelector('input[name="csrfmiddlewaretoken"]');
+    if (input && input.value) return input.value;
+
+    const m = document.cookie.match(/(?:^|;\s*)csrftoken=([^;]+)/);
+    return m ? decodeURIComponent(m[1]) : "";
+  }
 
   async function fetchJSON(url) {
-    const res = await fetch(url, { headers: { "X-Requested-With": "XMLHttpRequest" } });
+    const res = await fetch(url, {
+      method: "GET",
+      credentials: "same-origin",
+      headers: { "X-Requested-With": "XMLHttpRequest" },
+    });
+
+    const ct = (res.headers.get("content-type") || "").toLowerCase();
     if (!res.ok) {
       const txt = await res.text().catch(() => "");
-      console.error("AJAX error", res.status, url, txt.slice(0, 250));
+      console.error("AJAX GET error", res.status, url, txt.slice(0, 300));
       throw new Error(`HTTP ${res.status}`);
+    }
+    if (!ct.includes("application/json")) {
+      const txt = await res.text().catch(() => "");
+      console.error("AJAX GET not JSON", url, txt.slice(0, 300));
+      throw new Error("Réponse non-JSON (login/403 possible)");
     }
     return await res.json();
   }
 
-  function safeParse(raw, fallback) {
-    try { return JSON.parse(raw); } catch (e) { return fallback; }
+  async function postJSON(url, bodyObj) {
+    const res = await fetch(url, {
+      method: "POST",
+      credentials: "same-origin",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRFToken": getCSRFToken(),
+        "X-Requested-With": "XMLHttpRequest",
+      },
+      body: JSON.stringify(bodyObj || {}),
+    });
+
+    const ct = (res.headers.get("content-type") || "").toLowerCase();
+    if (!ct.includes("application/json")) {
+      const txt = await res.text().catch(() => "");
+      console.error("AJAX POST not JSON", res.status, url, txt.slice(0, 300));
+      throw new Error("Réponse non-JSON (login/403 possible)");
+    }
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || data.ok === false) {
+      console.error("AJAX POST error", res.status, data);
+      throw new Error(data.error || `HTTP ${res.status}`);
+    }
+    return data;
+  }
+
+  // ---------- Justifs UI ----------
+  function updateJustifUI() {
+    if (!modeSel || !justifHint) return;
+    const m = String(modeSel.value || "").toUpperCase();
+
+    if (m === "CHEQUE") {
+      if (justifType) justifType.value = "CHEQUE";
+      justifHint.textContent = "Recommandé: scan du chèque.";
+    } else if (m === "VIREMENT") {
+      if (justifType) justifType.value = "VIREMENT";
+      justifHint.textContent = "Recommandé: reçu / preuve de virement.";
+    } else {
+      justifHint.textContent = "Optionnel. Recommandé pour chèque / virement.";
+    }
+  }
+  modeSel?.addEventListener("change", updateJustifUI);
+
+  // ---------- Meta ----------
+  function showEleveMeta(meta) {
+    if (!eleveMetaCard) return;
+    if (!meta || !meta.ok) {
+      eleveMetaCard.style.display = "none";
+      return;
+    }
+    const e = meta.eleve || {};
+    const n = meta.niveau || {};
+    const g = meta.groupe || {};
+    const a = meta.annee || {};
+
+    if (metaNom) metaNom.textContent = `${e.nom || ""} ${e.prenom || ""}`.trim() || "—";
+    if (metaMat) metaMat.textContent = e.matricule ? `Matricule: ${e.matricule}` : "";
+    if (metaNiveau) metaNiveau.textContent = `Niveau: ${n.label || "—"}`;
+    if (metaGroupe) metaGroupe.textContent = `Groupe: ${g.label || "—"}`;
+    if (metaAnnee) metaAnnee.textContent = a.label ? `Année: ${a.label}` : "Année: —";
+
+    eleveMetaCard.style.display = "";
+  }
+  async function loadEleveMetaByInscription(inscId) {
+    if (!cfg.eleveMetaUrl) return showEleveMeta(null);
+    if (!inscId) return showEleveMeta(null);
+    try {
+      const data = await fetchJSON(`${cfg.eleveMetaUrl}?inscription=${encodeURIComponent(String(inscId))}`);
+      showEleveMeta(data);
+    } catch {
+      showEleveMeta(null);
+    }
   }
 
   // ---------- TYPE SWITCH ----------
   function setType(type) {
     if (type === "TRANSPORT" && !state.tr_enabled) type = "SCOLARITE";
 
-    // inscription guard (si déjà payée)
     const reste = toNum(state.max_inscription || "0");
     if (type === "INSCRIPTION" && reste <= 0) type = "SCOLARITE";
 
@@ -156,18 +273,17 @@
 
     recompute();
   }
-
   btnSco?.addEventListener("click", () => setType("SCOLARITE"));
   btnIns?.addEventListener("click", () => setType("INSCRIPTION"));
   btnTr?.addEventListener("click", () => setType("TRANSPORT"));
   btnPack?.addEventListener("click", () => setType("PACK"));
 
-  // ---------- RENDER TABLE ----------
+  // ---------- TABLE ----------
   function renderTable(tbody, echeances, selectedSet, pricesMap) {
     if (!tbody) return;
 
     if (!echeances.length) {
-      tbody.innerHTML = `<tr><td colspan="3" class="az-muted">Aucune échéance.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="3" class="azw-empty">Aucune échéance.</td></tr>`;
       return;
     }
 
@@ -186,7 +302,7 @@
           <td>
             ${isPaid
               ? `<strong>${esc(du)} MAD</strong>`
-              : `<input class="az-input az-input-mini" type="number" step="0.01" min="0" data-price="${esc(id)}" value="${esc(val)}">`
+              : `<input class="azw-input" style="max-width:160px" type="number" step="0.01" min="0" data-price="${esc(id)}" value="${esc(val)}">`
             }
           </td>
         </tr>
@@ -238,6 +354,93 @@
     return total;
   }
 
+  // ---------- BULK APPLY ----------
+  function fillVisibleInputs(containerEl, value, selectToo) {
+    if (!containerEl) return;
+    const v = String(value ?? "").trim();
+    if (v === "") return;
+
+    const inputs = containerEl.querySelectorAll('input[type="number"][data-price]');
+    inputs.forEach(inp => {
+      if (inp.disabled) return;
+      inp.value = v;
+
+      const id = String(inp.dataset.price || "");
+      const tb = inp.closest("tbody");
+      if (!id || !tb) return;
+
+      if (tb === moisTbody || tb === packScoTbody) {
+        state.sco_prices[id] = v;
+        if (selectToo) state.sco_selected.add(id);
+      } else if (tb === transportTbody || tb === packTrTbody) {
+        state.tr_prices[id] = v;
+        if (selectToo) state.tr_selected.add(id);
+      }
+
+      if (selectToo) {
+        const chk = tb.querySelector(`input[type="checkbox"][data-id="${CSS.escape(id)}"]`);
+        if (chk && !chk.checked && !chk.disabled) chk.checked = true;
+      }
+    });
+
+    recompute();
+  }
+
+  // ---------- ✅ SAVE DEFAULT (debounced + on change + on blur) ----------
+  async function saveScoDefaultNow() {
+    if (!saveScoDefault?.checked) return;
+    if (!cfg.defaultScoUrl) return;
+    if (!state.inscription_id) return;
+
+    const amount = String(bulkPriceSco?.value ?? "").trim();
+    if (amount === "") return;
+
+    await postJSON(cfg.defaultScoUrl, { inscription_id: state.inscription_id, amount });
+  }
+
+  async function saveTrDefaultNow() {
+    if (!saveTrDefault?.checked) return;
+    if (!cfg.defaultTrUrl) return;
+    if (!state.inscription_id) return;
+
+    const amount = String(bulkPriceTr?.value ?? "").trim();
+    if (amount === "") return;
+
+    await postJSON(cfg.defaultTrUrl, { inscription_id: state.inscription_id, amount });
+  }
+
+  const debouncedSaveScoDefault = debounce(async () => {
+    try { await saveScoDefaultNow(); }
+    catch (e) { console.error("save sco default failed", e); }
+  }, 700);
+
+  const debouncedSaveTrDefault = debounce(async () => {
+    try { await saveTrDefaultNow(); }
+    catch (e) { console.error("save tr default failed", e); }
+  }, 700);
+
+  // ✅ si l’utilisateur coche après avoir tapé -> on sauvegarde direct
+  saveScoDefault?.addEventListener("change", () => {
+    if (saveScoDefault.checked) debouncedSaveScoDefault();
+  });
+  saveTrDefault?.addEventListener("change", () => {
+    if (saveTrDefault.checked) debouncedSaveTrDefault();
+  });
+
+  bulkPriceSco?.addEventListener("input", () => {
+    fillVisibleInputs(blocScolarite, bulkPriceSco.value, true);
+    fillVisibleInputs(blocPack, bulkPriceSco.value, true);
+    debouncedSaveScoDefault();
+  });
+  bulkPriceSco?.addEventListener("blur", () => debouncedSaveScoDefault());
+
+  bulkPriceTr?.addEventListener("input", () => {
+    fillVisibleInputs(blocTransport, bulkPriceTr.value, true);
+    fillVisibleInputs(blocPack, bulkPriceTr.value, true);
+    debouncedSaveTrDefault();
+  });
+  bulkPriceTr?.addEventListener("blur", () => debouncedSaveTrDefault());
+
   // ---------- TRANSPORT GUARD ----------
   function clearTransport() {
     state.tr_selected = new Set();
@@ -255,7 +458,6 @@
 
     if (!enabled && typeTransaction?.value === "TRANSPORT") setType("SCOLARITE");
 
-    // pack transport
     if (packTrOn && packTrDisabled && packTrTableWrap) {
       if (!enabled) {
         packTrOn.checked = false;
@@ -310,15 +512,12 @@
   }
 
   async function fetchInscriptionIdForEleve(eleveId, matriculeMaybe) {
-    // On doit récupérer inscription_id (année active) sinon pas d’échéances.
-    // On utilise ajax_eleves_search (qui retourne id + inscription_id).
     const baseUrl = (cfg.elevesSearchUrl || "").trim();
     if (!baseUrl) return "";
 
     const params = new URLSearchParams();
-    // meilleur filtre: matricule si dispo (rapide)
     if (matriculeMaybe) params.set("q", String(matriculeMaybe).trim());
-    else params.set("q", String(eleveId).trim()); // fallback
+    else params.set("q", String(eleveId).trim());
 
     const data = await fetchJSON(`${baseUrl}?${params.toString()}`);
     const raw = data.items || data.results || [];
@@ -327,19 +526,16 @@
     const found = (Array.isArray(raw) ? raw : []).find(x => String(x.id) === eid);
     if (found && found.inscription_id) return String(found.inscription_id);
 
-    // fallback: si recherche n’a pas match, on prend le premier si unique
     if (raw.length === 1 && raw[0].inscription_id) return String(raw[0].inscription_id);
-
     return "";
   }
 
   async function loadFratrie(eleveId) {
     hideFratrie();
-
     if (state.payeur_mode !== "AUTRE") return;
+
     const baseUrl = (cfg.fratrieUrl || "").trim();
-    if (!baseUrl) return;
-    if (!eleveId) return;
+    if (!baseUrl || !eleveId) return;
 
     try {
       const data = await fetchJSON(`${baseUrl}?eleve=${encodeURIComponent(String(eleveId))}`);
@@ -353,7 +549,7 @@
           const label = `${matricule ? matricule + " — " : ""}${String(it.nom || "")} ${String(it.prenom || "")}`.trim();
           return `
             <button type="button"
-                    class="az-chip"
+                    class="azw-chip"
                     data-fr="${esc(id)}"
                     data-mat="${esc(matricule)}"
                     data-label="${esc(label)}"
@@ -368,21 +564,17 @@
             const sibId = String(btn.dataset.fr || "");
             const sibMat = String(btn.dataset.mat || "");
             const sibLabel = String(btn.dataset.label || "").trim();
-
             if (!sibId) return;
 
-            // 1) Récup inscription_id du frère via ajax_eleves_search (année active)
             const inscId = await fetchInscriptionIdForEleve(sibId, sibMat);
 
-            // 2) Sync TomSelect (optionnel mais propre)
             if (eleveTS) {
               try {
                 if (!eleveTS.options[sibId]) eleveTS.addOption({ id: sibId, label: sibLabel, inscription_id: inscId });
                 eleveTS.setValue(sibId, true);
-              } catch (e) {}
+              } catch {}
             }
 
-            // 3) Charger finance + échéances ✅
             await loadFinanceForEleve(sibId, sibLabel, inscId);
           });
         });
@@ -395,7 +587,7 @@
     }
   }
 
-  // ---------- RESET CURRENT CHILD FINANCE ----------
+  // ---------- RESET ----------
   function resetChildFinance() {
     state.currentEleveId = null;
     state.currentEleveLabel = "";
@@ -417,7 +609,14 @@
     if (transportPayload) transportPayload.value = "";
     if (packPayload) packPayload.value = "";
 
-    const msg = `<tr><td colspan="3" class="az-muted">Choisis un élève…</td></tr>`;
+    if (bulkPriceSco) bulkPriceSco.value = "";
+    if (bulkPriceTr) bulkPriceTr.value = "";
+
+    // ✅ on reset les switches (comme avant)
+    if (saveScoDefault) saveScoDefault.checked = false;
+    if (saveTrDefault) saveTrDefault.checked = false;
+
+    const msg = `<tr><td colspan="3" class="azw-empty">Choisis un élève…</td></tr>`;
     if (moisTbody) moisTbody.innerHTML = msg;
     if (transportTbody) transportTbody.innerHTML = msg;
     if (packScoTbody) packScoTbody.innerHTML = msg;
@@ -439,6 +638,7 @@
     if (packInsMax) packInsMax.textContent = "";
 
     hideFratrie();
+    showEleveMeta(null);
 
     applyTransportGuard();
     applyInscriptionGuard();
@@ -464,12 +664,12 @@
         cartEmpty.style.display = "none";
         cartList.style.display = "";
         cartList.innerHTML = items.map(it => `
-          <div class="az-cart-item">
-            <div class="az-cart-item-main">
-              <div class="az-cart-item-name">${esc(it.label)}</div>
-              <div class="az-cart-item-sub az-muted">${esc(it.sub || "")}</div>
+          <div class="azw-cart-item">
+            <div class="azw-cart-item-main">
+              <div class="azw-cart-item-name">${esc(it.label)}</div>
+              <div class="azw-cart-item-sub azw-muted">${esc(it.sub || "")}</div>
             </div>
-            <button type="button" class="az-cart-remove" data-rm="${esc(it.eleve_id)}" title="Retirer">✕</button>
+            <button type="button" class="azw-cart-remove" data-rm="${esc(it.eleve_id)}" title="Retirer">✕</button>
           </div>
         `).join("");
 
@@ -483,7 +683,6 @@
       }
     }
 
-    // batch si 2+
     if (batchPayload) {
       if (items.length >= 2) {
         batchPayload.value = JSON.stringify({
@@ -501,13 +700,10 @@
       }
     }
 
-    // bouton add
     if (btnAddToCart) {
       const canAdd = !!state.currentEleveId && !!state.inscription_id && !isCurrentInCart();
       btnAddToCart.disabled = !canAdd;
-
-      if (isCurrentInCart()) btnAddToCart.textContent = "✅ Déjà dans panier";
-      else btnAddToCart.textContent = "+ Ajouter au panier";
+      btnAddToCart.textContent = isCurrentInCart() ? "✅ Déjà dans panier" : "+ Ajouter au panier";
     }
   }
 
@@ -593,7 +789,7 @@
   packInsAmount?.addEventListener("input", recompute);
   montantInscription?.addEventListener("input", recompute);
 
-  // ---------- LOAD CHILD FINANCE ----------
+  // ---------- LOAD FINANCE ----------
   async function loadFinanceForEleve(eleveId, eleveLabel, inscId) {
     resetChildFinance();
 
@@ -601,7 +797,7 @@
     state.currentEleveLabel = String(eleveLabel || "");
     if (eleveHint) eleveHint.textContent = state.currentEleveLabel ? `Sélection: ${state.currentEleveLabel}` : "";
 
-    const loading = `<tr><td colspan="3" class="az-muted">Chargement…</td></tr>`;
+    const loading = `<tr><td colspan="3" class="azw-empty">Chargement…</td></tr>`;
     if (moisTbody) moisTbody.innerHTML = loading;
     if (transportTbody) transportTbody.innerHTML = loading;
     if (packScoTbody) packScoTbody.innerHTML = loading;
@@ -610,19 +806,22 @@
     state.inscription_id = (inscId || "").trim() || null;
     if (inscriptionId) inscriptionId.value = state.inscription_id || "";
 
+    if (state.inscription_id) loadEleveMetaByInscription(state.inscription_id);
+
     if (!state.inscription_id) {
-      const msg = `<tr><td colspan="3" class="az-muted">Aucune inscription active pour cet élève.</td></tr>`;
+      const msg = `<tr><td colspan="3" class="azw-empty">Aucune inscription active pour cet élève.</td></tr>`;
       if (moisTbody) moisTbody.innerHTML = msg;
       if (transportTbody) transportTbody.innerHTML = msg;
       if (packScoTbody) packScoTbody.innerHTML = msg;
       if (packTrTbody) packTrTbody.innerHTML = msg;
+      showEleveMeta(null);
       applyTransportGuard();
       applyInscriptionGuard();
       recompute();
       return;
     }
 
-    // scolarité
+    // ---- scolarité ----
     const echData = await fetchJSON(`${cfg.echeancesUrl}?inscription=${encodeURIComponent(state.inscription_id)}`);
     state.sco_echeances = echData.items || [];
     state.max_inscription = echData.tarifs?.reste_inscription || "0.00";
@@ -641,10 +840,26 @@
       packInsAmount.disabled = !(maxN > 0);
     }
 
-    // transport
+    // ✅ pré-remplir depuis défaut scolarité (sans cocher les mois)
+    const scoDef = String(echData.tarifs?.sco_default_mensuel ?? "").trim();
+    if (bulkPriceSco && scoDef !== "") {
+      bulkPriceSco.value = scoDef;
+      fillVisibleInputs(blocScolarite, scoDef, false);
+      fillVisibleInputs(blocPack, scoDef, false);
+    }
+
+    // ---- transport ----
     const trData = await fetchJSON(`${cfg.transportEcheancesUrl}?inscription=${encodeURIComponent(state.inscription_id)}`);
     state.tr_enabled = !!trData.enabled;
     state.tr_echeances = trData.items || [];
+
+    const trDef = String(trData.tr_default_mensuel ?? "").trim();
+    const trFallback = String(trData.tarif_mensuel ?? "").trim();
+
+    if (bulkPriceTr) {
+      if (trDef !== "") bulkPriceTr.value = trDef;
+      else if (trFallback !== "" && trFallback !== "0.00") bulkPriceTr.value = trFallback;
+    }
 
     renderTable(moisTbody, state.sco_echeances, state.sco_selected, state.sco_prices);
     renderTable(packScoTbody, state.sco_echeances, state.sco_selected, state.sco_prices);
@@ -663,18 +878,20 @@
       if (packTrTableWrap) packTrTableWrap.style.display = "";
       renderTable(transportTbody, state.tr_echeances, state.tr_selected, state.tr_prices);
       renderTable(packTrTbody, state.tr_echeances, state.tr_selected, state.tr_prices);
+
+      const useTr = (trDef || trFallback || "").trim();
+      if (useTr !== "") {
+        fillVisibleInputs(blocTransport, useTr, false);
+        fillVisibleInputs(blocPack, useTr, false);
+      }
     }
 
     applyTransportGuard();
     applyInscriptionGuard();
     recompute();
 
-    // ✅ FRATRIE seulement en AUTRE
-    if (state.payeur_mode === "AUTRE") {
-      loadFratrie(state.currentEleveId);
-    } else {
-      hideFratrie();
-    }
+    if (state.payeur_mode === "AUTRE") loadFratrie(state.currentEleveId);
+    else hideFratrie();
   }
 
   // ---------- LOAD ENFANTS BY PARENT ----------
@@ -724,7 +941,7 @@
     const baseUrl = (cfg.parentsSearchUrl || "").trim();
     if (!baseUrl) return;
 
-    if (parentTS) { try { parentTS.destroy(); } catch (e) {} parentTS = null; }
+    if (parentTS) { try { parentTS.destroy(); } catch {} parentTS = null; }
 
     parentTS = new TomSelect(parentSelect, {
       create: false,
@@ -736,13 +953,6 @@
       searchField: ["label"],
       dropdownParent: "body",
       preload: true,
-
-      render: {
-        no_results: () => `<div class="no-results" style="padding:10px;color:#94a3b8;">Aucun parent</div>`,
-        option: (data, escape) => `<div class="option">${escape(data.label)}</div>`,
-        item: (data, escape) => `<div class="item">${escape(data.label)}</div>`,
-      },
-
       load: async (query, callback) => {
         try {
           const params = new URLSearchParams();
@@ -753,14 +963,12 @@
             .map(x => ({ id: String(x.id ?? ""), label: String(x.label ?? "").trim() }))
             .filter(o => o.id && o.label);
           callback(list);
-        } catch (e) { callback([]); }
+        } catch { callback([]); }
       },
-
       onChange: (val) => {
         const pid = String(val || "");
         state.parent_id = pid || null;
 
-        // nouveau parent => reset + panier vidé
         state.cart = new Map();
         updateCartUI();
 
@@ -776,7 +984,7 @@
     });
   }
 
-  // ---------- TOMSELECT ELEVE DIRECT (AUTRE) ----------
+  // ---------- TOMSELECT ELEVE DIRECT ----------
   function initEleveTS() {
     if (typeof TomSelect === "undefined") return;
     if (!eleveDirectSelect) return;
@@ -784,7 +992,7 @@
     const baseUrl = (cfg.elevesSearchUrl || "").trim();
     if (!baseUrl) return;
 
-    if (eleveTS) { try { eleveTS.destroy(); } catch (e) {} eleveTS = null; }
+    if (eleveTS) { try { eleveTS.destroy(); } catch {} eleveTS = null; }
 
     eleveTS = new TomSelect(eleveDirectSelect, {
       create: false,
@@ -796,13 +1004,6 @@
       searchField: ["label"],
       dropdownParent: "body",
       preload: false,
-
-      render: {
-        no_results: () => `<div class="no-results" style="padding:10px;color:#94a3b8;">Aucun élève</div>`,
-        option: (data, escape) => `<div class="option">${escape(data.label)}</div>`,
-        item: (data, escape) => `<div class="item">${escape(data.label)}</div>`,
-      },
-
       load: async (query, callback) => {
         try {
           const q = (query || "").trim();
@@ -822,11 +1023,8 @@
             .filter(o => o.id && o.label);
 
           callback(list);
-        } catch (e) {
-          callback([]);
-        }
+        } catch { callback([]); }
       },
-
       onChange: (val) => {
         const id = String(val || "");
         if (!id) { resetChildFinance(); updateCartUI(); return; }
@@ -886,4 +1084,5 @@
   setType("SCOLARITE");
   setPayeurMode("PARENT");
   updateCartUI();
+  updateJustifUI();
 })();

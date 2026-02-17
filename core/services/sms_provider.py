@@ -111,8 +111,62 @@ def send_sms_via_twilio(to_phone: str, message: str) -> Tuple[bool, str, str]:
         return (False, "", err)
 
 import os
+import re
 import requests
 from typing import Tuple
+
+def _bulksms_to_local_ma(phone: str) -> str:
+    """
+    Bulksms.ma (Maroc) : on force un format national 06/07XXXXXXXX.
+    Accepte: +2126..., 2126..., 002126..., 06..., 6...
+    Retourne: 06XXXXXXXX ou 07XXXXXXXX ou "" si invalide.
+    """
+    if not phone:
+        return ""
+
+    p = phone.strip()
+
+    # enlever séparateurs
+    p = re.sub(r"[ \-\(\)\._]", "", p)
+
+    # 00 -> +
+    if p.startswith("00"):
+        p = "+" + p[2:]
+
+    # +212...
+    if p.startswith("+212"):
+        rest = p[4:]
+        if rest.startswith("0"):
+            rest = rest[1:]
+        rest = re.sub(r"\D", "", rest)
+        if len(rest) == 9 and rest[0] in ("6", "7"):
+            return "0" + rest
+        return ""
+
+    # 212...
+    if p.startswith("212"):
+        rest = p[3:]
+        if rest.startswith("0"):
+            rest = rest[1:]
+        rest = re.sub(r"\D", "", rest)
+        if len(rest) == 9 and rest[0] in ("6", "7"):
+            return "0" + rest
+        return ""
+
+    # 06/07...
+    if p.startswith("0"):
+        digits = re.sub(r"\D", "", p)
+        if len(digits) == 10 and digits[1] in ("6", "7"):
+            return digits
+        return ""
+
+    # 6/7...
+    digits = re.sub(r"\D", "", p)
+    if len(digits) == 9 and digits[0] in ("6", "7"):
+        return "0" + digits
+
+    return ""
+
 
 def send_sms_via_bulksms_ma(to_phone: str, message: str) -> Tuple[bool, str, str]:
     """
@@ -125,12 +179,22 @@ def send_sms_via_bulksms_ma(to_phone: str, message: str) -> Tuple[bool, str, str
     if not token:
         return (False, "", "BULKSMS_TOKEN manquant dans .env")
 
-    url = "https://bulksms.ma/developer/sms/send"  # endpoint doc Bulksms :contentReference[oaicite:4]{index=4}
+    # ⚠️ Bulksms (MA) : meilleure compatibilité en format national
+    local_phone = _bulksms_to_local_ma(to_phone)
+    if not local_phone:
+        return (False, "", f"Numéro invalide pour Bulksms.ma: '{to_phone}'")
+
+    # message safe
+    msg = (message or "").strip()
+    if not msg:
+        return (False, "", "Message vide")
+
+    url = "https://bulksms.ma/developer/sms/send"
 
     data = {
         "token": token,
-        "tel": to_phone,         # ex: +2126... ou 06... (toi tu normalises déjà)
-        "message": message,
+        "tel": local_phone,   # ✅ 06/07...
+        "message": msg,
     }
 
     # shortcode = expéditeur (si autorisé)
@@ -138,18 +202,36 @@ def send_sms_via_bulksms_ma(to_phone: str, message: str) -> Tuple[bool, str, str
         data["shortcode"] = sender
 
     try:
-        r = requests.post(url, data=data, timeout=20)
-        # Bulksms retourne généralement un JSON {success:1,...} ou {error:"..."} :contentReference[oaicite:5]{index=5}
+        r = requests.post(url, data=data, timeout=25)
+
+        # parfois Bulksms peut répondre HTML ou texte
+        raw = (r.text or "").strip()
+
+        # tentative JSON
         try:
             j = r.json()
         except Exception:
-            return (False, "", f"Réponse non-JSON (HTTP {r.status_code}): {r.text[:250]}")
+            # si HTTP != 200 on donne un message clair
+            if not r.ok:
+                return (False, "", f"HTTP {r.status_code}: {raw[:300]}")
+            # même en 200, si non-json => on remonte le texte
+            return (False, "", f"Réponse non-JSON: {raw[:300]}")
 
-        if "success" in j and str(j.get("success")) in ("1", "true", "True"):
-            # parfois ils renvoient un id/message; on met tout le JSON en provider_id si pas mieux
-            provider_id = str(j.get("id") or j.get("message_id") or j)
+        # succès
+        if str(j.get("success")) in ("1", "true", "True"):
+            # Bulksms renvoie parfois juste {"success":1}
+            provider_id = str(j.get("id") or j.get("message_id") or "success")
             return (True, provider_id, "")
 
-        return (False, "", str(j.get("error") or j))
+        # erreur : message clair
+        err = j.get("error") or j.get("message") or j
+        err_str = str(err)
+
+        # cas spécial essai (tu l’as déjà vu)
+        if "période d" in err_str or "periode d" in err_str or "essai" in err_str:
+            return (False, "", "Compte Bulksms en ESSAI : tu peux envoyer uniquement vers ton propre numéro.")
+
+        return (False, "", err_str)
+
     except Exception as e:
         return (False, "", str(e))

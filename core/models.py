@@ -385,6 +385,17 @@ class Inscription(models.Model):
     groupe = models.ForeignKey("Groupe", on_delete=models.PROTECT, related_name="inscriptions")
     periode = models.ForeignKey("Periode", on_delete=models.PROTECT, related_name="inscriptions", null=True, blank=True)
 
+    sco_default_mensuel = models.DecimalField(
+        max_digits=10, decimal_places=2,
+        null=True, blank=True,
+        help_text="Override montant mensuel scolarité pour cette inscription"
+    )
+
+    tr_default_mensuel = models.DecimalField(
+        max_digits=10, decimal_places=2,
+        null=True, blank=True,
+        help_text="Override montant mensuel transport pour cette inscription"
+    )
     tarif_override = models.BooleanField(default=False)
     override_frais_inscription_du = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
     override_frais_scolarite_mensuel = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
@@ -1647,6 +1658,39 @@ class TransactionLigne(models.Model):
         if m < Decimal("0.00"):
             raise ValidationError({"montant": "Montant ligne invalide (négatif)."})
 
+from django.db import models
+from django.core.validators import FileExtensionValidator
+
+class TransactionJustificatif(models.Model):
+    tx = models.ForeignKey(
+        "TransactionFinance",
+        on_delete=models.CASCADE,
+        related_name="justificatifs"
+    )
+
+    # optionnel: catégoriser (reçu virement, scan chèque, etc.)
+    TYPE_CHOICES = [
+        ("RECU", "Reçu / Bordereau"),
+        ("CHEQUE", "Chèque (scan)"),
+        ("VIREMENT", "Virement (preuve)"),
+        ("AUTRE", "Autre"),
+    ]
+    type_piece = models.CharField(max_length=20, choices=TYPE_CHOICES, default="AUTRE")
+
+    fichier = models.FileField(
+        upload_to="finance/transactions/justificatifs/%Y/%m/",
+        validators=[FileExtensionValidator(allowed_extensions=["pdf", "jpg", "jpeg", "png", "webp"])]
+    )
+
+    original_name = models.CharField(max_length=255, blank=True)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-uploaded_at", "-id"]
+
+    def __str__(self):
+        return f"Justif TX#{self.tx_id} - {self.original_name or self.fichier.name}"
+
 
 from django.db.models import F
 
@@ -2001,3 +2045,24 @@ class Depense(AuditBase):
 
     def __str__(self):
         return f"{self.date_depense} — {self.libelle} ({self.montant} MAD)"
+
+
+
+from decimal import Decimal
+from django.db import models
+
+class Tarification(models.Model):
+    nom = models.CharField(max_length=80, unique=True)
+
+    # tarifs par défaut
+    sco_mensuel = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
+    tr_mensuel  = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
+    inscription = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
+
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ["nom"]
+
+    def __str__(self):
+        return self.nom

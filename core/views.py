@@ -1745,6 +1745,7 @@ def groupe_list(request):
 
     niveaux = Niveau.objects.select_related("degre").all()
     annees = AnneeScolaire.objects.all()
+    total_groupes = groupes.count()
 
     return render(
         request,
@@ -1752,10 +1753,13 @@ def groupe_list(request):
         {
             "groupes": groupes,
             "q": q,
+            "total_groupes": total_groupes,  # ✅ AJOUT
+
             "niveaux": niveaux,
             "annees": annees,
             "niveau_selected": niveau_id,
             "annee_selected": annee_id,
+            "annee_active": annee_active,
         },
     )
 
@@ -1900,6 +1904,7 @@ def eleve_list(request):
             eleves = eleves.filter(inscriptions__annee_id=annee_id, inscriptions__periode_id=periode_id)
 
     eleves = eleves.distinct()
+    total_eleves = eleves.count()
 
     # ✅ periodes pour dropdown
     periodes = Periode.objects.all()
@@ -1921,6 +1926,8 @@ def eleve_list(request):
 
     return render(request, "admin/eleves/list.html", {
         "eleves": eleves,
+        "total_eleves": total_eleves,  # ✅ AJOUT
+
         "q": q,
         "statut": statut,
 
@@ -2030,6 +2037,7 @@ def eleves_pdf_view(request):
 
     return pdf_utils.eleves_list_pdf(title, eleves)
 
+
 @login_required
 @permission_required("core.view_eleve", raise_exception=True)
 def eleves_excel_export(request):
@@ -2038,9 +2046,7 @@ def eleves_excel_export(request):
     # =========================
     q = (request.GET.get("q") or "").strip()
     statut = (request.GET.get("statut") or "").strip()
-
-    # "", "inscrits", "non_inscrits"
-    insc = (request.GET.get("insc") or "").strip()
+    insc = (request.GET.get("insc") or "").strip()  # "", "inscrits", "non_inscrits"
 
     annee_active = AnneeScolaire.objects.filter(is_active=True).first()
     annee_id = (request.GET.get("annee") or "").strip()
@@ -2108,10 +2114,10 @@ def eleves_excel_export(request):
     eleves = eleves.distinct().order_by("nom", "prenom")
 
     # =========================
-    # Précharger les inscriptions utiles pour afficher "Groupe"
-    # On récupère toutes les inscriptions de l'année (pour les élèves exportés)
+    # Précharger inscriptions utiles (pour Groupe)
     # =========================
     eleve_ids = list(eleves.values_list("id", flat=True))
+
     insc_qs = (
         Inscription.objects
         .select_related("groupe", "groupe__niveau")
@@ -2120,14 +2126,12 @@ def eleves_excel_export(request):
     if annee_id:
         insc_qs = insc_qs.filter(annee_id=annee_id)
 
-    # Priorité: VALIDEE > EN_COURS > (reste)
-    # On trie pour que la 1ère inscription rencontrée soit la meilleure
+    # Priorité: VALIDEE > EN_COURS > reste
     statut_rank = {"VALIDEE": 0, "EN_COURS": 1}
     insc_qs = insc_qs.order_by("eleve_id", "statut", "-id")
 
     insc_by_eleve = {}
     for insc_obj in insc_qs:
-        # on force la priorité manuellement (plus sûr)
         eid = insc_obj.eleve_id
         if eid not in insc_by_eleve:
             insc_by_eleve[eid] = insc_obj
@@ -2139,13 +2143,40 @@ def eleves_excel_export(request):
                 insc_by_eleve[eid] = insc_obj
 
     # =========================
+    # ✅ Précharger téléphone Parent (pour export)
+    # - prend parent principal si champ is_principal existe
+    # - sinon prend 1er parent
+    # =========================
+    liens = (
+        ParentEleve.objects
+        .select_related("parent")
+        .filter(eleve_id__in=eleve_ids)
+        .order_by("eleve_id", "id")
+    )
+
+    parent_phone_by_eleve = {}
+    for link in liens:
+        eid = link.eleve_id
+        if eid in parent_phone_by_eleve:
+            continue
+
+        p = getattr(link, "parent", None)
+        tel = ""
+        if p:
+            # adapte ici si ton champ téléphone parent s'appelle différemment
+            tel = (getattr(p, "telephone", "") or "").strip()
+
+        parent_phone_by_eleve[eid] = tel
+
+    # =========================
     # Excel PRO
     # =========================
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = "Eleves"
 
-    headers = ["#", "Nom", "Prenom", "Groupe", "Téléphone"]
+    # ✅ Téléphone = téléphone parent
+    headers = ["#", "Nom", "Prenom", "Groupe", "Téléphone parent"]
     ws.append(headers)
 
     header_font = Font(bold=True)
@@ -2166,12 +2197,18 @@ def eleves_excel_export(request):
         else:
             groupe_str = ""
 
+        tel_parent = (parent_phone_by_eleve.get(e.id) or "").strip()
+
+        # fallback: si aucun parent/tel parent => tel élève
+        if not tel_parent:
+            tel_parent = (e.telephone or "").strip()
+
         ws.append([
             i,
             e.nom or "",
             e.prenom or "",
             groupe_str,
-            e.telephone or "",
+            tel_parent,
         ])
 
     ws.freeze_panes = "A2"
@@ -2662,9 +2699,12 @@ def inscription_list(request):
     if annee_id:
         periodes = periodes.filter(annee_id=annee_id)
 
+    total_inscriptions = inscriptions.count()
+
     return render(request, "admin/inscriptions/list.html", {
         "inscriptions": inscriptions,
         "annee_active": annee_active,
+        "total_inscriptions": total_inscriptions, 
 
         "annees": annees,
         "annee_selected": annee_id,
@@ -3139,6 +3179,8 @@ def paiement_list(request):
     annee_selected_obj = None
     if annee_id and annee_id.isdigit():
         annee_selected_obj = AnneeScolaire.objects.filter(id=int(annee_id)).first()
+    
+    total_paiements = len(groups)
 
     return render(request, "admin/paiements/list.html", {
         "annee_active": annee_selected_obj or annee_active,
@@ -3156,6 +3198,7 @@ def paiement_list(request):
         "groupe_selected": groupe_id,
         "periodes": periodes,
         "periode_selected": periode_id,
+        "total_paiements": total_paiements,
 
         "q": q,
         "modes": modes,
@@ -6063,6 +6106,10 @@ def parent_list(request):
     # ✅ éviter doublons (un parent peut avoir plusieurs enfants)
     parents = parents.distinct()
 
+    # ✅ compteur (après distinct sinon faux total)
+    total_parents = parents.count()
+
+
     # ✅ dropdowns
     annees = AnneeScolaire.objects.all().order_by("-date_debut", "-id")
 
@@ -6080,7 +6127,7 @@ def parent_list(request):
         "parents": parents,
         "q": q,
         "statut": statut,
-
+        "total_parents": total_parents,  
         "annees": annees,
         "annee_selected": annee_id,
         "niveaux": niveaux,
@@ -6797,8 +6844,16 @@ def matiere_list(request):
     if degre_id:
         niveaux = niveaux.filter(degre_id=degre_id)
 
+    # ✅ qs final (distinct + tri)
+    matieres_qs = matieres.distinct().order_by("nom")
+
+    # ✅ compteur (après distinct)
+    total_matieres = matieres_qs.count()
+
     return render(request, "admin/matieres/list.html", {
-        "matieres": matieres.distinct().order_by("nom"),
+        "matieres": matieres_qs,
+        "total_matieres": total_matieres,  # ✅ AJOUT
+
         "degres": degres,
         "niveaux": niveaux,
         "degre_selected": degre_id,
@@ -8401,49 +8456,6 @@ def api_periodes_par_groupe(request):
     return JsonResponse([{"id": p.id, "label": p.nom} for p in periodes], safe=False)
 
 
-@login_required
-@permission_required("core.view_anneescolaire", raise_exception=True)
-def ajax_transport_echeances(request):
-    """
-    GET /core/ajax/transport-echeances/?inscription=ID
-    -> {enabled:bool, items:[...], tarif_mensuel:"0.00"}
-    """
-    insc_id = (request.GET.get("inscription") or "").strip()
-    if not insc_id.isdigit():
-        return JsonResponse({"enabled": False, "items": [], "tarif_mensuel": "0.00"}, status=200)
-
-    insc = get_object_or_404(
-        Inscription.objects.select_related("eleve", "annee", "groupe"),
-        pk=int(insc_id)
-    )
-
-    tr = getattr(insc.eleve, "transport", None)
-    if not tr or not tr.enabled:
-        return JsonResponse({"enabled": False, "items": [], "tarif_mensuel": "0.00"}, status=200)
-
-    qs = (EcheanceTransportMensuelle.objects
-          .filter(eleve_id=insc.eleve_id, annee_id=insc.annee_id)
-          .order_by("mois_index"))
-
-    items = []
-    for e in qs:
-        du = e.montant_du or Decimal("0.00")
-        is_paye = (e.statut == "PAYE")
-        items.append({
-            "id": e.id,
-            "mois_index": int(e.mois_index),
-            "mois_nom": e.mois_nom,
-            "du": str(du),
-            "is_paye": bool(is_paye),
-            "statut": e.statut,
-            "date_echeance": str(e.date_echeance),
-        })
-
-    return JsonResponse({
-        "enabled": True,
-        "tarif_mensuel": str(tr.tarif_mensuel or Decimal("0.00")),
-        "items": items
-    }, status=200)
 
 
 def _d(x) -> Decimal:
@@ -8833,10 +8845,10 @@ def edt_prof_week(request, pk=None):
         (time(9, 30),  time(10, 30)),
         (time(10, 30), time(11, 30)),
         (time(11, 30), time(12, 30)),
+        (time(12, 30), time(13, 30)),
+        (time(13, 30), time(14, 30)),
         (time(14, 30), time(15, 30)),
         (time(15, 30), time(16, 30)),
-        (time(16, 30), time(17, 30)),
-        (time(17, 30), time(18, 30)),
     ]
 
     def fmt(t): return t.strftime("%H:%M") if t else ""

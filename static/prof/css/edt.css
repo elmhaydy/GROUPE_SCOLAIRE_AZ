@@ -365,3 +365,37 @@
     font-size: 1.35rem;
   }
 }
+/* ✅ Time badge (heure début/fin) */
+.az-edt-time{
+  display:inline-flex;
+  align-items:center;
+  gap:.45rem;
+
+  width: fit-content;
+  margin-top: 6px;
+
+  font-size: .78rem;
+  font-weight: 950;
+  letter-spacing: .02em;
+
+  padding: 5px 10px;
+  border-radius: 999px;
+
+  background: rgba(56,189,248,.10);
+  border: 1px solid rgba(56,189,248,.20);
+  color: var(--text-main);
+}
+
+[data-theme="light"] .az-edt-time{
+  background: rgba(2,132,199,.10);
+  border-color: rgba(2,132,199,.18);
+}
+
+.az-edt-time::before{
+  content:"";
+  width:8px;
+  height:8px;
+  border-radius:999px;
+  background: rgba(56,189,248,.95);
+  box-shadow: 0 10px 22px rgba(56,189,248,.18);
+}

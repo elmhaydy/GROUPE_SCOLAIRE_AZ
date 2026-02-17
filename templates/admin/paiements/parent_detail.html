@@ -114,9 +114,7 @@
             <a class="az-btn az-btn-outline" href="{% url 'core:transaction_success' tx_id=t.id %}">
               <i class="fa-solid fa-receipt"></i> Reçu
             </a>
-            <a class="az-btn az-btn-outline" href="{% url 'core:transaction_pdf' tx_id=t.id %}">
-              <i class="fa-solid fa-file-pdf"></i> PDF
-            </a>
+
           </div>
         </div>
       {% empty %}

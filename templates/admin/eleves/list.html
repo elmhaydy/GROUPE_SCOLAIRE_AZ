@@ -6,7 +6,7 @@
 {% block current_page %}Scolaire / Élèves{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'admin/css/eleves/list.css' %}?v=1">
+<link rel="stylesheet" href="{% static 'admin/css/eleves/list.css' %}?v=2">
 {% endblock %}
 
 {% block content %}
@@ -26,6 +26,11 @@
   </div>
 
   <div class="az-page-head-right">
+    <div class="az-counter-pill" title="Nombre d'élèves">
+      <i class="fa-solid fa-user-graduate"></i>
+      <span>{{ total_eleves }}</span>
+      <small>élèves</small>
+    </div>
 
 
     <a class="az-btn az-btn-primary" href="{% url 'core:eleve_create' %}">

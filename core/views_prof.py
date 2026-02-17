@@ -892,11 +892,12 @@ def prof_edt(request):
         (time(9, 30),  time(10, 30)),
         (time(10, 30), time(11, 30)),
         (time(11, 30), time(12, 30)),
+        (time(12, 30), time(13, 30)),
+        (time(13, 30), time(14, 30)),
         (time(14, 30), time(15, 30)),
         (time(15, 30), time(16, 30)),
-        (time(16, 30), time(17, 30)),
-        (time(17, 30), time(18, 30)),
     ]
+
 
     def fmt(t): return t.strftime("%H:%M") if t else ""
 

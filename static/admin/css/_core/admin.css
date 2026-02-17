@@ -1588,3 +1588,255 @@ html[data-theme="light"] .az-sidebar.is-collapsed .az-nav-item[data-tooltip]::af
     display: inline-flex !important;
   }
 }
+/* =========================================================
+   AZ • SCROLL فقط داخل CONTENT (indépendant sidebar)
+   Footer = dernier élément du scroll (pas fixed)
+   ========================================================= */
+
+/* Layout global */
+.az-zoom{
+  height: 100vh;
+  overflow: hidden; /* ✅ pas de scroll sur body */
+}
+
+/* Sidebar: scroll indépendant */
+.az-sidebar{
+  height: 100vh;
+  overflow-y: auto;
+}
+
+/* Main: colonne fixe (topbar fixe + scroll area) */
+.az-main{
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden; /* ✅ important */
+}
+
+/* Topbar: reste visible */
+.az-topbar{
+  flex: 0 0 auto;
+}
+
+/* ✅ Zone scrollable (content + footer) */
+.az-scroll-area{
+  flex: 1 1 auto;
+  overflow-y: auto;      /* ✅ scroll ici */
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;         /* ✅ SUPER IMPORTANT pour que overflow marche en flex */
+}
+
+/* Content: normal */
+.az-content{
+  flex: 0 0 auto;
+}
+
+/* ✅ Footer: pas fixed, mais poussé en bas si contenu court */
+.az-footer{
+  margin-top: auto;      /* ✅ colle en bas si peu de contenu */
+  position: static;
+}
+/* =========================================================
+   AZ • TomSelect — Dark mode FIX (NEBULA)
+   Colle en bas (après tes styles)
+   ========================================================= */
+
+/* Base: on s'assure que TomSelect prend 100% */
+.ts-wrapper{ width:100%; }
+
+/* ---------- DARK THEME ---------- */
+html[data-theme="dark"] .ts-wrapper .ts-control{
+  background: rgba(2,6,23,.30) !important;
+  border: 1px solid rgba(148,163,184,.18) !important;
+  color: rgba(241,245,249,.95) !important;
+  border-radius: 14px !important;
+  min-height: 52px;
+  padding: 10px 12px !important;
+  box-shadow: none !important;
+}
+
+/* Texte tapé */
+html[data-theme="dark"] .ts-wrapper .ts-control input{
+  color: rgba(241,245,249,.95) !important;
+}
+
+/* Placeholder */
+html[data-theme="dark"] .ts-wrapper .ts-control input::placeholder{
+  color: rgba(148,163,184,.85) !important;
+}
+
+/* Item sélectionné (single) */
+html[data-theme="dark"] .ts-wrapper.single .ts-control .item{
+  color: rgba(241,245,249,.95) !important;
+}
+
+/* Focus ring AZ */
+html[data-theme="dark"] .ts-wrapper .ts-control:focus,
+html[data-theme="dark"] .ts-wrapper .ts-control.focus{
+  border-color: rgba(99,102,241,.70) !important;
+  box-shadow: 0 0 0 4px rgba(99,102,241,.18), 0 18px 40px rgba(99,102,241,.14) !important;
+}
+
+/* Dropdown panel */
+html[data-theme="dark"] .ts-dropdown{
+  background: #0b1220 !important;
+  border: 1px solid rgba(255,255,255,.10) !important;
+  box-shadow: 0 22px 80px rgba(0,0,0,.45) !important;
+  border-radius: 14px !important;
+  overflow: hidden;
+}
+
+/* Options */
+html[data-theme="dark"] .ts-dropdown .ts-dropdown-content .option{
+  color: rgba(241,245,249,.92) !important;
+  background: transparent !important;
+  padding: 10px 12px !important;
+}
+
+/* Hover */
+html[data-theme="dark"] .ts-dropdown .option:hover,
+html[data-theme="dark"] .ts-dropdown .option.active{
+  background: rgba(99,102,241,.14) !important;
+  color: #fff !important;
+}
+
+/* Selected */
+html[data-theme="dark"] .ts-dropdown .option.selected{
+  background: rgba(99,102,241,.22) !important;
+  color: #fff !important;
+}
+
+/* Si tu utilises multi-select (chips) */
+html[data-theme="dark"] .ts-wrapper.multi .ts-control .item{
+  background: rgba(99,102,241,.14) !important;
+  border: 1px solid rgba(99,102,241,.22) !important;
+  color: rgba(241,245,249,.95) !important;
+  border-radius: 999px !important;
+}
+
+/* Bouton clear / caret */
+html[data-theme="dark"] .ts-control .clear-button,
+html[data-theme="dark"] .ts-control .ts-dropdown-button{
+  color: rgba(148,163,184,.95) !important;
+}
+/* =========================================================
+   AZ • SCROLL SYSTEM — FINAL LOCK
+   Un seul scroll: .az-scroll-area
+   ========================================================= */
+
+html, body{
+  height: 100%;
+  overflow: hidden; /* ✅ pas de scroll page */
+}
+
+/* wrapper global */
+.az-zoom{
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+}
+
+/* sidebar scroll */
+.az-sidebar{
+  height: 100vh;
+  overflow-y: auto;
+}
+
+/* main = topbar + scroll-area */
+.az-main{
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0; /* ✅ */
+}
+
+/* la zone qui scrolle */
+.az-scroll-area{
+  flex: 1 1 auto;
+  min-height: 0;          /* ✅ crucial */
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* content ne doit PAS scroller */
+.az-content{
+  flex: 0 0 auto;
+  overflow: visible !important;
+}
+
+/* footer normal, collé en bas si peu de contenu */
+.az-footer{
+  margin-top: auto;
+  position: static !important;
+}
+/* =========================================================
+   AZ • LAYOUT / SCROLL — FINAL LOCK (NEBULA)
+   - Scroll UNIQUE dans .az-scroll-area
+   - Sidebar scroll indépendante
+   - Footer toujours en bas (pas de grand vide)
+   ========================================================= */
+
+html, body{
+  height: 100%;
+  overflow: hidden; /* ✅ pas de scroll page */
+}
+
+/* wrapper global */
+.az-zoom{
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+}
+
+/* sidebar */
+.az-sidebar{
+  height: 100vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* main = topbar + scroll-area */
+.az-main{
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0; /* ✅ CRUCIAL */
+}
+
+/* topbar fixe */
+.az-topbar{
+  flex: 0 0 auto;
+}
+
+/* zone qui scrolle (content + footer) */
+.az-scroll-area{
+  flex: 1 1 auto;
+  min-height: 0;          /* ✅ CRUCIAL */
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* content ne doit pas créer de scroll interne */
+.az-content{
+  flex: 0 0 auto;
+  overflow: visible;
+}
+
+/* footer = dernier élément du scroll */
+.az-footer{
+  margin-top: auto;       /* ✅ pousse en bas si page courte */
+  position: static;
+}
+
+/* ✅ Mobile : on garde le même système (pas de scroll page) */
+@media (max-width: 768px){
+  html, body{ overflow: hidden; }
+}
