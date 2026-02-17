@@ -284,10 +284,101 @@
         </section>
 
         <!-- PACK (inchangé chez toi) -->
-        <section class="azw-block" id="blocPack" style="display:none;">
-          <!-- garde ton pack existant ici tel quel -->
-          <!-- ... -->
-        </section>
+<section class="azw-block" id="blocPack" style="display:none;">
+  <div class="azw-block__head">
+    <h2 class="azw-h2">Pack</h2>
+    <span class="azw-badge">D</span>
+  </div>
+
+  <div class="azw-help" style="margin-bottom:10px;">
+    Active ce que tu veux inclure dans le pack (Inscription + Scolarité + Transport). Un seul reçu.
+  </div>
+
+  <!-- Toggles -->
+  <div class="azw-grid3" style="margin-bottom:12px;">
+    <label class="azw-toggle">
+      <input type="checkbox" id="packInsOn">
+      <span>Inclure Inscription</span>
+    </label>
+
+    <label class="azw-toggle">
+      <input type="checkbox" id="packScoOn" checked>
+      <span>Inclure Scolarité</span>
+    </label>
+
+    <label class="azw-toggle">
+      <input type="checkbox" id="packTrOn">
+      <span>Inclure Transport</span>
+    </label>
+  </div>
+
+  <!-- INSCRIPTION -->
+  <div id="packInsBlock" style="display:none;">
+    <div class="azw-grid2">
+      <div class="azw-field">
+        <label class="azw-label">Montant inscription</label>
+        <input type="number" step="0.01" min="0" class="azw-input" id="packInsAmount" placeholder="0.00" disabled>
+        <div class="azw-hint" id="packInsMax"></div>
+      </div>
+      <div class="azw-field azw-field--right">
+        <div class="azw-note">
+          <i class="fa-solid fa-circle-info"></i>
+          Inscription disponible seulement si le reste &gt; 0.
+        </div>
+      </div>
+    </div>
+    <div class="azw-divider"></div>
+  </div>
+
+  <!-- SCOLARITE -->
+  <div id="packScoBlock">
+    <div class="azw-note" style="margin-bottom:10px;">
+      <i class="fa-solid fa-circle-info"></i>
+      Coche les mois scolarité à inclure dans le pack.
+    </div>
+
+    <div class="azw-table">
+      <table>
+        <thead>
+          <tr>
+            <th class="azw-col-check"></th>
+            <th>Mois</th>
+            <th class="azw-col-money">Montant</th>
+          </tr>
+        </thead>
+        <tbody id="packScoTbody">
+          <tr><td colspan="3" class="azw-empty">Choisis un élève…</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="azw-divider"></div>
+  </div>
+
+  <!-- TRANSPORT -->
+  <div id="packTrBlock" style="display:none;">
+    <div class="azw-alert" id="packTrDisabled" style="display:none;">
+      <i class="fa-solid fa-triangle-exclamation"></i>
+      Transport désactivé pour cet élève.
+    </div>
+
+    <div class="azw-table" id="packTrTableWrap" style="display:none;">
+      <table>
+        <thead>
+          <tr>
+            <th class="azw-col-check"></th>
+            <th>Mois</th>
+            <th class="azw-col-money">Montant</th>
+          </tr>
+        </thead>
+        <tbody id="packTrTbody">
+          <tr><td colspan="3" class="azw-empty">Choisis un élève…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
 
         <!-- PAIEMENT / REF / NOTE -->
         <section class="azw-block">
