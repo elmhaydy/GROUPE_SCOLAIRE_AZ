@@ -1,149 +1,98 @@
-/* ===============================
-   TOM SELECT – AZ NEBULA DARK
-   =============================== */
+/* =========================================================
+   AZ • TomSelect — Fix focus ring (PARENT / ENFANT)
+   - même glow violet que tes inputs AZ
+   - dark/light via html[data-theme]
+   ========================================================= */
 
-/* wrapper */
-.ts-wrapper {
+/* base tokens (tu peux adapter si tu as déjà des variables globales) */
+:root{
+  --az-primary: #4361ee;
+  --az-accent:  #7209b7;
+  --az-ring: rgba(114, 9, 183, .28);
+  --az-border: #dbe4f0;
+  --az-text: #0f172a;
+  --az-bg: #ffffff;
+}
+
+html[data-theme="dark"]{
+  --az-border: rgba(148,163,184,.28);
+  --az-text: #e5e7eb;
+  --az-bg: #0b1220;
+  --az-ring: rgba(114, 9, 183, .35);
+}
+
+/* ---- wrapper ---- */
+.ts-wrapper{
   width: 100%;
 }
 
-/* control (input visible) */
-.ts-control {
-  background: #0b1220 !important;
-  border: 1px solid #1f2a44 !important;
-  color: #e5e7eb !important;
-  border-radius: 12px;
+/* ---- control (la "box" visible) ---- */
+.ts-control{
   min-height: 44px;
-  padding: 8px 12px;
-  box-shadow: none;
+  padding: 10px 12px !important;
+  border-radius: 14px !important;
+  border: 1px solid var(--az-border) !important;
+  background: var(--az-bg) !important;
+  color: var(--az-text) !important;
+  box-shadow: none !important;
+  transition: border-color .15s ease, box-shadow .15s ease, transform .08s ease;
 }
 
-.ts-control input {
-  color: #e5e7eb !important;
-  font-size: 14px;
+/* placeholder / texte */
+.ts-control input,
+.ts-control .item{
+  color: var(--az-text) !important;
 }
 
-/* placeholder */
-.ts-control .placeholder {
-  color: #94a3b8 !important;
-}
-
-/* dropdown */
-.ts-dropdown {
-  background: #0b1220 !important;
-  border: 1px solid #1f2a44 !important;
-  border-radius: 12px;
-  margin-top: 6px;
-  overflow: hidden;
-  z-index: 9999;
-}
-
-/* option */
-.ts-dropdown .option {
-  padding: 10px 12px;
-  font-size: 14px;
-  color: #e5e7eb;
-  cursor: pointer;
+.ts-control input::placeholder{
+  opacity: .6;
 }
 
 /* hover */
-.ts-dropdown .option:hover,
-.ts-dropdown .option.active {
-  background: linear-gradient(135deg, #7209b7, #4361ee);
-  color: #ffffff;
+.ts-wrapper:not(.disabled) .ts-control:hover{
+  border-color: color-mix(in srgb, var(--az-accent) 35%, var(--az-border)) !important;
 }
 
-/* selected item */
-.ts-control .item {
-  background: transparent;
-  color: #e5e7eb;
+/* ✅ focus glow violet (LE FIX principal) */
+.ts-wrapper.focus .ts-control{
+  border-color: var(--az-accent) !important;
+  box-shadow: 0 0 0 4px var(--az-ring) !important;
 }
 
-/* disabled */
-.ts-wrapper.disabled .ts-control {
-  opacity: 0.5;
+/* si TomSelect met focus sur l'input interne */
+.ts-control input:focus{
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* disabled (évite le look "gris mort") */
+.ts-wrapper.disabled .ts-control{
+  opacity: .65;
   cursor: not-allowed;
 }
 
-/* remove border glow bug */
-.ts-control:focus {
-  box-shadow: 0 0 0 2px rgba(114,9,183,0.35);
-  border-color: #7209b7 !important;
+/* ---- dropdown ---- */
+.ts-dropdown{
+  border-radius: 14px !important;
+  border: 1px solid var(--az-border) !important;
+  background: var(--az-bg) !important;
+  color: var(--az-text) !important;
+  overflow: hidden;
 }
 
-/* ===== PATCH: alignement + hauteur + flèche ===== */
-
-/* même feeling que .az-select */
-.ts-wrapper.single .ts-control {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  height: 46px;          /* ajuste si ton az-select est 48/50 */
-  padding: 0 44px 0 14px;/* espace à droite pour la flèche */
+/* option hover/active */
+.ts-dropdown .option{
+  padding: 10px 12px !important;
+}
+.ts-dropdown .option.active,
+.ts-dropdown .option:hover{
+  background: color-mix(in srgb, var(--az-accent) 14%, var(--az-bg)) !important;
 }
 
-/* placeholder centré */
-.ts-wrapper.single .ts-control .placeholder,
-.ts-wrapper.single .ts-control .item {
-  line-height: 46px;
-}
-
-/* flèche dropdown (TomSelect) */
-.ts-wrapper.single .ts-control::after {
-  content: "";
-  position: absolute;
-  right: 16px;
-  top: 50%;
-  width: 0;
-  height: 0;
-  transform: translateY(-35%);
-  border-left: 6px solid transparent;
-  border-right: 6px solid transparent;
-  border-top: 7px solid #94a3b8; /* gris clair */
-  opacity: 0.9;
-}
-
-/* quand ouvert */
-.ts-wrapper.single.dropdown-active .ts-control::after {
-  transform: translateY(-65%) rotate(180deg);
-}
-
-/* évite que les chips collent au select */
-#eleveSelect,
-.ts-wrapper {
-  margin-bottom: 10px;
-}
-
-
-
-/* ===========================
-   TOMSELECT — LIGHT MODE
-   =========================== */
-
-html[data-theme="light"] .ts-control {
-  background: #ffffff !important;
-  color: #0f172a !important;
-  border: 1px solid #dbe3f0 !important;
-}
-
-html[data-theme="light"] .ts-control input {
-  color: #0f172a !important;
-}
-
-html[data-theme="light"] .ts-dropdown {
-  background: #ffffff !important;
-  border: 1px solid #dbe3f0 !important;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.08);
-}
-
-html[data-theme="light"] .ts-dropdown .option {
-  color: #0f172a !important;
-}
-
-html[data-theme="light"] .ts-dropdown .option:hover {
-  background: #f1f5ff !important;
-}
-
-html[data-theme="light"] .ts-dropdown .no-results {
-  color: #64748b !important;
+/* ✅ dark: dropdown options lisibles (ton fix NEBULA) */
+html[data-theme="dark"] .ts-dropdown,
+html[data-theme="dark"] .ts-dropdown .option,
+html[data-theme="dark"] .ts-dropdown [data-selectable]{
+  background: #0b1220 !important;
+  color: #e5e7eb !important;
 }

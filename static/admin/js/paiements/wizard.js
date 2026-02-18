@@ -1,10 +1,11 @@
 /* =========================================
-   AZ • Paiements Wizard — FINAL (FIX SAVE DEFAULT)
-   - Montant rapide => remplit inputs
-   - ✅ "Enregistrer comme tarif par défaut" (SCO/TR) fiable
-   - ✅ Pré-remplissage depuis insc.sco_default_mensuel / insc.tr_default_mensuel
-   - ✅ Corrige le cas Django renvoie HTML (login/403) => erreur claire
-   - ✅ credentials same-origin (cookies/CSRF OK)
+   AZ • Paiements Wizard — FINAL + Transport Toggle/Price ✅
+   - NO AUTO SAVE defaults
+   - Defaults uniquement via bouton
+   - Transport: Activer/Désactiver + Tarif mensuel dans wizard
+   - POST cfg.setTransportUrl {inscription_id, enabled, tarif_mensuel}
+   - IMPORTANT: nécessite IDs uniques dans HTML:
+       trEnableToggle, trTarifMensuel, btnApplyTransport, trApplyMsg (UNE SEULE FOIS)
    ========================================= */
 (function () {
   "use strict";
@@ -26,11 +27,11 @@
   const eleveDirectSelect = $("eleveDirectSelect");
   const eleveHint = $("eleveHint");
 
-  // FRATRIE
+  // fratrie
   const fratrieBox = $("fratrieBox");
   const fratrieList = $("fratrieList");
 
-  // switch type
+  // type switch
   const btnSco = $("btnSco");
   const btnIns = $("btnIns");
   const btnTr = $("btnTr");
@@ -59,6 +60,7 @@
   const montantInscription = $("montantInscription");
   const maxInscriptionTxt = $("maxInscriptionTxt");
 
+  // pack
   const packInsOn = $("packInsOn");
   const packScoOn = $("packScoOn");
   const packTrOn = $("packTrOn");
@@ -78,6 +80,7 @@
   const cartEmpty = $("cartEmpty");
   const cartList = $("cartList");
   const totalTxt = $("totalTxt");
+  const totalTxtHero = $("totalTxtHero");
 
   // meta
   const eleveMetaCard = $("eleveMetaCard");
@@ -90,15 +93,27 @@
   // bulk
   const bulkPriceSco = $("bulkPriceSco");
   const bulkPriceTr = $("bulkPriceTr");
+  const bulkPriceScoPack = $("bulkPriceScoPack");
+  const bulkPriceTrPack = $("bulkPriceTrPack");
 
-  // ✅ save default switches
+  // defaults (manual only)
   const saveScoDefault = $("saveScoDefault");
   const saveTrDefault = $("saveTrDefault");
+  const btnSaveScoDefault = $("btnSaveScoDefault");
+  const btnSaveTrDefault = $("btnSaveTrDefault");
+  const saveScoMsg = $("saveScoMsg");
+  const saveTrMsg = $("saveTrMsg");
 
   // justificatifs
   const modeSel = $("mode");
   const justifType = $("justificatifType");
   const justifHint = $("justifHint");
+
+  // ✅ Transport activation UI (NEW)
+  const trEnableToggle = $("trEnableToggle");
+  const trTarifMensuel = $("trTarifMensuel");
+  const btnApplyTransport = $("btnApplyTransport");
+  const trApplyMsg = $("trApplyMsg");
 
   let parentTS = null;
   let eleveTS = null;
@@ -139,19 +154,11 @@
   function safeParse(raw, fallback) {
     try { return JSON.parse(raw); } catch { return fallback; }
   }
-  function debounce(fn, wait = 650) {
-    let t = null;
-    return (...args) => {
-      clearTimeout(t);
-      t = setTimeout(() => fn(...args), wait);
-    };
-  }
 
-  // CSRF (cookie ou input)
+  // CSRF
   function getCSRFToken() {
     const input = document.querySelector('input[name="csrfmiddlewaretoken"]');
     if (input && input.value) return input.value;
-
     const m = document.cookie.match(/(?:^|;\s*)csrftoken=([^;]+)/);
     return m ? decodeURIComponent(m[1]) : "";
   }
@@ -164,16 +171,8 @@
     });
 
     const ct = (res.headers.get("content-type") || "").toLowerCase();
-    if (!res.ok) {
-      const txt = await res.text().catch(() => "");
-      console.error("AJAX GET error", res.status, url, txt.slice(0, 300));
-      throw new Error(`HTTP ${res.status}`);
-    }
-    if (!ct.includes("application/json")) {
-      const txt = await res.text().catch(() => "");
-      console.error("AJAX GET not JSON", url, txt.slice(0, 300));
-      throw new Error("Réponse non-JSON (login/403 possible)");
-    }
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    if (!ct.includes("application/json")) throw new Error("Réponse non-JSON (login/403 possible)");
     return await res.json();
   }
 
@@ -190,17 +189,9 @@
     });
 
     const ct = (res.headers.get("content-type") || "").toLowerCase();
-    if (!ct.includes("application/json")) {
-      const txt = await res.text().catch(() => "");
-      console.error("AJAX POST not JSON", res.status, url, txt.slice(0, 300));
-      throw new Error("Réponse non-JSON (login/403 possible)");
-    }
-
+    if (!ct.includes("application/json")) throw new Error("Réponse non-JSON (login/403 possible)");
     const data = await res.json().catch(() => ({}));
-    if (!res.ok || data.ok === false) {
-      console.error("AJAX POST error", res.status, data);
-      throw new Error(data.error || `HTTP ${res.status}`);
-    }
+    if (!res.ok || data.ok === false) throw new Error(data.error || `HTTP ${res.status}`);
     return data;
   }
 
@@ -208,7 +199,6 @@
   function updateJustifUI() {
     if (!modeSel || !justifHint) return;
     const m = String(modeSel.value || "").toUpperCase();
-
     if (m === "CHEQUE") {
       if (justifType) justifType.value = "CHEQUE";
       justifHint.textContent = "Recommandé: scan du chèque.";
@@ -242,24 +232,20 @@
     eleveMetaCard.style.display = "";
   }
   async function loadEleveMetaByInscription(inscId) {
-    if (!cfg.eleveMetaUrl) return showEleveMeta(null);
-    if (!inscId) return showEleveMeta(null);
+    if (!cfg.eleveMetaUrl || !inscId) return showEleveMeta(null);
     try {
       const data = await fetchJSON(`${cfg.eleveMetaUrl}?inscription=${encodeURIComponent(String(inscId))}`);
       showEleveMeta(data);
-    } catch {
-      showEleveMeta(null);
-    }
+    } catch { showEleveMeta(null); }
   }
 
   // ---------- TYPE SWITCH ----------
   function setType(type) {
-    if (type === "TRANSPORT" && !state.tr_enabled) type = "SCOLARITE";
-
+    // ✅ on laisse ouvrir Transport même si OFF (pour pouvoir l’activer)
     const reste = toNum(state.max_inscription || "0");
     if (type === "INSCRIPTION" && reste <= 0) type = "SCOLARITE";
 
-    typeTransaction.value = type;
+    if (typeTransaction) typeTransaction.value = type;
 
     btnSco?.classList.toggle("is-active", type === "SCOLARITE");
     btnIns?.classList.toggle("is-active", type === "INSCRIPTION");
@@ -270,6 +256,8 @@
     if (blocInscription) blocInscription.style.display = (type === "INSCRIPTION") ? "" : "none";
     if (blocTransport) blocTransport.style.display = (type === "TRANSPORT") ? "" : "none";
     if (blocPack) blocPack.style.display = (type === "PACK") ? "" : "none";
+
+    if (type === "TRANSPORT") applyTransportGuard();
 
     recompute();
   }
@@ -302,7 +290,7 @@
           <td>
             ${isPaid
               ? `<strong>${esc(du)} MAD</strong>`
-              : `<input class="azw-input" style="max-width:160px" type="number" step="0.01" min="0" data-price="${esc(id)}" value="${esc(val)}">`
+              : `<input class="azw-input azw-input--sm" type="number" step="0.01" min="0" data-price="${esc(id)}" value="${esc(val)}">`
             }
           </td>
         </tr>
@@ -354,8 +342,8 @@
     return total;
   }
 
-  // ---------- BULK APPLY ----------
-  function fillVisibleInputs(containerEl, value, selectToo) {
+  // ---------- BULK APPLY (remplissage فقط) ----------
+  function fillVisibleInputs(containerEl, value) {
     if (!containerEl) return;
     const v = String(value ?? "").trim();
     if (v === "") return;
@@ -371,75 +359,142 @@
 
       if (tb === moisTbody || tb === packScoTbody) {
         state.sco_prices[id] = v;
-        if (selectToo) state.sco_selected.add(id);
       } else if (tb === transportTbody || tb === packTrTbody) {
         state.tr_prices[id] = v;
-        if (selectToo) state.tr_selected.add(id);
-      }
-
-      if (selectToo) {
-        const chk = tb.querySelector(`input[type="checkbox"][data-id="${CSS.escape(id)}"]`);
-        if (chk && !chk.checked && !chk.disabled) chk.checked = true;
       }
     });
 
     recompute();
   }
 
-  // ---------- ✅ SAVE DEFAULT (debounced + on change + on blur) ----------
-  async function saveScoDefaultNow() {
-    if (!saveScoDefault?.checked) return;
-    if (!cfg.defaultScoUrl) return;
-    if (!state.inscription_id) return;
+  // ---------- DEFAULTS (MANUAL ONLY) ----------
+  function refreshSaveButtons() {
+    const hasInsc = !!state.inscription_id;
 
-    const amount = String(bulkPriceSco?.value ?? "").trim();
-    if (amount === "") return;
-
-    await postJSON(cfg.defaultScoUrl, { inscription_id: state.inscription_id, amount });
+    if (btnSaveScoDefault) {
+      btnSaveScoDefault.disabled = !(
+        hasInsc &&
+        !!saveScoDefault?.checked &&
+        String(bulkPriceSco?.value || "").trim() !== ""
+      );
+    }
+    if (btnSaveTrDefault) {
+      btnSaveTrDefault.disabled = !(
+        hasInsc &&
+        !!saveTrDefault?.checked &&
+        String(bulkPriceTr?.value || "").trim() !== ""
+      );
+    }
   }
 
-  async function saveTrDefaultNow() {
-    if (!saveTrDefault?.checked) return;
-    if (!cfg.defaultTrUrl) return;
+  async function saveDefault(kind) {
     if (!state.inscription_id) return;
 
-    const amount = String(bulkPriceTr?.value ?? "").trim();
-    if (amount === "") return;
+    if (kind === "SCO") {
+      if (!cfg.defaultScoUrl) return;
+      const amount = String(bulkPriceSco?.value || "").trim();
+      if (!amount) return;
 
-    await postJSON(cfg.defaultTrUrl, { inscription_id: state.inscription_id, amount });
+      if (saveScoMsg) saveScoMsg.textContent = "Enregistrement...";
+      await postJSON(cfg.defaultScoUrl, {
+        inscription_id: state.inscription_id,
+        amount,
+        apply: true,
+      });
+      if (saveScoMsg) saveScoMsg.textContent = "✅ Défaut scolarité enregistré + échéances mises à jour.";
+    } else {
+      if (!cfg.defaultTrUrl) return;
+      const amount = String(bulkPriceTr?.value || "").trim();
+      if (!amount) return;
+
+      if (saveTrMsg) saveTrMsg.textContent = "Enregistrement...";
+      await postJSON(cfg.defaultTrUrl, {
+        inscription_id: state.inscription_id,
+        amount,
+        apply: true,
+      });
+      if (saveTrMsg) saveTrMsg.textContent = "✅ Défaut transport enregistré + échéances mises à jour.";
+    }
+
+    await loadFinanceForEleve(state.currentEleveId, state.currentEleveLabel, String(state.inscription_id));
   }
 
-  const debouncedSaveScoDefault = debounce(async () => {
-    try { await saveScoDefaultNow(); }
-    catch (e) { console.error("save sco default failed", e); }
-  }, 700);
-
-  const debouncedSaveTrDefault = debounce(async () => {
-    try { await saveTrDefaultNow(); }
-    catch (e) { console.error("save tr default failed", e); }
-  }, 700);
-
-  // ✅ si l’utilisateur coche après avoir tapé -> on sauvegarde direct
-  saveScoDefault?.addEventListener("change", () => {
-    if (saveScoDefault.checked) debouncedSaveScoDefault();
+  btnSaveScoDefault?.addEventListener("click", async () => {
+    try { await saveDefault("SCO"); }
+    catch (e) { if (saveScoMsg) saveScoMsg.textContent = `❌ ${e.message || e}`; }
   });
-  saveTrDefault?.addEventListener("change", () => {
-    if (saveTrDefault.checked) debouncedSaveTrDefault();
+  btnSaveTrDefault?.addEventListener("click", async () => {
+    try { await saveDefault("TR"); }
+    catch (e) { if (saveTrMsg) saveTrMsg.textContent = `❌ ${e.message || e}`; }
   });
 
-  bulkPriceSco?.addEventListener("input", () => {
-    fillVisibleInputs(blocScolarite, bulkPriceSco.value, true);
-    fillVisibleInputs(blocPack, bulkPriceSco.value, true);
-    debouncedSaveScoDefault();
-  });
-  bulkPriceSco?.addEventListener("blur", () => debouncedSaveScoDefault());
+  saveScoDefault?.addEventListener("change", refreshSaveButtons);
+  saveTrDefault?.addEventListener("change", refreshSaveButtons);
+  bulkPriceSco?.addEventListener("input", refreshSaveButtons);
+  bulkPriceTr?.addEventListener("input", refreshSaveButtons);
 
-  bulkPriceTr?.addEventListener("input", () => {
-    fillVisibleInputs(blocTransport, bulkPriceTr.value, true);
-    fillVisibleInputs(blocPack, bulkPriceTr.value, true);
-    debouncedSaveTrDefault();
+  // ✅ montant rapide => remplissage فقط (PAS de save)
+  bulkPriceSco?.addEventListener("input", () => fillVisibleInputs(blocScolarite, bulkPriceSco.value));
+  bulkPriceTr?.addEventListener("input", () => fillVisibleInputs(blocTransport, bulkPriceTr.value));
+
+  // ✅ pack bulk => remplissage فقط (PAS de save)
+  bulkPriceScoPack?.addEventListener("input", () => {
+    fillVisibleInputs(packScoBlock, bulkPriceScoPack.value);
+    if (bulkPriceSco) bulkPriceSco.value = bulkPriceScoPack.value;
+    refreshSaveButtons();
   });
-  bulkPriceTr?.addEventListener("blur", () => debouncedSaveTrDefault());
+  bulkPriceTrPack?.addEventListener("input", () => {
+    fillVisibleInputs(packTrBlock, bulkPriceTrPack.value);
+    if (bulkPriceTr) bulkPriceTr.value = bulkPriceTrPack.value;
+    refreshSaveButtons();
+  });
+
+  // ---------- TRANSPORT: ACTIVER + TARIF (AJAX) ----------
+  function refreshTransportApplyBtn() {
+    if (!btnApplyTransport) return;
+
+    const hasInsc = !!state.inscription_id;
+    const enabled = !!trEnableToggle?.checked;
+    const tarif = toNum(trTarifMensuel?.value || "0");
+
+    const okTarif = !enabled || tarif > 0;
+    btnApplyTransport.disabled = !(hasInsc && okTarif);
+  }
+
+  trEnableToggle?.addEventListener("change", () => {
+    refreshTransportApplyBtn();
+    if (trEnableToggle?.checked) trTarifMensuel?.focus();
+  });
+  trTarifMensuel?.addEventListener("input", refreshTransportApplyBtn);
+
+  async function applyTransportConfig() {
+    if (!cfg.setTransportUrl) throw new Error("setTransportUrl manquant dans AZ_WIZ.");
+    if (!state.inscription_id) throw new Error("Aucune inscription sélectionnée.");
+
+    const enabled = !!trEnableToggle?.checked;
+    const tarifN = toNum(trTarifMensuel?.value || "0");
+    if (enabled && tarifN <= 0) throw new Error("Tarif mensuel obligatoire (> 0) quand transport est activé.");
+
+    const payload = {
+      inscription_id: state.inscription_id,
+      enabled,
+      tarif_mensuel: enabled ? String(tarifN.toFixed(2)) : "0.00",
+    };
+
+    if (trApplyMsg) trApplyMsg.textContent = "Enregistrement...";
+    if (btnApplyTransport) btnApplyTransport.disabled = true;
+
+    await postJSON(cfg.setTransportUrl, payload);
+
+    if (trApplyMsg) trApplyMsg.textContent = "✅ Transport mis à jour.";
+    await loadFinanceForEleve(state.currentEleveId, state.currentEleveLabel, String(state.inscription_id));
+  }
+
+  btnApplyTransport?.addEventListener("click", async () => {
+    try { await applyTransportConfig(); }
+    catch (e) { if (trApplyMsg) trApplyMsg.textContent = `❌ ${e.message || e}`; }
+    finally { refreshTransportApplyBtn(); }
+  });
 
   // ---------- TRANSPORT GUARD ----------
   function clearTransport() {
@@ -451,13 +506,28 @@
   function applyTransportGuard() {
     const enabled = !!state.tr_enabled;
 
+    // ✅ bouton transport jamais disabled (sinon impossible d’activer)
     if (btnTr) {
-      btnTr.disabled = !enabled;
+      btnTr.disabled = false;
       btnTr.classList.toggle("is-disabled", !enabled);
     }
 
-    if (!enabled && typeTransaction?.value === "TRANSPORT") setType("SCOLARITE");
+    // affichage table/hint selon enabled
+    if (!enabled) {
+      if (transportHint) transportHint.style.display = "";
+      if (transportTableWrap) transportTableWrap.style.display = "none";
+      if (packTrDisabled) packTrDisabled.style.display = "";
+      if (packTrTableWrap) packTrTableWrap.style.display = "none";
+      if (packTrOn) packTrOn.checked = false;
+      clearTransport();
+    } else {
+      if (transportHint) transportHint.style.display = "none";
+      if (transportTableWrap) transportTableWrap.style.display = "";
+      if (packTrDisabled) packTrDisabled.style.display = "none";
+      if (packTrTableWrap) packTrTableWrap.style.display = "";
+    }
 
+    // pack transport toggle
     if (packTrOn && packTrDisabled && packTrTableWrap) {
       if (!enabled) {
         packTrOn.checked = false;
@@ -480,9 +550,7 @@
     if (btnIns) {
       btnIns.disabled = paid;
       btnIns.classList.toggle("is-disabled", paid);
-      btnIns.title = paid ? "Inscription déjà payée" : "";
     }
-
     if (paid && typeTransaction?.value === "INSCRIPTION") setType("SCOLARITE");
 
     if (montantInscription) {
@@ -516,8 +584,7 @@
     if (!baseUrl) return "";
 
     const params = new URLSearchParams();
-    if (matriculeMaybe) params.set("q", String(matriculeMaybe).trim());
-    else params.set("q", String(eleveId).trim());
+    params.set("q", matriculeMaybe ? String(matriculeMaybe).trim() : String(eleveId).trim());
 
     const data = await fetchJSON(`${baseUrl}?${params.toString()}`);
     const raw = data.items || data.results || [];
@@ -525,7 +592,6 @@
 
     const found = (Array.isArray(raw) ? raw : []).find(x => String(x.id) === eid);
     if (found && found.inscription_id) return String(found.inscription_id);
-
     if (raw.length === 1 && raw[0].inscription_id) return String(raw[0].inscription_id);
     return "";
   }
@@ -548,12 +614,7 @@
           const matricule = String(it.matricule || "");
           const label = `${matricule ? matricule + " — " : ""}${String(it.nom || "")} ${String(it.prenom || "")}`.trim();
           return `
-            <button type="button"
-                    class="azw-chip"
-                    data-fr="${esc(id)}"
-                    data-mat="${esc(matricule)}"
-                    data-label="${esc(label)}"
-                    style="margin-right:8px;margin-bottom:8px;">
+            <button type="button" class="azw-chip" data-fr="${esc(id)}" data-mat="${esc(matricule)}" data-label="${esc(label)}">
               🧒 ${esc(label)}
             </button>
           `;
@@ -581,8 +642,7 @@
       }
 
       if (fratrieBox) fratrieBox.style.display = "";
-    } catch (e) {
-      console.error("fratrie load error", e);
+    } catch {
       hideFratrie();
     }
   }
@@ -611,10 +671,19 @@
 
     if (bulkPriceSco) bulkPriceSco.value = "";
     if (bulkPriceTr) bulkPriceTr.value = "";
+    if (bulkPriceScoPack) bulkPriceScoPack.value = "";
+    if (bulkPriceTrPack) bulkPriceTrPack.value = "";
 
-    // ✅ on reset les switches (comme avant)
     if (saveScoDefault) saveScoDefault.checked = false;
     if (saveTrDefault) saveTrDefault.checked = false;
+    if (saveScoMsg) saveScoMsg.textContent = "";
+    if (saveTrMsg) saveTrMsg.textContent = "";
+
+    // reset transport activation UI
+    if (trEnableToggle) trEnableToggle.checked = false;
+    if (trTarifMensuel) trTarifMensuel.value = "";
+    if (trApplyMsg) trApplyMsg.textContent = "";
+    refreshTransportApplyBtn();
 
     const msg = `<tr><td colspan="3" class="azw-empty">Choisis un élève…</td></tr>`;
     if (moisTbody) moisTbody.innerHTML = msg;
@@ -642,6 +711,7 @@
 
     applyTransportGuard();
     applyInscriptionGuard();
+    refreshSaveButtons();
     recompute();
   }
 
@@ -695,9 +765,7 @@
             montant_inscription: it.montant_inscription
           }))
         });
-      } else {
-        batchPayload.value = "";
-      }
+      } else batchPayload.value = "";
     }
 
     if (btnAddToCart) {
@@ -744,6 +812,8 @@
 
     applyTransportGuard();
     applyInscriptionGuard();
+    refreshSaveButtons();
+    refreshTransportApplyBtn();
 
     const type = String(typeTransaction?.value || "SCOLARITE");
     let total = 0;
@@ -774,7 +844,9 @@
       if (pack.tr_on && state.tr_enabled) total += sumSelected(state.tr_echeances, state.tr_selected, state.tr_prices);
     }
 
-    if (totalTxt) totalTxt.textContent = total.toFixed(2);
+    const t = total.toFixed(2);
+    if (totalTxt) totalTxt.textContent = t;
+    if (totalTxtHero) totalTxtHero.textContent = t;
 
     if (packInsBlock) packInsBlock.style.display = packInsOn?.checked ? "" : "none";
     if (packScoBlock) packScoBlock.style.display = packScoOn?.checked ? "" : "none";
@@ -805,7 +877,6 @@
 
     state.inscription_id = (inscId || "").trim() || null;
     if (inscriptionId) inscriptionId.value = state.inscription_id || "";
-
     if (state.inscription_id) loadEleveMetaByInscription(state.inscription_id);
 
     if (!state.inscription_id) {
@@ -815,13 +886,11 @@
       if (packScoTbody) packScoTbody.innerHTML = msg;
       if (packTrTbody) packTrTbody.innerHTML = msg;
       showEleveMeta(null);
-      applyTransportGuard();
-      applyInscriptionGuard();
       recompute();
       return;
     }
 
-    // ---- scolarité ----
+    // scolarité
     const echData = await fetchJSON(`${cfg.echeancesUrl}?inscription=${encodeURIComponent(state.inscription_id)}`);
     state.sco_echeances = echData.items || [];
     state.max_inscription = echData.tarifs?.reste_inscription || "0.00";
@@ -840,30 +909,43 @@
       packInsAmount.disabled = !(maxN > 0);
     }
 
-    // ✅ pré-remplir depuis défaut scolarité (sans cocher les mois)
+    // pré-remplissage UI seulement (pas save)
     const scoDef = String(echData.tarifs?.sco_default_mensuel ?? "").trim();
     if (bulkPriceSco && scoDef !== "") {
       bulkPriceSco.value = scoDef;
-      fillVisibleInputs(blocScolarite, scoDef, false);
-      fillVisibleInputs(blocPack, scoDef, false);
+      if (bulkPriceScoPack) bulkPriceScoPack.value = scoDef;
+      fillVisibleInputs(blocScolarite, scoDef);
+      fillVisibleInputs(packScoBlock, scoDef);
     }
 
-    // ---- transport ----
+    // transport (fetch)
     const trData = await fetchJSON(`${cfg.transportEcheancesUrl}?inscription=${encodeURIComponent(state.inscription_id)}`);
     state.tr_enabled = !!trData.enabled;
     state.tr_echeances = trData.items || [];
 
+    // sync UI toggle + tarif
+    if (trEnableToggle) trEnableToggle.checked = !!state.tr_enabled;
+
+    const trTarif = String(trData.tarif_mensuel ?? "").trim();
+    if (trTarifMensuel) trTarifMensuel.value = (trTarif && trTarif !== "0.00") ? trTarif : "";
+    if (trApplyMsg) trApplyMsg.textContent = "";
+    refreshTransportApplyBtn();
+
     const trDef = String(trData.tr_default_mensuel ?? "").trim();
     const trFallback = String(trData.tarif_mensuel ?? "").trim();
 
+    // bulk UI (existant)
     if (bulkPriceTr) {
       if (trDef !== "") bulkPriceTr.value = trDef;
       else if (trFallback !== "" && trFallback !== "0.00") bulkPriceTr.value = trFallback;
     }
+    if (bulkPriceTrPack && bulkPriceTr) bulkPriceTrPack.value = bulkPriceTr.value;
 
+    // render sco tables
     renderTable(moisTbody, state.sco_echeances, state.sco_selected, state.sco_prices);
     renderTable(packScoTbody, state.sco_echeances, state.sco_selected, state.sco_prices);
 
+    // transport UI tables
     if (!state.tr_enabled) {
       if (transportHint) transportHint.style.display = "";
       if (transportTableWrap) transportTableWrap.style.display = "none";
@@ -881,20 +963,21 @@
 
       const useTr = (trDef || trFallback || "").trim();
       if (useTr !== "") {
-        fillVisibleInputs(blocTransport, useTr, false);
-        fillVisibleInputs(blocPack, useTr, false);
+        fillVisibleInputs(blocTransport, useTr);
+        fillVisibleInputs(packTrBlock, useTr);
       }
     }
 
     applyTransportGuard();
     applyInscriptionGuard();
+    refreshSaveButtons();
     recompute();
 
     if (state.payeur_mode === "AUTRE") loadFratrie(state.currentEleveId);
     else hideFratrie();
   }
 
-  // ---------- LOAD ENFANTS BY PARENT ----------
+  // enfants by parent
   async function loadEnfants(parentId) {
     if (!eleveSelect) return;
 
@@ -933,11 +1016,9 @@
     if (eid) loadFinanceForEleve(eid, label, inscId);
   });
 
-  // ---------- TOMSELECT PARENT ----------
+  // TomSelect parent
   function initParentTS() {
-    if (typeof TomSelect === "undefined") return;
-    if (!parentSelect) return;
-
+    if (typeof TomSelect === "undefined" || !parentSelect) return;
     const baseUrl = (cfg.parentsSearchUrl || "").trim();
     if (!baseUrl) return;
 
@@ -984,11 +1065,9 @@
     });
   }
 
-  // ---------- TOMSELECT ELEVE DIRECT ----------
+  // TomSelect eleve direct
   function initEleveTS() {
-    if (typeof TomSelect === "undefined") return;
-    if (!eleveDirectSelect) return;
-
+    if (typeof TomSelect === "undefined" || !eleveDirectSelect) return;
     const baseUrl = (cfg.elevesSearchUrl || "").trim();
     if (!baseUrl) return;
 
@@ -1039,7 +1118,7 @@
     });
   }
 
-  // ---------- PAYEUR MODE SWITCH ----------
+  // payeur mode
   function setPayeurMode(mode) {
     state.payeur_mode = (mode === "AUTRE") ? "AUTRE" : "PARENT";
     if (payeurMode) payeurMode.value = state.payeur_mode;

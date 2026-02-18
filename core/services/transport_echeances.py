@@ -123,3 +123,55 @@ def sync_transport_echeances_for_inscription(inscription_id: int):
         obj.montant_paye = Decimal("0.00")
         obj.refresh_statut(save=False)
         obj.save(update_fields=["groupe", "date_echeance", "montant_du", "montant_paye", "statut"])
+
+
+
+
+
+from decimal import Decimal
+from datetime import date
+from django.db import transaction
+from core.models import Inscription, EcheanceTransportMensuelle
+
+# Sep->Jun
+MONTHS = [
+    (9, 1), (10, 2), (11, 3), (12, 4),
+    (1, 5), (2, 6), (3, 7), (4, 8), (5, 9), (6, 10)
+]
+
+def _echeance_date_for_index(annee_start_year: int, idx: int) -> date:
+    # idx 1..10 => Sep..Jun
+    # Sep-Dec => year = start_year, Jan-Jun => year = start_year+1
+    if idx <= 4:
+        month = [9,10,11,12][idx-1]
+        year = annee_start_year
+    else:
+        month = [1,2,3,4,5,6][idx-5]
+        year = annee_start_year + 1
+    return date(year, month, 5)  # échéance le 5 du mois (ex)
+
+@transaction.atomic
+def ensure_transport_echeances_for_inscription(insc_id: int, tarif_mensuel: Decimal):
+    insc = Inscription.objects.select_related("annee", "groupe").get(pk=insc_id)
+    start_year = insc.annee.date_debut.year
+
+    for idx in range(1, 11):
+        obj, created = EcheanceTransportMensuelle.objects.get_or_create(
+            eleve_id=insc.eleve_id,
+            annee_id=insc.annee_id,
+            mois_index=idx,
+            defaults={
+                "groupe_id": insc.groupe_id,
+                "date_echeance": _echeance_date_for_index(start_year, idx),
+                "montant_du": tarif_mensuel,
+                "montant_paye": Decimal("0.00"),
+                "statut": "A_PAYER",
+            }
+        )
+
+        # Update only if not paid (ne pas casser historique)
+        if not created and obj.statut != "PAYE":
+            obj.groupe_id = insc.groupe_id
+            obj.montant_du = tarif_mensuel
+            # date optionnelle (tu peux la laisser)
+            obj.save(update_fields=["groupe", "montant_du"])

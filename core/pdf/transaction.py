@@ -2,6 +2,7 @@
 from io import BytesIO
 from decimal import Decimal
 from datetime import datetime
+from collections import defaultdict
 
 from django.contrib.staticfiles import finders
 from reportlab.lib.pagesizes import A4
@@ -29,22 +30,15 @@ def _money(x):
 
 
 def _ellipsize(text, max_w, font="Helvetica", size=9):
+    """
+    ⚠️ Utilisé UNIQUEMENT pour des champs non critiques (jamais pour les mois).
+    """
     s = str(text or "")
     if stringWidth(s, font, size) <= max_w:
         return s
     while s and stringWidth(s + "…", font, size) > max_w:
         s = s[:-1]
     return (s + "…") if s else ""
-
-
-def _months_compact(months):
-    months = [m for m in months if m and m != "—"]
-    if not months:
-        return ""
-    s = ", ".join(months)
-    if len(s) <= 60:
-        return s
-    return f"{months[0]} → {months[-1]} ({len(months)} mois)"
 
 
 def _card(c, x, y_top, w, h, bg="#ffffff"):
@@ -105,155 +99,62 @@ def _kv(c, x, y, label, value, max_w=75 * mm, highlight=False):
 
 
 # =========================
-# Wrap 2 lignes (table)
+# No-ellipsis months wrapping
 # =========================
-def _wrap_text_2lines(text, max_w, font="Helvetica", size=9):
-    s = str(text or "").strip()
-    if not s:
-        return ("", "")
-    if stringWidth(s, font, size) <= max_w:
-        return (s, "")
+MONTH_ABBR = {
+    "Janvier": "Jan", "Février": "Fév", "Fevrier": "Fév", "Mars": "Mar", "Avril": "Avr",
+    "Mai": "Mai", "Juin": "Jun", "Juillet": "Jul", "Août": "Aoû", "Aout": "Aoû",
+    "Septembre": "Sep", "Octobre": "Oct", "Novembre": "Nov", "Décembre": "Déc", "Decembre": "Déc",
+}
 
-    words = s.split()
-    line1 = ""
-    i = 0
-    while i < len(words):
-        cand = (line1 + " " + words[i]).strip()
+
+def _mabbr(m):
+    m = (m or "").strip()
+    return MONTH_ABBR.get(m, m[:3] if len(m) > 3 else m)
+
+
+def _months_tokens_unique(months):
+    toks = [_mabbr(m) for m in (months or []) if m and m != "—"]
+    out, seen = [], set()
+    for t in toks:
+        if t not in seen:
+            seen.add(t)
+            out.append(t)
+    return out
+
+
+def _split_tokens_to_lines(tokens, max_w, font="Helvetica", size=7.6, max_lines=4):
+    """
+    Split tokens in lines WITHOUT cutting tokens and WITHOUT ellipsis.
+    tokens: ["Sep","Oct","Nov",...]
+    return list[str]
+    """
+    if not tokens:
+        return ["—"]
+
+    lines = []
+    cur = ""
+
+    for t in tokens:
+        cand = (cur + "," + t) if cur else t
         if stringWidth(cand, font, size) <= max_w:
-            line1 = cand
-            i += 1
+            cur = cand
         else:
-            break
+            if cur:
+                lines.append(cur)
+            cur = t
+            if len(lines) >= max_lines:
+                # stop adding more lines => caller MUST paginate (we won't cut)
+                return lines
 
-    rest = " ".join(words[i:]).strip()
-    if not rest:
-        return (line1, "")
+    if cur:
+        lines.append(cur)
 
-    if stringWidth(rest, font, size) <= max_w:
-        line2 = rest
-    else:
-        line2 = _ellipsize(rest, max_w, font, size)
-
-    if not line1:
-        return (_ellipsize(s, max_w, font, size), "")
-
-    return (line1, line2)
-
-
-def _table_wrap2(c, x, y_top, col_ws, headers, rows, row_h, wrap_cols=None, mono_cols=None, font_size=9, font_size2=8.0):
-    wrap_cols = set(wrap_cols or [])
-    mono_cols = set(mono_cols or [])
-
-    # header
-    c.setFont("Helvetica-Bold", 9)
-    curx = x
-    for i, head in enumerate(headers):
-        c.setFillColor(colors.HexColor("#f8fafc"))
-        c.setStrokeColor(colors.HexColor("#e2e8f0"))
-        c.rect(curx, y_top - row_h, col_ws[i], row_h, fill=1, stroke=1)
-        c.setFillColor(colors.HexColor("#0f172a"))
-        c.drawString(curx + 2 * mm, y_top - row_h + 2.0 * mm, _ellipsize(head, col_ws[i] - 4 * mm, "Helvetica-Bold", 9))
-        curx += col_ws[i]
-
-    # body
-    y = y_top - row_h
-    for r in rows:
-        y -= row_h
-        curx = x
-        for i, cell in enumerate(r):
-            c.setFillColor(colors.white)
-            c.setStrokeColor(colors.HexColor("#e2e8f0"))
-            c.rect(curx, y, col_ws[i], row_h, fill=1, stroke=1)
-
-            pad = 2 * mm
-            max_w = col_ws[i] - 0 * pad
-            text = str(cell or "")
-
-            if i in wrap_cols:
-                font1 = "Courier" if i in mono_cols else "Helvetica"
-                font2 = "Courier" if i in mono_cols else "Helvetica"
-
-                c.setFillColor(colors.HexColor("#0f172a"))
-                c.setFont(font1, font_size)
-                l1, l2 = _wrap_text_2lines(text, max_w, font1, font_size)
-                c.drawString(curx + pad, y + row_h - 4.3 * mm, l1)
-
-                if l2:
-                    c.setFont(font2, font_size2)
-                    c.setFillColor(colors.HexColor("#334155"))
-                    c.drawString(curx + pad, y + row_h - 8.2 * mm, l2)
-            else:
-                c.setFillColor(colors.HexColor("#0f172a"))
-                c.setFont("Helvetica", font_size)
-                c.drawString(curx + pad, y + 2.0 * mm, _ellipsize(text, max_w, "Helvetica", 9))
-
-            curx += col_ws[i]
-
-    c.setFillColor(colors.black)
-    return y
-
-
-def _table_simple(c, x, y_top, col_ws, headers, rows, row_h):
-    c.setFont("Helvetica-Bold", 9)
-    curx = x
-    for i, head in enumerate(headers):
-        c.setFillColor(colors.HexColor("#f8fafc"))
-        c.setStrokeColor(colors.HexColor("#e2e8f0"))
-        c.rect(curx, y_top - row_h, col_ws[i], row_h, fill=1, stroke=1)
-        c.setFillColor(colors.HexColor("#0f172a"))
-        c.drawString(curx + 2 * mm, y_top - row_h + 2.0 * mm, _ellipsize(head, col_ws[i] - 4 * mm, "Helvetica-Bold", 9))
-        curx += col_ws[i]
-
-    c.setFont("Helvetica", 9)
-    y = y_top - row_h
-    for r in rows:
-        y -= row_h
-        curx = x
-        for i, cell in enumerate(r):
-            c.setFillColor(colors.white)
-            c.setStrokeColor(colors.HexColor("#e2e8f0"))
-            c.rect(curx, y, col_ws[i], row_h, fill=1, stroke=1)
-            c.setFillColor(colors.HexColor("#0f172a"))
-            c.drawString(curx + 2 * mm, y + 2.0 * mm, _ellipsize(cell, col_ws[i] - 4 * mm, "Helvetica", 9))
-            curx += col_ws[i]
-
-    c.setFillColor(colors.black)
-    return y
-
-
-def _mini_table_portail(c, x, y_top, w_login, w_pwd, rows, row_h):
-    """
-    Mini-table ultra compacte (sans header), 1 ligne par élève.
-    rows = [[login, pwd], ...]
-    """
-    border = colors.HexColor("#e2e8f0")
-    text1 = colors.HexColor("#0f172a")
-    text2 = colors.HexColor("#334155")
-
-    y = y_top
-    for login, pwd in rows:
-        y -= row_h
-
-        c.setFillColor(colors.white)
-        c.setStrokeColor(border)
-        c.rect(x, y, w_login, row_h, fill=1, stroke=1)
-        c.rect(x + w_login, y, w_pwd, row_h, fill=1, stroke=1)
-
-        c.setFillColor(text1)
-        c.setFont("Helvetica", 7.6)
-        c.drawString(x + 2 * mm, y + 1.6 * mm, _ellipsize(login, w_login - 4 * mm, "Helvetica", 7.6))
-
-        c.setFillColor(text2)
-        c.setFont("Courier", 7.6)
-        c.drawString(x + w_login + 2 * mm, y + 1.6 * mm, _ellipsize(pwd, w_pwd - 4 * mm, "Courier", 7.6))
-
-    c.setFillColor(colors.black)
-    c.setStrokeColor(colors.black)
-    return y
+    return lines
 
 
 # =========================
-# Helpers (modes + login)
+# Helpers (modes + recu + login)
 # =========================
 def _mode_value(tx):
     mode_label = getattr(tx, "get_mode_display", None)
@@ -263,28 +164,16 @@ def _mode_value(tx):
 
 
 def _paiement_ref_value(tx):
-    """
-    Référence de paiement (banque/espèce/chèque/etc).
-    Exemple chez toi: 4321
-    """
     return str(getattr(tx, "reference", "") or "—")
 
 
 def _recu_seq_value(tx, txs=None):
-    """
-    ✅ Numéro de reçu INCRÉMENTAL PAR REÇU
-    - On utilise receipt_seq (doit être stocké en DB)
-    - Pour batch : toutes les tx du batch doivent avoir le même receipt_seq
-    """
-    # 1) champ direct sur tx
     seq = getattr(tx, "receipt_seq", None)
     if seq:
         try:
             return int(seq)
         except Exception:
             pass
-
-    # 2) si batch : chercher sur la 1ère tx qui a receipt_seq
     if txs:
         for t in txs:
             s = getattr(t, "receipt_seq", None)
@@ -293,38 +182,24 @@ def _recu_seq_value(tx, txs=None):
                     return int(s)
                 except Exception:
                     continue
-
     return None
 
 
 def _recu_value(tx, batch_token: str = "", txs=None):
-    """
-    ✅ Référence REÇU (badge violet) : AZ-PAY-YYYY-0001
-    Basée sur receipt_seq => 1 numéro pour tout le batch.
-    """
-    # priorité: champ reçu custom si tu en as un (optionnel)
     for attr in ("numero_recu", "recu_numero", "receipt_no", "receipt_number", "code_recu"):
         v = getattr(tx, attr, None)
         if v:
             return str(v)
 
-    # année (on garde année civile du paiement)
-    try:
-        year = (getattr(tx, "date_transaction", None) or datetime.now()).year
-    except Exception:
-        year = datetime.now().year
+    dt = getattr(tx, "created_at", None) or getattr(tx, "date_transaction", None) or datetime.now()
+    year = dt.year
 
-    # ✅ receipt_seq (le vrai incrément “par reçu”)
     seq = _recu_seq_value(tx, txs=txs)
     if seq is not None:
-        return f"AZ-PAY-{year}-{seq:04d}"  # 0001..9999 (change 04d si tu veux 06d)
+        return f"AZ-PAY-{year}-{seq:04d}"
 
-    # fallback si receipt_seq pas encore défini (évite uuid)
-    # => on met un code lisible temporaire
-    bt = batch_token or str(getattr(tx, "batch_token", "") or "")
-    if bt:
-        return f"AZ-PAY-{year}-TEMP"
     return f"AZ-PAY-{year}-TEMP"
+
 
 def _login_pwd_from_inscription(insc):
     eleve = insc.eleve
@@ -339,473 +214,503 @@ def _login_pwd_from_inscription(insc):
 
 
 # =========================
-# ✅ BATCH RECEIPT PDF 
+# Build compact rows (but full months, no loss)
+# rows => [EleveLabel, Type, MonthsTokens(list), Total]
+# =========================
+def _extract_ln_kind_and_month(ln):
+    amount = _D(getattr(ln, "montant", None))
 
+    e1 = getattr(ln, "echeance", None)
+    if e1 and getattr(e1, "mois_nom", None):
+        return ("SCOL", str(e1.mois_nom), amount)
+
+    e2 = getattr(ln, "echeance_transport", None)
+    if e2 and getattr(e2, "mois_nom", None):
+        return ("TR", str(e2.mois_nom), amount)
+
+    lib = (getattr(ln, "libelle", "") or "").lower()
+    if "inscription" in lib or "inscri" in lib:
+        return ("INS", "", amount)
+
+    return ("AUT", "", amount)
+
+
+def _rows_for_inscription(insc, lignes):
+    """
+    Retourne plusieurs lignes par élève:
+      - INS (si existe)
+      - SCOL (mois listés)
+      - TR (mois listés)
+      - AUT (si existe)
+    Eleve label = Nom + (NIVEAU)
+    """
+    eleve = insc.eleve
+    grp = getattr(insc, "groupe", None)
+    niv = getattr(grp, "niveau", None) if grp else None
+    niveau_name = getattr(niv, "nom", "—")
+
+    nom = f"{getattr(eleve,'nom','—')} {getattr(eleve,'prenom','')}".strip()
+    eleve_label = f"{nom} ({niveau_name})"
+
+    buckets = {
+        "INS": {"months": [], "sum": Decimal("0.00")},
+        "SCOL": {"months": [], "sum": Decimal("0.00")},
+        "TR": {"months": [], "sum": Decimal("0.00")},
+        "AUT": {"months": [], "sum": Decimal("0.00")},
+    }
+
+    for ln in lignes:
+        kind, month, amount = _extract_ln_kind_and_month(ln)
+        if kind not in buckets:
+            kind = "AUT"
+        buckets[kind]["sum"] += amount
+        if month:
+            buckets[kind]["months"].append(month)
+
+    out = []
+    first = True
+    for kind in ("INS", "SCOL", "TR", "AUT"):
+        s = buckets[kind]["sum"]
+        if s <= 0:
+            continue
+
+        tokens = []
+        if kind in ("SCOL", "TR"):
+            tokens = _months_tokens_unique(buckets[kind]["months"])
+
+        label = kind
+        if kind == "INS":
+            label = "INSCRIPTION"
+        elif kind == "SCOL":
+            label = "SCOLARITÉ"
+        elif kind == "TR":
+            label = "TRANSPORT"
+        out.append([ eleve_label if first else "", label, tokens, _money(s) ])
+        first = False
+
+    return out
+
+
+def _build_rows_and_portal_from_transactions(transactions):
+    insc_map = defaultdict(list)
+    for tx in transactions:
+        insc_map[tx.inscription].append(tx)
+
+    rows = []
+    portal_rows = []
+    for insc, txs in insc_map.items():
+        lignes = []
+        for tx in txs:
+            qs = getattr(tx, "lignes", None)
+            if hasattr(qs, "all"):
+                lignes.extend(list(qs.all()))
+            elif qs:
+                lignes.extend(list(qs))
+
+        rows.extend(_rows_for_inscription(insc, lignes))
+        portal_rows.append(list(_login_pwd_from_inscription(insc)))
+
+    return rows, portal_rows
+
+
+# =========================
+# Images
+# =========================
+def _load_images():
+    logo_img = None
+    logo_path = finders.find("img/logo_AZ.png")
+    if logo_path:
+        try:
+            logo_img = ImageReader(logo_path)
+        except Exception:
+            logo_img = None
+
+    blur_img = None
+    blur_path = finders.find("img/logo_AZ_blur.png")
+    if blur_path:
+        try:
+            blur_img = ImageReader(blur_path)
+        except Exception:
+            blur_img = None
+
+    return logo_img, blur_img
+
+
+def _draw_common_header(c, x, y_top, w_card, h_card, title, code, badge):
+    COLOR_PRIMARY = "#4f46e5"
+    COLOR_ACCENT = "#a855f7"
+    COLOR_BORDER = "#e2e8f0"
+    COLOR_SOFT = "#f8fafc"
+
+    logo_img, blur_img = _load_images()
+
+    c.setFillColor(colors.HexColor(COLOR_SOFT))
+    c.roundRect(x, y_top - 18 * mm, w_card, 18 * mm, 6 * mm, fill=1, stroke=0)
+
+    if logo_img:
+        c.drawImage(logo_img, x + 9 * mm, y_top - 15.2 * mm, width=12 * mm, height=12 * mm, mask="auto")
+
+    c.setFont("Helvetica-Bold", 14)
+    c.setFillColor(colors.HexColor(COLOR_PRIMARY))
+    c.drawString(x + 24 * mm, y_top - 8.0 * mm, title)
+
+    c.setFont("Helvetica", 8.5)
+    c.setFillColor(colors.HexColor("#475569"))
+    c.drawString(x + 24 * mm, y_top - 13.0 * mm, "Groupe Scolaire AZ • Finance")
+
+    _pill(c, x + w_card - 92 * mm, y_top - 14.5 * mm, code, wmm=80, bg="#f5f3ff", fg=COLOR_ACCENT)
+    _pill(c, x + w_card - 92 * mm, y_top - 24.5 * mm, badge, wmm=80, bg="#eef2ff", fg=COLOR_PRIMARY)
+
+    # watermark
+    if blur_img or logo_img:
+        try:
+            c.saveState()
+            c.setFillAlpha(0.06)
+            wm = blur_img if blur_img else logo_img
+            wm_w = 92 * mm
+            wm_h = 92 * mm
+            cx = x + (w_card - wm_w) / 2
+            cy = (y_top - h_card) + (h_card - wm_h) / 2
+            c.drawImage(wm, cx, cy, width=wm_w, height=wm_h, mask="auto")
+            c.restoreState()
+        except Exception:
+            pass
+
+    _line(c, x + 10 * mm, y_top - 28 * mm, x + w_card - 10 * mm, COLOR_BORDER)
+
+
+# =========================
+# Table (NO ellipsis for months)
+# Each row is variable height depending on months lines count
+# =========================
+def _draw_table_paginated(c, x, y_top, w, y_bottom, rows, font_size=7.6):
+    """
+    Dessine une table sur la zone fournie, et retourne:
+      (count_drawn, y_after)
+    rows format: [Eleve, Type, tokens(list), Total]
+    """
+    headers = ["Élève", "Type", "Mois", "Total"]
+
+    # column widths (single column full width)
+    w_total = 24 * mm
+    w_type = 20 * mm
+    w_mois = 50 * mm
+    w_eleve = max(55 * mm, w - (w_type + w_mois + w_total))
+    col_ws = [w_eleve, w_type, w_mois, w_total]
+
+    base_row_h = 5.8 * mm
+    pad = 2 * mm
+
+    # header
+    curx = x
+    c.setFont("Helvetica-Bold", 9)
+    for i, head in enumerate(headers):
+        c.setFillColor(colors.HexColor("#f8fafc"))
+        c.setStrokeColor(colors.HexColor("#e2e8f0"))
+        c.rect(curx, y_top - base_row_h, col_ws[i], base_row_h, fill=1, stroke=1)
+        c.setFillColor(colors.HexColor("#0f172a"))
+        c.drawString(curx + 2 * mm, y_top - base_row_h + 2.0 * mm, head)
+        curx += col_ws[i]
+
+    y = y_top - base_row_h
+    drawn = 0
+
+    # rows
+    for r in rows:
+        eleve_txt = str(r[0] or "")
+        type_txt = str(r[1] or "")
+        tokens = r[2] if isinstance(r[2], list) else []
+        total_txt = str(r[3] or "")
+
+        max_w_mois = col_ws[2] - 2 * pad
+
+        # compute months lines WITHOUT cutting
+        size_try = font_size
+        month_lines = _split_tokens_to_lines(tokens, max_w_mois, "Helvetica", size_try, max_lines=4)
+
+        # If too many lines needed, we paginate instead of cutting
+        # We don't try to squeeze infinitely -> correctness > compact
+        needed_lines = len(month_lines)
+        row_h = base_row_h + max(0, (needed_lines - 1)) * (3.2 * mm)
+
+        if y - row_h < y_bottom:
+            break  # stop -> next page chunk
+
+        y -= row_h
+        curx = x
+
+        # cell: eleve
+        c.setFillColor(colors.white)
+        c.setStrokeColor(colors.HexColor("#e2e8f0"))
+        c.rect(curx, y, col_ws[0], row_h, fill=1, stroke=1)
+        c.setFillColor(colors.HexColor("#0f172a"))
+        c.setFont("Helvetica", font_size)
+        # eleve can be ellipsized (not critical compared to months)
+        c.drawString(curx + pad, y + row_h - 4.3 * mm, _ellipsize(eleve_txt, col_ws[0] - 2 * pad, "Helvetica", font_size))
+        curx += col_ws[0]
+
+        # cell: type
+        c.setFillColor(colors.white)
+        c.setStrokeColor(colors.HexColor("#e2e8f0"))
+        c.rect(curx, y, col_ws[1], row_h, fill=1, stroke=1)
+        c.setFillColor(colors.HexColor("#0f172a"))
+        c.setFont("Helvetica", font_size)
+        c.drawString(curx + pad, y + row_h - 4.3 * mm, type_txt)
+        curx += col_ws[1]
+
+        # cell: months (NO ellipsis)
+        c.setFillColor(colors.white)
+        c.setStrokeColor(colors.HexColor("#e2e8f0"))
+        c.rect(curx, y, col_ws[2], row_h, fill=1, stroke=1)
+        c.setFillColor(colors.HexColor("#0f172a"))
+        c.setFont("Helvetica", size_try)
+        top_text_y = y + row_h - 4.3 * mm
+        if not month_lines:
+            month_lines = ["—"]
+        for i_line, line in enumerate(month_lines):
+            c.drawString(curx + pad, top_text_y - (i_line * 3.2 * mm), line)
+        curx += col_ws[2]
+
+        # cell: total
+        c.setFillColor(colors.white)
+        c.setStrokeColor(colors.HexColor("#e2e8f0"))
+        c.rect(curx, y, col_ws[3], row_h, fill=1, stroke=1)
+        c.setFillColor(colors.HexColor("#0f172a"))
+        c.setFont("Helvetica", font_size)
+        c.drawRightString(curx + col_ws[3] - pad, y + row_h - 4.3 * mm, total_txt)
+
+        drawn += 1
+
+    return drawn, y
+
+
+def _chunk_rows_for_halfpage(rows, max_rows_guess=9999):
+    """
+    We'll paginate by trying to draw in a virtual way.
+    Here we just return the list (actual split happens in draw loop).
+    """
+    return rows
+
+
+# =========================
+# Draw HALF receipt (BATCH) with pagination chunks
+# =========================
+def _draw_half_receipt_batch(c, y_top, transactions, batch_token: str, rows_chunk, portal_rows):
+    w, h = A4
+    card_h = 134 * mm
+    margin_x = 12 * mm
+    card_w = w - 2 * margin_x
+
+    COLOR_PRIMARY = "#4f46e5"
+    COLOR_BORDER = "#e2e8f0"
+
+    _card(c, margin_x, y_top, card_w, card_h)
+
+    tx0 = transactions[0]
+
+    # ✅ vraie date transaction (plus ancienne)
+    dts = []
+    for t in transactions:
+        dt = getattr(t, "created_at", None) or getattr(t, "date_transaction", None)
+        if dt:
+            dts.append(dt)
+    created = min(dts) if dts else datetime.now()
+    date_txt = created.strftime("%Y-%m-%d %H:%M")
+
+    code = _recu_value(tx0, batch_token=batch_token, txs=transactions)
+
+    total_global = sum((_D(getattr(tx, "montant_total", None)) for tx in transactions), Decimal("0.00"))
+    modes = {_mode_value(tx) for tx in transactions}
+    mode_global = next(iter(modes)) if len(modes) == 1 else "Multiple"
+
+    _draw_common_header(
+        c,
+        margin_x,
+        y_top,
+        card_w,
+        card_h,
+        title="REÇU PAIEMENT",
+        code=code,
+        badge="PAIEMENT",
+    )
+
+    left_x = margin_x + 12 * mm
+
+    _section(c, left_x, y_top - 35.0 * mm, "PAIEMENT", accent=COLOR_PRIMARY)
+    _kv(c, left_x, y_top - 41.0 * mm, "Date", date_txt, max_w=55 * mm)
+    _kv(c, left_x + 52 * mm, y_top - 41.0 * mm, "Mode", str(mode_global), max_w=55 * mm)
+    ref0 = _paiement_ref_value(tx0)
+    _kv(c, left_x + 52 * mm, y_top - 49.0 * mm, "Réf", ref0, max_w=55 * mm)
+
+    _kv(c, left_x + 104 * mm, y_top - 41.0 * mm, "Total", _money(total_global), highlight=True, max_w=50 * mm)
+
+    _section(c, left_x, y_top - 53.0 * mm, "DÉTAILS", accent=COLOR_PRIMARY)
+
+    zone_x = left_x
+    zone_w = card_w - 24 * mm
+    table_top = y_top - 56.5 * mm
+
+    # portail box
+    MAX_PORTAL = min(5, len(portal_rows))
+    portal_title_h = 4.4 * mm
+    portal_row_h = 3.4 * mm
+    portal_pad_bot = 2.2 * mm
+    portal_h = portal_title_h + (MAX_PORTAL * portal_row_h) + portal_pad_bot
+
+    footer_y = (y_top - card_h) + 6.0 * mm
+    y_bottom = footer_y + 5.2 * mm + portal_h + 1.4 * mm
+
+    # draw table chunk
+    drawn, _ = _draw_table_paginated(
+        c,
+        zone_x,
+        table_top,
+        zone_w,
+        y_bottom,
+        rows_chunk,
+        font_size=7.6,
+    )
+
+    # portail
+    box_x = zone_x
+    box_w = zone_w
+    box_y_top = y_bottom
+
+    c.setFillColor(colors.HexColor("#f8fafc"))
+    c.setStrokeColor(colors.HexColor("#e2e8f0"))
+    c.roundRect(box_x, box_y_top - portal_h, box_w, portal_h, 6 * mm, fill=1, stroke=1)
+
+    c.setFillColor(colors.HexColor("#0f172a"))
+    c.setFont("Helvetica-Bold", 9)
+    c.drawString(box_x + 6 * mm, box_y_top - 3.7 * mm, "ACCÈS PORTAIL")
+
+    # mini-table portal
+    x_table = box_x + 6 * mm
+    y_table_top = box_y_top - portal_title_h
+    w_login = 44 * mm
+    w_pwd = (box_w - 12 * mm) - w_login
+
+    # draw portal rows (no ellipsis needed here)
+    y = y_table_top
+    for login, pwd in portal_rows[:MAX_PORTAL]:
+        y -= portal_row_h
+        c.setFillColor(colors.white)
+        c.setStrokeColor(colors.HexColor("#e2e8f0"))
+        c.rect(x_table, y, w_login, portal_row_h, fill=1, stroke=1)
+        c.rect(x_table + w_login, y, w_pwd, portal_row_h, fill=1, stroke=1)
+
+        c.setFillColor(colors.HexColor("#0f172a"))
+        c.setFont("Helvetica", 7.6)
+        c.drawString(x_table + 2 * mm, y + 1.6 * mm, str(login or "—"))
+
+        c.setFillColor(colors.HexColor("#334155"))
+        c.setFont("Courier", 7.6)
+        c.drawString(x_table + w_login + 2 * mm, y + 1.6 * mm, str(pwd or "—"))
+
+    # footer
+    c.setFont("Helvetica", 8)
+    c.setFillColor(colors.HexColor("#64748b"))
+    c.drawString(left_x, footer_y, "Signature / Cachet : _________________________________")
+    c.drawRightString(margin_x + card_w - 12 * mm, footer_y, "Groupe Scolaire AZ")
+    c.setFillColor(colors.black)
+
+    return drawn
+
+
+# =========================
+# PUBLIC API: BATCH PDF
+# Multi-pages allowed, ALWAYS 2 copies per page, NEVER ellipsis for months
 # =========================
 def build_transaction_batch_pdf_bytes(transactions, batch_token: str) -> bytes:
     buffer = BytesIO()
     c = canvas.Canvas(buffer, pagesize=A4)
     w, h = A4
 
-    # THEME
-    COLOR_PRIMARY = "#4f46e5"
-    COLOR_ACCENT  = "#a855f7"
-    COLOR_BORDER  = "#e2e8f0"
-    COLOR_SOFT    = "#f8fafc"
+    if not transactions:
+        c.showPage()
+        c.save()
+        out = buffer.getvalue()
+        buffer.close()
+        return out
 
-    # images
-    logo_img = None
-    logo_path = finders.find("img/logo_AZ.png")
-    if logo_path:
-        try:
-            logo_img = ImageReader(logo_path)
-        except Exception:
-            logo_img = None
+    # Build full rows + portal rows
+    all_rows, portal_rows = _build_rows_and_portal_from_transactions(transactions)
 
-    blur_img = None
-    blur_path = finders.find("img/logo_AZ_blur.png")
-    if blur_path:
-        try:
-            blur_img = ImageReader(blur_path)
-        except Exception:
-            blur_img = None
+    # Pagination: we draw chunks, each chunk makes 1 PAGE (with 2 copies)
+    idx = 0
+    n = len(all_rows)
 
-    now = datetime.now()
-    date_txt = now.strftime("%Y-%m-%d %H:%M")
+    while idx < n:
+        # Try draw a chunk on top half (dry-run style by drawing and counting)
+        top_y = h - 10 * mm
 
-    # ✅ Reçu batch = basé sur batch_token (PAS la référence de paiement)
-    code = _recu_value(transactions[0], batch_token=batch_token, txs=transactions) if transactions else "AZ-PAY-—"
+        # We attempt with a large slice and rely on _draw_table_paginated to stop when full.
+        remaining = all_rows[idx:]
+        drawn_top = _draw_half_receipt_batch(c, top_y, transactions, batch_token, remaining, portal_rows)
 
+        # separator line
+        c.setStrokeColor(colors.HexColor("#cbd5e1"))
+        c.setDash(3, 3)
+        c.line(12 * mm, h / 2, w - 12 * mm, h / 2)
+        c.setDash()
+        c.setStrokeColor(colors.black)
 
-    total_global = sum((_D(getattr(tx, "montant_total", None)) for tx in transactions), Decimal("0.00"))
+        # Bottom copy: MUST be identical chunk
+        bottom_y = (h / 2) - 5 * mm
+        _draw_half_receipt_batch(c, bottom_y, transactions, batch_token, remaining[:drawn_top], portal_rows)
 
-    modes = {_mode_value(tx) for tx in transactions}
-    mode_global = next(iter(modes)) if len(modes) == 1 else "Multiple"
+        idx += drawn_top
+        c.showPage()
 
-    def _months_for_tx(tx):
-        months = []
-        has_inscription = False
-
-        for ln in tx.lignes.all():
-            e1 = getattr(ln, "echeance", None)
-            e2 = getattr(ln, "echeance_transport", None)
-
-            if e1 and getattr(e1, "mois_nom", None):
-                months.append(e1.mois_nom)
-                continue
-
-            if e2 and getattr(e2, "mois_nom", None):
-                months.append(e2.mois_nom)
-                continue
-
-            # ✅ ligne sans échéance => Inscription (ou pack autre)
-            has_inscription = True
-
-        # unique + stable
-        out = []
-        seen = set()
-        for m in months:
-            if m and m not in seen:
-                seen.add(m)
-                out.append(m)
-
-        # ✅ si inscription incluse
-        if has_inscription:
-            out.insert(0, "Inscription")
-
-        return _months_compact(out) or ("Inscription" if has_inscription else "—")
-
-
-
-    def _student_label(tx):
-        insc = tx.inscription
-        eleve = insc.eleve
-        grp = getattr(insc, "groupe", None)
-        gname = getattr(grp, "nom", "—")
-        matricule = getattr(eleve, "matricule", "—")
-        nom = f"{getattr(eleve,'nom','—')} {getattr(eleve,'prenom','')}".strip()
-        return f"{matricule} — {nom} • {gname}"
-
-    rows = []
-    portal_rows = []
-
-    for tx in transactions:
-        insc = tx.inscription
-        login, pwd = _login_pwd_from_inscription(insc)
-        rows.append([
-            _student_label(tx),
-            _months_for_tx(tx),
-            _money(_D(getattr(tx, "montant_total", None))),
-        ])
-        portal_rows.append([login, pwd])
-
-    # =========================
-    # DRAW ONE (toujours compact demi-page)
-    # =========================
-    def draw_one(y_top, card_h):
-        margin_x = 12 * mm
-        card_w = w - 2 * margin_x
-
-        _card(c, margin_x, y_top, card_w, card_h)
-
-        # header band
-        c.setFillColor(colors.HexColor(COLOR_SOFT))
-        c.roundRect(margin_x, y_top - 18 * mm, card_w, 18 * mm, 6 * mm, fill=1, stroke=0)
-        c.setFillColor(colors.black)
-
-        if logo_img:
-            c.drawImage(logo_img, margin_x + 9 * mm, y_top - 15.2 * mm, width=12 * mm, height=12 * mm, mask="auto")
-
-        c.setFont("Helvetica-Bold", 14)
-        c.setFillColor(colors.HexColor(COLOR_PRIMARY))
-        c.drawString(margin_x + 24 * mm, y_top - 8.0 * mm, "REÇU PAIEMENT")
-
-        c.setFont("Helvetica", 8.5)
-        c.setFillColor(colors.HexColor("#475569"))
-        c.drawString(margin_x + 24 * mm, y_top - 13.0 * mm, "Groupe Scolaire AZ • Finance")
-        c.setFillColor(colors.black)
-
-        _pill(c, margin_x + card_w - 92 * mm, y_top - 14.5 * mm, code, wmm=80, bg="#f5f3ff", fg=COLOR_ACCENT)
-        _pill(c, margin_x + card_w - 92 * mm, y_top - 24.5 * mm, "PAIEMENT", wmm=80, bg="#eef2ff", fg=COLOR_PRIMARY)
-
-        # watermark
-        if blur_img or logo_img:
-            try:
-                c.saveState()
-                c.setFillAlpha(0.07)
-                wm = blur_img if blur_img else logo_img
-                wm_w = 92 * mm
-                wm_h = 92 * mm
-                cx = margin_x + (card_w - wm_w) / 2
-                cy = (y_top - card_h) + (card_h - wm_h) / 2
-                c.drawImage(wm, cx, cy, width=wm_w, height=wm_h, mask="auto")
-                c.restoreState()
-            except Exception:
-                pass
-
-        _line(c, margin_x + 10 * mm, y_top - 28 * mm, margin_x + card_w - 10 * mm, COLOR_BORDER)
-
-        left_x = margin_x + 12 * mm
-
-        # ====== compact spacing
-        _section(c, left_x, y_top - 35.0 * mm, "PAIEMENT", accent=COLOR_PRIMARY)
-        _kv(c, left_x,            y_top - 41.0 * mm, "Date", date_txt, max_w=55 * mm)
-        _kv(c, left_x + 52 * mm,  y_top - 41.0 * mm, "Mode", str(mode_global), max_w=55 * mm)
-        _kv(c, left_x + 104 * mm, y_top - 41.0 * mm, "Total", _money(total_global), highlight=True, max_w=50 * mm)
-
-        _section(c, left_x, y_top - 53.0 * mm, "DÉTAILS", accent=COLOR_PRIMARY)
-
-        details_w = card_w - 24 * mm
-        w_total = 28 * mm
-        w_mode  = 26 * mm
-        w_mois  = 52 * mm
-        w_eleve = max(58 * mm, details_w - (w_mois + w_mode + w_total))
-
-        headers = ["Élève", "Mois", "Total"]
-
-
-        w_recu  = 30 * mm
-        w_total = 28 * mm
-        w_mode  = 26 * mm
-        w_mois  = 48 * mm
-        w_eleve = max(50 * mm, details_w - (w_recu + w_mois + w_mode + w_total))
-
-        col_ws = [w_eleve, w_mois, w_total]
-
-
-        # ====== réglage compact pour afficher 5
-        MAX_ELEVES_TABLE = 5
-        table_row_h = 5.6 * mm
-        table_font1 = 7.8
-        table_font2 = 7.0
-
-        portal_title_h = 4.6 * mm
-        portal_row_h   = 3.6 * mm
-        portal_pad_bot = 2.4 * mm
-
-        footer_gap = 5.2 * mm
-
-        table_top = y_top - 54.5 * mm
-        footer_y  = (y_top - card_h) + 6.0 * mm
-
-        MAX_PORTAL = min(5, len(portal_rows))
-        portal_h = portal_title_h + (MAX_PORTAL * portal_row_h) + portal_pad_bot
-
-        safe_bottom = footer_y + footer_gap + portal_h
-
-        shown_rows = rows[:MAX_ELEVES_TABLE]
-        hidden_count = max(0, len(rows) - len(shown_rows))
-
-        _table_wrap2(
-            c,
-            left_x,
-            table_top,
-            col_ws,
-            headers,
-            shown_rows,
-            row_h=table_row_h,
-            wrap_cols={1},
-            font_size=table_font1,
-            font_size2=table_font2,
-        )
-
-        # ====== portail
-        box_w = card_w - 24 * mm
-        box_x = left_x
-        box_y_top = safe_bottom
-
-        if hidden_count > 0:
-            c.setFont("Helvetica", 8.0)
-            c.setFillColor(colors.HexColor("#64748b"))
-            c.drawString(left_x, box_y_top + 1.4 * mm, f"+ {hidden_count} autre(s) élève(s) non affiché(s)")
-            c.setFillColor(colors.black)
-
-        c.setFillColor(colors.HexColor("#f8fafc"))
-        c.setStrokeColor(colors.HexColor("#e2e8f0"))
-        c.roundRect(box_x, box_y_top - portal_h, box_w, portal_h, 6 * mm, fill=1, stroke=1)
-
-        c.setFillColor(colors.HexColor("#0f172a"))
-        c.setFont("Helvetica-Bold", 9)
-        c.drawString(box_x + 6 * mm, box_y_top - 3.9 * mm, "ACCÈS PORTAIL")
-
-        x_table = box_x + 6 * mm
-        y_table_top = box_y_top - portal_title_h
-
-        w_login = 44 * mm
-        w_pwd = (box_w - 12 * mm) - w_login
-
-        _mini_table_portail(
-            c,
-            x_table,
-            y_table_top,
-            w_login,
-            w_pwd,
-            portal_rows[:MAX_PORTAL],
-            row_h=portal_row_h,
-        )
-
-        # footer
-        c.setFont("Helvetica", 8)
-        c.setFillColor(colors.HexColor("#64748b"))
-        c.drawString(left_x, footer_y, "Signature / Cachet : _________________________________")
-        c.drawRightString(margin_x + card_w - 12 * mm, footer_y, "Groupe Scolaire AZ")
-        c.setFillColor(colors.black)
-
-    # =========================
-    # ✅ TOUJOURS 2 COPIES SUR A4 (AUCUNE CONDITION)
-    # =========================
-    half_card_h = 134 * mm
-
-    top_y = h - 10 * mm
-    draw_one(top_y, half_card_h)
-
-    c.setStrokeColor(colors.HexColor("#cbd5e1"))
-    c.setDash(3, 3)
-    c.line(12 * mm, h / 2, w - 12 * mm, h / 2)
-    c.setDash()
-    c.setStrokeColor(colors.black)
-
-    bottom_y = (h / 2) - 5 * mm
-    draw_one(bottom_y, half_card_h)
-
-    c.showPage()
     c.save()
-
-    pdf_bytes = buffer.getvalue()
+    out = buffer.getvalue()
     buffer.close()
-    return pdf_bytes
+    return out
 
 
 # =========================
-# Single transaction PDF
-# (Mode + Login/Mdp déjà affichés, version stable)
+# SINGLE PDF: (2 copies per page, multi-pages if needed)
+# For single, usually 1 page, but we respect "no cut, no ..."
 # =========================
 def build_transaction_pdf_bytes(tx) -> bytes:
     buffer = BytesIO()
     c = canvas.Canvas(buffer, pagesize=A4)
     w, h = A4
 
-    COLOR_PRIMARY = "#4f46e5"
-    COLOR_ACCENT = "#a855f7"
-    COLOR_BORDER = "#e2e8f0"
-    COLOR_SOFT = "#f8fafc"
+    # Convert single tx into a "transactions list" for reuse
+    transactions = [tx]
+    batch_token = ""  # not used
 
-    logo_img = None
-    logo_path = finders.find("img/logo_AZ.png")
-    if logo_path:
-        try:
-            logo_img = ImageReader(logo_path)
-        except Exception:
-            logo_img = None
-
-    blur_img = None
-    blur_path = finders.find("img/logo_AZ_blur.png")
-    if blur_path:
-        try:
-            blur_img = ImageReader(blur_path)
-        except Exception:
-            blur_img = None
-
+    # Build rows
     insc = tx.inscription
-    eleve = insc.eleve
-    annee = insc.annee
-    groupe = insc.groupe
-    niveau = getattr(groupe, "niveau", None)
-    degre = getattr(niveau, "degre", None)
+    qs = getattr(tx, "lignes", None)
+    lignes = list(qs.all()) if hasattr(qs, "all") else (list(qs) if qs else [])
+    all_rows = _rows_for_inscription(insc, lignes)
 
-    created = getattr(tx, "created_at", None) or getattr(tx, "date_transaction", None) or datetime.now()
-    date_txt = created.strftime("%Y-%m-%d %H:%M")
-    code = _recu_value(tx)
+    portal_rows = [list(_login_pwd_from_inscription(insc))]
 
+    idx = 0
+    n = len(all_rows)
 
-    type_label = getattr(tx, "get_type_transaction_display", None)
-    type_value = type_label() if callable(type_label) else (getattr(tx, "type_transaction", None) or "—")
+    while idx < n:
+        top_y = h - 10 * mm
+        remaining = all_rows[idx:]
 
-    mode_value = _mode_value(tx)
-    reference = _paiement_ref_value(tx)
-    total = _D(getattr(tx, "montant_total", None))
+        drawn_top = _draw_half_receipt_batch(c, top_y, transactions, batch_token, remaining, portal_rows)
 
-    portal_url = "https://groupescolaireaz.cloud/"
-    login, pwd = _login_pwd_from_inscription(insc)
+        c.setStrokeColor(colors.HexColor("#cbd5e1"))
+        c.setDash(3, 3)
+        c.line(12 * mm, h / 2, w - 12 * mm, h / 2)
+        c.setDash()
+        c.setStrokeColor(colors.black)
 
-    rows = []
-    lignes_qs = getattr(tx, "lignes", None)
-    lignes = list(lignes_qs.all()) if hasattr(lignes_qs, "all") else (list(lignes_qs) if lignes_qs else [])
-    for ln in lignes[:21]:
-        if getattr(ln, "echeance_id", None):
-            mois = getattr(getattr(ln, "echeance", None), "mois_nom", "—")
-            lib = (getattr(ln, "libelle", "") or f"Scolarité — {mois}")
-        elif getattr(ln, "echeance_transport_id", None):
-            mois = getattr(getattr(ln, "echeance_transport", None), "mois_nom", "—")
-            lib = (getattr(ln, "libelle", "") or f"Transport — {mois}")
-        else:
-            mois = "—"
-            lib = (getattr(ln, "libelle", "") or "Frais d'inscription")
+        bottom_y = (h / 2) - 5 * mm
+        _draw_half_receipt_batch(c, bottom_y, transactions, batch_token, remaining[:drawn_top], portal_rows)
 
-        rows.append([str(mois), str(lib), _money(_D(getattr(ln, "montant", None)))])
+        idx += drawn_top
+        c.showPage()
 
-
-
-    def draw_one(y_top):
-        margin_x = 12 * mm
-        card_w = w - 2 * margin_x
-        card_h = 134 * mm
-
-        _card(c, margin_x, y_top, card_w, card_h)
-
-        c.setFillColor(colors.HexColor(COLOR_SOFT))
-        c.roundRect(margin_x, y_top - 18 * mm, card_w, 18 * mm, 6 * mm, fill=1, stroke=0)
-        c.setFillColor(colors.black)
-
-        if logo_img:
-            c.drawImage(logo_img, margin_x + 9 * mm, y_top - 15.2 * mm, width=12 * mm, height=12 * mm, mask="auto")
-
-        c.setFont("Helvetica-Bold", 14)
-        c.setFillColor(colors.HexColor(COLOR_PRIMARY))
-        c.drawString(margin_x + 24 * mm, y_top - 8.0 * mm, "REÇU DE TRANSACTION")
-        c.setFont("Helvetica", 8.5)
-        c.setFillColor(colors.HexColor("#475569"))
-        c.drawString(margin_x + 24 * mm, y_top - 13.0 * mm, "Groupe Scolaire AZ • Finance")
-        c.setFillColor(colors.black)
-
-        _pill(c, margin_x + card_w - 92 * mm, y_top - 14.5 * mm, code, wmm=80, bg="#f5f3ff", fg=COLOR_ACCENT)
-        _pill(c, margin_x + card_w - 92 * mm, y_top - 24.5 * mm, str(type_value), wmm=80, bg="#eef2ff", fg=COLOR_PRIMARY)
-
-        if blur_img or logo_img:
-            try:
-                c.saveState()
-                c.setFillAlpha(0.06)
-                wm = blur_img if blur_img else logo_img
-                wm_w = 92 * mm
-                wm_h = 92 * mm
-                cx = margin_x + (card_w - wm_w) / 2
-                cy = (y_top - card_h) + (card_h - wm_h) / 2
-                c.drawImage(wm, cx, cy, width=wm_w, height=wm_h, mask="auto")
-                c.restoreState()
-            except Exception:
-                pass
-
-        _line(c, margin_x + 10 * mm, y_top - 28 * mm, margin_x + card_w - 10 * mm, COLOR_BORDER)
-
-        left_x = margin_x + 12 * mm
-        right_x = margin_x + (card_w / 2) + 6 * mm
-
-        _section(c, left_x, y_top - 36 * mm, "ÉLÈVE", accent=COLOR_PRIMARY)
-        _kv(c, left_x, y_top - 42 * mm, "Matricule", getattr(eleve, "matricule", "—"), highlight=True)
-        _kv(
-            c,
-            left_x + 48 * mm,
-            y_top - 42 * mm,
-            "Nom",
-            f"{getattr(eleve,'nom','—')} {getattr(eleve,'prenom','')}".strip(),
-            max_w=70 * mm,
-        )
-
-        cls = f"{getattr(degre,'nom','—')} • {getattr(niveau,'nom','—')} • {getattr(groupe,'nom','—')}"
-        _kv(c, left_x, y_top - 58 * mm, "Année", getattr(annee, "nom", "—"))
-        _kv(c, left_x + 48 * mm, y_top - 58 * mm, "Classe", cls, max_w=75 * mm)
-
-        _section(c, right_x, y_top - 36 * mm, "PAIEMENT", accent=COLOR_PRIMARY)
-        _kv(c, right_x, y_top - 42 * mm, "Date", date_txt, max_w=60 * mm)
-        _kv(c, right_x + 48 * mm, y_top - 42 * mm, "Mode", mode_value, max_w=45 * mm)
-        _kv(c, right_x, y_top - 58 * mm, "Référence", reference, max_w=60 * mm)
-        _kv(c, right_x + 48 * mm, y_top - 58 * mm, "Total", _money(total), highlight=True, max_w=45 * mm)
-
-        _line(c, margin_x + 10 * mm, y_top - 66 * mm, margin_x + card_w - 10 * mm, COLOR_BORDER)
-
-        _section(c, left_x, y_top - 74 * mm, "DÉTAILS", accent=COLOR_PRIMARY)
-
-        headers = ["Mois", "Libellé", "Montant payé"]
-        col_ws = [28 * mm, 92 * mm, 32 * mm]
-        table_top = y_top - 78 * mm
-        row_h = 6.2 * mm
-
-        footer_y = (y_top - card_h) + 8 * mm
-
-        portal_h = 12.5 * mm
-        safe_bottom = footer_y + 11 * mm + portal_h
-        max_rows_fit = int(max(1, (table_top - safe_bottom) / row_h))
-        shown = rows[:max_rows_fit] if len(rows) > max_rows_fit else rows
-
-        _table_simple(c, left_x, table_top, col_ws, headers, shown, row_h=row_h)
-
-        box_w = card_w - 24 * mm
-        box_x = left_x
-        box_y_top = safe_bottom
-
-        c.setFillColor(colors.HexColor("#f8fafc"))
-        c.setStrokeColor(colors.HexColor("#e2e8f0"))
-        c.roundRect(box_x, box_y_top - portal_h, box_w, portal_h, 6 * mm, fill=1, stroke=1)
-
-        c.setFillColor(colors.HexColor("#0f172a"))
-        c.setFont("Helvetica-Bold", 10)
-        c.drawString(box_x + 6 * mm, box_y_top - 6.4 * mm, "ACCÈS PORTAIL")
-
-        c.setFont("Helvetica", 9)
-        c.drawString(box_x + 6 * mm, box_y_top - 10.6 * mm, f"Site : {portal_url}   |   Login : {login}")
-        c.drawRightString(box_x + box_w - 6 * mm, box_y_top - 10.6 * mm, f"Mot de passe : {pwd}")
-
-        c.setFont("Helvetica", 8)
-        c.setFillColor(colors.HexColor("#64748b"))
-        c.drawString(left_x, footer_y, "Signature / Cachet : _________________________________")
-        c.drawRightString(margin_x + card_w - 12 * mm, footer_y, "Groupe Scolaire AZ")
-        c.setFillColor(colors.black)
-
-    top_y = h - 10 * mm
-    draw_one(top_y)
-
-    c.setStrokeColor(colors.HexColor("#cbd5e1"))
-    c.setDash(3, 3)
-    c.line(12 * mm, h / 2, w - 12 * mm, h / 2)
-    c.setDash()
-    c.setStrokeColor(colors.black)
-
-    bottom_y = (h / 2) - 5 * mm
-    draw_one(bottom_y)
-
-    c.showPage()
     c.save()
-
-    pdf_bytes = buffer.getvalue()
+    out = buffer.getvalue()
     buffer.close()
-    return pdf_bytes
+    return out

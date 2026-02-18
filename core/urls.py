@@ -283,6 +283,7 @@ urlpatterns = [
 
     # API matières
     path("api/matieres/", views.api_matieres_par_groupe, name="api_matieres_par_groupe"),
+    path("ajax/transport/set/", views_finance.ajax_set_transport_for_inscription, name="ajax_set_transport_for_inscription"),
 
     # =========================================================
     # N — TRANSPORT

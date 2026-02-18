@@ -1,85 +1,62 @@
 {% extends "admin/base_admin.html" %}
 {% load static %}
 
-{% block title %}Paiements | Wizard | AZ{% endblock %}
+{% block title %}Paiements | AZ{% endblock %}
 {% block page_title %}Paiements{% endblock %}
 {% block breadcrumb %}Finance / Paiements / Wizard{% endblock %}
 
 {% block extra_css %}
-  <link rel="stylesheet" href="{% static 'admin/css/paiements/wizard.css' %}?v=99">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css">
-  <link rel="stylesheet" href="{% static 'admin/css/paiements/tomselect-az.css' %}?v=2">
+<link rel="stylesheet" href="{% static 'admin/css/paiements/wizard.css' %}?v=201">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css">
 {% endblock %}
 
 {% block extra_js %}
-  <script defer src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
-  <script defer src="{% static 'admin/js/paiements/wizard.js' %}?v=999"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
+<script defer src="{% static 'admin/js/paiements/wizard.js' %}?v=555"></script>
 {% endblock %}
 
 {% block content %}
 <div class="azw-wrap">
 
-  <!-- HERO -->
   <header class="azw-hero">
-    <div class="azw-hero__left">
-      <div class="azw-kicker">
-        <span class="azw-dot"></span>
-        Wizard Paiements
-      </div>
+    <div>
+      <div class="azw-kicker"><span class="azw-dot"></span> Paiements</div>
       <h1 class="azw-title">Encaissement</h1>
-      <p class="azw-sub">
-        Parent → enfants + panier • ou Autre → élève direct • Scolarité / Inscription / Transport / Pack
-      </p>
+      <p class="azw-sub">Parent → enfants + panier • ou Autre → élève direct • Scolarité / Inscription / Transport / Pack</p>
     </div>
 
     <div class="azw-hero__right">
       <div class="azw-mini">
-        <div class="azw-mini__label">Total sélection</div>
+        <div class="azw-mini__label">Total</div>
         <div class="azw-mini__value" id="totalTxtHero">0.00</div>
         <div class="azw-mini__suffix">MAD</div>
       </div>
     </div>
   </header>
 
-  <!-- MAIN GRID -->
   <div class="azw-grid">
-
-    <!-- LEFT -->
     <section class="azw-panel">
 
-      <!-- Payeur mode -->
+      <!-- Payeur -->
       <div class="azw-block">
         <div class="azw-block__head">
-          <h2 class="azw-h2">Payeur</h2>
-          <span class="azw-badge">1</span>
+          <h2 class="azw-h2">Payeur</h2><span class="azw-badge">1</span>
         </div>
 
         <div class="azw-chips">
-          <button type="button" class="azw-chip is-active" id="btnModeParent" data-mode="PARENT">
-            <i class="fa-solid fa-user-group"></i>
-            Parent
-          </button>
-
-          <button type="button" class="azw-chip" id="btnModeAutre" data-mode="AUTRE">
-            <i class="fa-solid fa-user"></i>
-            Autre payeur (élève direct)
-          </button>
+          <button type="button" class="azw-chip is-active" id="btnModeParent"><i class="fa-solid fa-user-group"></i> Parent</button>
+          <button type="button" class="azw-chip" id="btnModeAutre"><i class="fa-solid fa-user"></i> Autre payeur</button>
         </div>
-
-        <div class="azw-help">
-          Choisis le mode, puis sélectionne l’élève et le type de transaction.
-        </div>
+        <div class="azw-help">Choisis le mode, puis sélectionne l’élève.</div>
       </div>
 
-      <!-- MODE PARENT -->
+      <!-- Mode Parent -->
       <div class="azw-block" id="modeParentBox">
         <div class="azw-grid2">
           <div class="azw-field">
             <label class="azw-label">Parent</label>
-            <select id="parentSelect" class="azw-select">
-              <option value=""></option>
-            </select>
-            <div class="azw-hint">Tape nom / CIN / téléphone…</div>
+            <select id="parentSelect" class="azw-select"><option value=""></option></select>
+            <div class="azw-hint">Tape nom / téléphone…</div>
           </div>
 
           <div class="azw-field">
@@ -92,80 +69,66 @@
         </div>
       </div>
 
-      <!-- MODE AUTRE -->
+      <!-- Mode Autre -->
       <div class="azw-block" id="modeAutreBox" style="display:none;">
         <div class="azw-field">
           <label class="azw-label">Élève</label>
-          <select id="eleveDirectSelect" class="azw-select">
-            <option value=""></option>
-          </select>
+          <select id="eleveDirectSelect" class="azw-select"><option value=""></option></select>
           <div class="azw-hint">Tape matricule / nom / prénom…</div>
+          <div class="azw-hint" id="autreHint" style="display:none;">Mode élève direct.</div>
         </div>
 
         <div class="azw-fratrie" id="fratrieBox" style="display:none;">
           <div class="azw-fratrie__top">
-            <div class="azw-fratrie__title">
-              <i class="fa-solid fa-people-roof"></i>
-              Fratrie
-            </div>
+            <div class="azw-fratrie__title"><i class="fa-solid fa-people-roof"></i> Fratrie</div>
             <div class="azw-fratrie__sub">Clique pour charger un frère / sœur</div>
           </div>
-
           <div id="fratrieList" class="azw-fratrie__list"></div>
         </div>
       </div>
 
-      <!-- TYPE -->
+      <!-- Type -->
       <div class="azw-block">
         <div class="azw-block__head">
-          <h2 class="azw-h2">Transaction</h2>
-          <span class="azw-badge">2</span>
+          <h2 class="azw-h2">Transaction</h2><span class="azw-badge">2</span>
         </div>
 
         <div class="azw-chips azw-chips--type">
-          <button type="button" class="azw-chip is-active" data-type="SCOLARITE" id="btnSco">
-            <i class="fa-solid fa-calendar-check"></i>
-            Scolarité
-          </button>
-          <button type="button" class="azw-chip" data-type="INSCRIPTION" id="btnIns">
-            <i class="fa-solid fa-file-signature"></i>
-            Inscription
-          </button>
-          <button type="button" class="azw-chip" data-type="TRANSPORT" id="btnTr">
-            <i class="fa-solid fa-bus"></i>
-            Transport
-          </button>
-          <button type="button" class="azw-chip" data-type="PACK" id="btnPack">
-            <i class="fa-solid fa-box"></i>
-            Pack
-          </button>
+          <button type="button" class="azw-chip is-active" id="btnSco"><i class="fa-solid fa-calendar-check"></i> Scolarité</button>
+          <button type="button" class="azw-chip" id="btnIns"><i class="fa-solid fa-file-signature"></i> Inscription</button>
+          <button type="button" class="azw-chip" id="btnTr"><i class="fa-solid fa-bus"></i> Transport</button>
+          <button type="button" class="azw-chip" id="btnPack"><i class="fa-solid fa-box"></i> Pack</button>
         </div>
-
-        <!-- Meta élève -->
-        <div class="azw-meta" id="eleveMetaCard" style="display:none;">
-          <div class="azw-meta__main">
-            <div class="azw-meta__name" id="metaNom">—</div>
-            <div class="azw-meta__mat" id="metaMat">—</div>
+        <div class="az-meta-card" id="eleveMetaCard" style="display:none;">
+          <div class="az-meta-top">
+            <div class="az-meta-name" id="metaNom">—</div>
+            <div class="az-meta-mat" id="metaMat"></div>
           </div>
 
-          <div class="azw-meta__chips">
-            <span class="azw-pill" id="metaNiveau">Niveau: —</span>
-            <span class="azw-pill" id="metaGroupe">Groupe: —</span>
-            <span class="azw-pill azw-pill--ghost" id="metaAnnee">Année: —</span>
+          <div class="az-meta-grid">
+            <div class="az-meta-item">
+              <span class="az-meta-label">Niveau</span>
+              <span class="az-meta-value" id="metaNiveau">—</span>
+            </div>
+
+            <div class="az-meta-item">
+              <span class="az-meta-label">Groupe</span>
+              <span class="az-meta-value" id="metaGroupe">—</span>
+            </div>
+
+            <div class="az-meta-item">
+              <span class="az-meta-label">Année</span>
+              <span class="az-meta-value" id="metaAnnee">—</span>
+            </div>
           </div>
         </div>
+
       </div>
 
-      <!-- FORM -->
-      <form method="post"
-            action="{% url 'core:transaction_create' %}"
-            class="azw-form"
-            id="txForm"
-            enctype="multipart/form-data"
-            novalidate>
+      <form method="post" action="{% url 'core:transaction_create' %}" class="azw-form" enctype="multipart/form-data" novalidate>
         {% csrf_token %}
 
-        <!-- HIDDEN -->
+        <!-- hidden -->
         <input type="hidden" name="payeur_mode" id="payeurMode" value="PARENT">
         <input type="hidden" name="type_transaction" id="typeTransaction" value="SCOLARITE">
         <input type="hidden" name="inscription_id" id="inscriptionId" value="">
@@ -174,95 +137,115 @@
         <input type="hidden" name="pack_payload" id="packPayload" value="">
         <input type="hidden" name="batch_payload" id="batchPayload" value="">
 
-        <!-- ✅ SCOLARITE -->
+        <!-- SCOLARITE -->
         <section class="azw-block" id="blocScolarite">
-          <div class="azw-block__head">
-            <h2 class="azw-h2">Scolarité</h2>
-            <span class="azw-badge">A</span>
-          </div>
+          <div class="azw-block__head"><h2 class="azw-h2">Scolarité</h2><span class="azw-badge">A</span></div>
 
           <div class="azw-grid2 azw-grid2--tight">
             <div class="azw-field">
               <label class="azw-label">Montant rapide</label>
               <input class="azw-input" type="number" step="0.01" min="0" id="bulkPriceSco" placeholder="Ex: 500.00">
 
-              <!-- ✅ NEW: sauvegarder défaut -->
-              <label class="azw-toggle" style="margin-top:10px;">
-                <input type="checkbox" id="saveScoDefault">
-                <span>Enregistrer comme tarif par défaut (cet élève)</span>
-              </label>
+              <div class="azw-row">
+                <label class="azw-toggle">
+                  <input type="checkbox" id="saveScoDefault">
+                  <span>Enregistrer comme tarif par défaut</span>
+                </label>
+
+                <button type="button" class="azw-btn azw-btn--soft" id="btnSaveScoDefault" disabled>
+                  Sauvegarder défaut
+                </button>
+              </div>
 
               <div class="azw-hint">
-                Si activé, le montant rapide sera sauvegardé sur l’inscription (prix par défaut), et réutilisé automatiquement.
+                Le montant rapide remplit les inputs. <b>Rien n’est sauvegardé</b> tant que tu ne cliques pas sur le bouton.
+                Le bouton met à jour aussi les échéances (non payées).
               </div>
             </div>
 
-            <div class="azw-field azw-field--right">
-              <div class="azw-note">
-                <i class="fa-solid fa-circle-info"></i>
-                Coche les mois à payer, ajuste si besoin.
-              </div>
-            </div>
           </div>
 
           <div class="azw-table">
             <table>
-              <thead>
-                <tr>
-                  <th class="azw-col-check"></th>
-                  <th>Mois</th>
-                  <th class="azw-col-money">Montant à payer</th>
-                </tr>
-              </thead>
-              <tbody id="moisTbody">
-                <tr><td colspan="3" class="azw-empty">Choisis un élève…</td></tr>
-              </tbody>
+              <thead><tr><th class="azw-col-check"></th><th>Mois</th><th class="azw-col-money">Montant</th></tr></thead>
+              <tbody id="moisTbody"><tr><td colspan="3" class="azw-empty">Choisis un élève…</td></tr></tbody>
             </table>
           </div>
         </section>
 
         <!-- INSCRIPTION -->
         <section class="azw-block" id="blocInscription" style="display:none;">
-          <div class="azw-block__head">
-            <h2 class="azw-h2">Inscription</h2>
-            <span class="azw-badge">B</span>
-          </div>
-
+          <div class="azw-block__head"><h2 class="azw-h2">Inscription</h2><span class="azw-badge">B</span></div>
           <div class="azw-grid2">
             <div class="azw-field">
               <label class="azw-label">Montant inscription</label>
-              <input type="number" step="0.01" min="0" class="azw-input" name="montant_inscription"
-                     id="montantInscription" placeholder="0.00">
+              <input type="number" step="0.01" min="0" class="azw-input" name="montant_inscription" id="montantInscription" placeholder="0.00">
               <div class="azw-hint" id="maxInscriptionTxt"></div>
             </div>
           </div>
         </section>
 
-        <!-- ✅ TRANSPORT -->
+        <!-- TRANSPORT -->
         <section class="azw-block" id="blocTransport" style="display:none;">
           <div class="azw-block__head">
-            <h2 class="azw-h2">Transport</h2>
-            <span class="azw-badge">C</span>
+            <h2 class="azw-h2">Transport</h2><span class="azw-badge">C</span>
           </div>
 
+          <!-- ❗ Info si transport OFF -->
           <div class="azw-alert" id="transportHint" style="display:none;">
-            <i class="fa-solid fa-triangle-exclamation"></i>
-            Transport désactivé pour cet élève.
+            <i class="fa-solid fa-triangle-exclamation"></i> Transport désactivé pour cet élève.
           </div>
 
+          <!-- ✅ ACTIVER + TARIF (UNIQUE) -->
+          <div class="azw-grid2" style="margin:12px 0;">
+            <div class="azw-field">
+              <label class="azw-label">Transport</label>
+
+              <label class="azw-toggle">
+                <input type="checkbox" id="trEnableToggle">
+                <span>Transport actif pour cet élève</span>
+              </label>
+
+              <div class="azw-hint">
+                Active/désactive le transport. Si activé, les échéances (Sep→Jun) seront créées/ajustées.
+                Si désactivé, les échéances <b>non payées</b> seront supprimées.
+              </div>
+            </div>
+
+            <div class="azw-field">
+              <label class="azw-label">Tarif mensuel (MAD)</label>
+              <input class="azw-input" type="number" step="0.01" min="0" id="trTarifMensuel" placeholder="Ex: 300.00">
+
+              <div class="azw-row" style="margin-top:10px; gap:10px;">
+                <button type="button" class="azw-btn azw-btn--soft" id="btnApplyTransport" disabled>
+                  Enregistrer transport
+                </button>
+
+                <div class="azw-hint" id="trApplyMsg" style="margin:0;"></div>
+              </div>
+            </div>
+          </div>
+
+
+          <!-- Montant rapide (UI only) + save default (manuel) -->
           <div class="azw-grid2 azw-grid2--tight">
             <div class="azw-field">
               <label class="azw-label">Montant rapide</label>
               <input class="azw-input" type="number" step="0.01" min="0" id="bulkPriceTr" placeholder="Ex: 300.00">
 
-              <!-- ✅ NEW: sauvegarder défaut -->
-              <label class="azw-toggle" style="margin-top:10px;">
-                <input type="checkbox" id="saveTrDefault">
-                <span>Enregistrer comme tarif par défaut (cet élève)</span>
-              </label>
+              <div class="azw-row">
+                <label class="azw-toggle">
+                  <input type="checkbox" id="saveTrDefault">
+                  <span>Enregistrer comme tarif par défaut</span>
+                </label>
+
+                <button type="button" class="azw-btn azw-btn--soft" id="btnSaveTrDefault" disabled>
+                  Sauvegarder défaut
+                </button>
+              </div>
 
               <div class="azw-hint">
-                Si activé, le montant rapide sera sauvegardé sur l’inscription (prix par défaut transport).
+                Rien n’est sauvegardé tant que tu ne cliques pas sur le bouton.
               </div>
             </div>
           </div>
@@ -273,7 +256,7 @@
                 <tr>
                   <th class="azw-col-check"></th>
                   <th>Mois</th>
-                  <th class="azw-col-money">Montant à payer</th>
+                  <th class="azw-col-money">Montant</th>
                 </tr>
               </thead>
               <tbody id="transportTbody">
@@ -283,109 +266,56 @@
           </div>
         </section>
 
-        <!-- PACK (inchangé chez toi) -->
-<section class="azw-block" id="blocPack" style="display:none;">
-  <div class="azw-block__head">
-    <h2 class="azw-h2">Pack</h2>
-    <span class="azw-badge">D</span>
-  </div>
+        <!-- PACK -->
+        <section class="azw-block" id="blocPack" style="display:none;">
+          <div class="azw-block__head"><h2 class="azw-h2">Pack</h2><span class="azw-badge">D</span></div>
 
-  <div class="azw-help" style="margin-bottom:10px;">
-    Active ce que tu veux inclure dans le pack (Inscription + Scolarité + Transport). Un seul reçu.
-  </div>
-
-  <!-- Toggles -->
-  <div class="azw-grid3" style="margin-bottom:12px;">
-    <label class="azw-toggle">
-      <input type="checkbox" id="packInsOn">
-      <span>Inclure Inscription</span>
-    </label>
-
-    <label class="azw-toggle">
-      <input type="checkbox" id="packScoOn" checked>
-      <span>Inclure Scolarité</span>
-    </label>
-
-    <label class="azw-toggle">
-      <input type="checkbox" id="packTrOn">
-      <span>Inclure Transport</span>
-    </label>
-  </div>
-
-  <!-- INSCRIPTION -->
-  <div id="packInsBlock" style="display:none;">
-    <div class="azw-grid2">
-      <div class="azw-field">
-        <label class="azw-label">Montant inscription</label>
-        <input type="number" step="0.01" min="0" class="azw-input" id="packInsAmount" placeholder="0.00" disabled>
-        <div class="azw-hint" id="packInsMax"></div>
-      </div>
-      <div class="azw-field azw-field--right">
-        <div class="azw-note">
-          <i class="fa-solid fa-circle-info"></i>
-          Inscription disponible seulement si le reste &gt; 0.
-        </div>
-      </div>
-    </div>
-    <div class="azw-divider"></div>
-  </div>
-
-  <!-- SCOLARITE -->
-  <div id="packScoBlock">
-    <div class="azw-note" style="margin-bottom:10px;">
-      <i class="fa-solid fa-circle-info"></i>
-      Coche les mois scolarité à inclure dans le pack.
-    </div>
-
-    <div class="azw-table">
-      <table>
-        <thead>
-          <tr>
-            <th class="azw-col-check"></th>
-            <th>Mois</th>
-            <th class="azw-col-money">Montant</th>
-          </tr>
-        </thead>
-        <tbody id="packScoTbody">
-          <tr><td colspan="3" class="azw-empty">Choisis un élève…</td></tr>
-        </tbody>
-      </table>
-    </div>
-
-    <div class="azw-divider"></div>
-  </div>
-
-  <!-- TRANSPORT -->
-  <div id="packTrBlock" style="display:none;">
-    <div class="azw-alert" id="packTrDisabled" style="display:none;">
-      <i class="fa-solid fa-triangle-exclamation"></i>
-      Transport désactivé pour cet élève.
-    </div>
-
-    <div class="azw-table" id="packTrTableWrap" style="display:none;">
-      <table>
-        <thead>
-          <tr>
-            <th class="azw-col-check"></th>
-            <th>Mois</th>
-            <th class="azw-col-money">Montant</th>
-          </tr>
-        </thead>
-        <tbody id="packTrTbody">
-          <tr><td colspan="3" class="azw-empty">Choisis un élève…</td></tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-</section>
-
-
-        <!-- PAIEMENT / REF / NOTE -->
-        <section class="azw-block">
-          <div class="azw-block__head">
-            <h2 class="azw-h2">Paiement</h2>
-            <span class="azw-badge">3</span>
+          <div class="azw-grid3" style="margin-bottom:12px;">
+            <label class="azw-toggle"><input type="checkbox" id="packInsOn"><span>Inclure Inscription</span></label>
+            <label class="azw-toggle"><input type="checkbox" id="packScoOn" checked><span>Inclure Scolarité</span></label>
+            <label class="azw-toggle"><input type="checkbox" id="packTrOn"><span>Inclure Transport</span></label>
           </div>
+
+          <div id="packInsBlock" style="display:none;">
+            <div class="azw-grid2">
+              <div class="azw-field">
+                <label class="azw-label">Montant inscription</label>
+                <input type="number" step="0.01" min="0" class="azw-input" id="packInsAmount" disabled>
+                <div class="azw-hint" id="packInsMax"></div>
+              </div>
+              <div class="azw-field azw-field--right">
+                <div class="azw-note"><i class="fa-solid fa-circle-info"></i> Disponible seulement si reste &gt; 0.</div>
+              </div>
+            </div>
+            <div class="azw-divider"></div>
+          </div>
+
+          <div id="packScoBlock">
+            <div class="azw-table">
+              <table>
+                <thead><tr><th class="azw-col-check"></th><th>Mois</th><th class="azw-col-money">Montant</th></tr></thead>
+                <tbody id="packScoTbody"><tr><td colspan="3" class="azw-empty">Choisis un élève…</td></tr></tbody>
+              </table>
+            </div>
+            <div class="azw-divider"></div>
+          </div>
+
+          <div id="packTrBlock" style="display:none;">
+            <div class="azw-alert" id="packTrDisabled" style="display:none;">
+              <i class="fa-solid fa-triangle-exclamation"></i> Transport désactivé pour cet élève.
+            </div>
+            <div class="azw-table" id="packTrTableWrap" style="display:none;">
+              <table>
+                <thead><tr><th class="azw-col-check"></th><th>Mois</th><th class="azw-col-money">Montant</th></tr></thead>
+                <tbody id="packTrTbody"><tr><td colspan="3" class="azw-empty">Choisis un élève…</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- Paiement -->
+        <section class="azw-block">
+          <div class="azw-block__head"><h2 class="azw-h2">Paiement</h2><span class="azw-badge">3</span></div>
 
           <div class="azw-grid3">
             <div class="azw-field">
@@ -397,12 +327,10 @@
                 <option value="CHEQUE">Chèque</option>
               </select>
             </div>
-
             <div class="azw-field">
               <label class="azw-label">Référence</label>
               <input class="azw-input" name="reference" id="reference" placeholder="N° chèque / virement…">
             </div>
-
             <div class="azw-field">
               <label class="azw-label">Note</label>
               <input class="azw-input" name="note" id="note" placeholder="Optionnel">
@@ -410,13 +338,9 @@
           </div>
         </section>
 
-        <!-- JUSTIFS (inchangé) -->
+        <!-- Justifs -->
         <section class="azw-block">
-          <div class="azw-block__head">
-            <h2 class="azw-h2">Justificatifs</h2>
-            <span class="azw-badge">4</span>
-          </div>
-
+          <div class="azw-block__head"><h2 class="azw-h2">Justificatifs</h2><span class="azw-badge">4</span></div>
           <div class="azw-grid2">
             <div class="azw-field">
               <label class="azw-label">Type justificatif</label>
@@ -426,50 +350,36 @@
                 <option value="VIREMENT">Virement (preuve)</option>
                 <option value="CHEQUE">Chèque (scan)</option>
               </select>
-              <div class="azw-hint">Optionnel, pour classer la pièce.</div>
             </div>
-
             <div class="azw-field">
-              <label class="azw-label">Fichiers (PDF / Image)</label>
+              <label class="azw-label">Fichiers</label>
               <input class="azw-input" type="file" name="justificatifs" id="justificatifs" multiple accept=".pdf,image/*">
               <div class="azw-hint" id="justifHint">Optionnel. Recommandé pour chèque / virement.</div>
             </div>
           </div>
         </section>
 
-        <!-- ACTIONS -->
         <div class="azw-actions">
-          <a href="{% url 'core:paiement_list' %}" class="azw-btn azw-btn--ghost">
-            <i class="fa-solid fa-arrow-left"></i> Retour
-          </a>
-          <button class="azw-btn azw-btn--primary" type="submit">
-            <i class="fa-solid fa-circle-check"></i> Valider
-          </button>
+          <a href="{% url 'core:paiement_list' %}" class="azw-btn azw-btn--ghost"><i class="fa-solid fa-arrow-left"></i> Retour</a>
+          <button class="azw-btn azw-btn--primary" type="submit"><i class="fa-solid fa-circle-check"></i> Valider</button>
         </div>
+        <div class="azw-toast" id="azwToast" style="display:none;"></div>
 
       </form>
     </section>
 
-    <!-- RIGHT: CART -->
+    <!-- CART -->
     <aside class="azw-side">
       <div class="azw-cart">
         <div class="azw-cart__head">
           <div>
-            <div class="azw-cart__title">
-              <i class="fa-solid fa-basket-shopping"></i> Panier
-            </div>
+            <div class="azw-cart__title"><i class="fa-solid fa-basket-shopping"></i> Panier</div>
             <div class="azw-cart__sub">Un seul reçu • multi-élèves</div>
           </div>
-
-          <button type="button" class="azw-btn azw-btn--soft" id="btnClearCart" style="display:none;">
-            Vider
-          </button>
+          <button type="button" class="azw-btn azw-btn--soft" id="btnClearCart" style="display:none;">Vider</button>
         </div>
 
-        <div id="cartEmpty" class="azw-emptyCard">
-          Aucun élève dans le panier.
-        </div>
-
+        <div id="cartEmpty" class="azw-emptyCard">Aucun élève dans le panier.</div>
         <div id="cartList" class="azw-cart__list" style="display:none;"></div>
 
         <div class="azw-divider"></div>
@@ -485,12 +395,9 @@
           <strong id="totalTxt">0.00</strong>
         </div>
 
-        <div class="azw-footHint">
-          Astuce: Ajoute plusieurs élèves puis “Valider” pour générer un seul reçu (batch).
-        </div>
+        <div class="azw-footHint">Astuce: Ajoute plusieurs élèves puis “Valider” (batch).</div>
       </div>
     </aside>
-
   </div>
 </div>
 
@@ -504,20 +411,10 @@
     transportEcheancesUrl: "{% url 'core:ajax_transport_echeances' %}",
     fratrieUrl: "{% url 'core:ajax_fratrie' %}",
     eleveMetaUrl: "{% url 'core:ajax_eleve_meta' %}",
+    setTransportUrl: "{% url 'core:ajax_set_transport_for_inscription' %}",
 
-    // ✅ NEW: sauvegarde des defaults
     defaultScoUrl: "{% url 'core:ajax_set_default_sco_price' %}",
     defaultTrUrl: "{% url 'core:ajax_set_default_tr_price' %}",
   };
-</script>
-
-<script>
-  (function(){
-    const a = document.getElementById("totalTxt");
-    const b = document.getElementById("totalTxtHero");
-    if(!a || !b) return;
-    const obs = new MutationObserver(()=> b.textContent = a.textContent);
-    obs.observe(a, {childList:true, characterData:true, subtree:true});
-  })();
 </script>
 {% endblock %}

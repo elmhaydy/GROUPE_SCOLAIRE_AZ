@@ -2953,6 +2953,8 @@ def paiement_list(request):
 
     q = request.GET.get("q", "").strip()
     mode = request.GET.get("mode", "").strip()
+    type_tx = request.GET.get("type", "").strip()
+
     periode_id = request.GET.get("periode", "").strip()
     annee_id = request.GET.get("annee", "").strip()
     niveau_id = request.GET.get("niveau", "").strip()
@@ -3060,6 +3062,8 @@ def paiement_list(request):
 
     if mode:
         txs = txs.filter(mode=mode)
+    if type_tx:
+        txs = txs.filter(type_transaction=type_tx)
 
     if q:
         txs = txs.filter(
@@ -3181,13 +3185,18 @@ def paiement_list(request):
         annee_selected_obj = AnneeScolaire.objects.filter(id=int(annee_id)).first()
     
     total_paiements = len(groups)
+    
+    types_tx = TransactionFinance._meta.get_field("type_transaction").choices
 
     return render(request, "admin/paiements/list.html", {
         "annee_active": annee_selected_obj or annee_active,
 
         "annees": annees,
         "annee_selected": annee_id,
-
+        
+        "types_tx": types_tx,
+        "type_selected": type_tx,
+        
         "total_brut": total_brut,
         "total_rembourse": total_rembourse,
         "total_net": total_net,

@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import uuid
 from decimal import Decimal, InvalidOperation
+from core.services.transport_echeances import sync_transport_echeances_for_inscription
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, permission_required
@@ -732,17 +733,16 @@ def ajax_eleve_meta(request):
 # Helpers
 # =========================================================
 def _dec_or_none(v):
-    s = (v or "").strip().replace(",", ".")
+    s = (str(v) if v is not None else "").strip().replace(",", ".")
     if s == "":
         return None
     try:
         d = Decimal(s)
     except Exception:
         return None
-    if d < Decimal("0"):
+    if d < Decimal("0.00"):
         return None
-    return d
-
+    return d.quantize(Decimal("0.01"))
 # =========================================================
 # ✅ ECHEANCES SCOLARITE (override via Inscription.sco_default_mensuel)
 # GET /core/ajax/echeances/?inscription=ID
@@ -866,9 +866,11 @@ def ajax_transport_echeances(request):
 # ✅ SAVE DEFAULT PRICES (appelés par le JS)
 # POST JSON: { inscription_id, amount }
 # =========================================================
+
 @login_required
 @permission_required("core.change_inscription", raise_exception=True)
 @require_POST
+@transaction.atomic
 def ajax_set_default_sco_price(request):
     try:
         payload = json.loads(request.body.decode("utf-8") or "{}")
@@ -877,24 +879,50 @@ def ajax_set_default_sco_price(request):
 
     insc_id = payload.get("inscription_id")
     amount = _dec_or_none(payload.get("amount"))
+    apply_to_echeances = bool(payload.get("apply"))
 
     if not insc_id:
         return JsonResponse({"ok": False, "error": "inscription_id manquant"}, status=400)
+    if amount is None:
+        return JsonResponse({"ok": False, "error": "Montant invalide"}, status=400)
 
-    insc = get_object_or_404(Inscription.objects.select_related("eleve"), pk=int(insc_id))
+    insc = get_object_or_404(Inscription.objects.select_related("eleve", "annee"), pk=int(insc_id))
 
     if not _eleve_is_active_obj(insc.eleve):
         return JsonResponse({"ok": False, "error": "Élève inactif"}, status=403)
 
+    # 1) save default
     insc.sco_default_mensuel = amount
     insc.save(update_fields=["sco_default_mensuel"])
 
-    return JsonResponse({"ok": True, "value": str(insc.sco_default_mensuel or "")})
+    # 2) apply to echeances (DB) — فقط غير PAYE
+    updated = 0
+    if apply_to_echeances:
+        qs = (
+            EcheanceMensuelle.objects
+            .select_for_update()
+            .filter(inscription_id=insc.id)
+            .exclude(statut="PAYE")
+        )
+        updated = qs.update(montant_du=amount)
+
+        # Optionnel: remettre statut cohérent sur celles "A_PAYER/PARTIEL"
+        # (si tu veux 100% clean, sinon update() suffit)
+        # for e in qs:
+        #     e.refresh_statut(save=True)
+
+    return JsonResponse({
+        "ok": True,
+        "value": str(insc.sco_default_mensuel),
+        "applied": apply_to_echeances,
+        "updated_count": updated
+    })
 
 
 @login_required
 @permission_required("core.change_inscription", raise_exception=True)
 @require_POST
+@transaction.atomic
 def ajax_set_default_tr_price(request):
     try:
         payload = json.loads(request.body.decode("utf-8") or "{}")
@@ -903,20 +931,44 @@ def ajax_set_default_tr_price(request):
 
     insc_id = payload.get("inscription_id")
     amount = _dec_or_none(payload.get("amount"))
+    apply_to_echeances = bool(payload.get("apply"))
 
     if not insc_id:
         return JsonResponse({"ok": False, "error": "inscription_id manquant"}, status=400)
+    if amount is None:
+        return JsonResponse({"ok": False, "error": "Montant invalide"}, status=400)
 
-    insc = get_object_or_404(Inscription.objects.select_related("eleve"), pk=int(insc_id))
+    insc = get_object_or_404(Inscription.objects.select_related("eleve", "annee"), pk=int(insc_id))
 
     if not _eleve_is_active_obj(insc.eleve):
         return JsonResponse({"ok": False, "error": "Élève inactif"}, status=403)
 
+    tr = getattr(insc.eleve, "transport", None)
+    if not tr or not tr.enabled:
+        return JsonResponse({"ok": False, "error": "Transport désactivé"}, status=400)
+
+    # 1) save default
     insc.tr_default_mensuel = amount
     insc.save(update_fields=["tr_default_mensuel"])
 
-    return JsonResponse({"ok": True, "value": str(insc.tr_default_mensuel or "")})
+    # 2) apply to transport echeances (DB) — modèle TR n’a pas inscription chez toi,
+    # donc on filtre eleve + annee. (OK car Unique(eleve, annee, mois_index))
+    updated = 0
+    if apply_to_echeances:
+        qs = (
+            EcheanceTransportMensuelle.objects
+            .select_for_update()
+            .filter(eleve_id=insc.eleve_id, annee_id=insc.annee_id)
+            .exclude(statut="PAYE")
+        )
+        updated = qs.update(montant_du=amount)
 
+    return JsonResponse({
+        "ok": True,
+        "value": str(insc.tr_default_mensuel),
+        "applied": apply_to_echeances,
+        "updated_count": updated
+    })
 
 
 @login_required
@@ -1187,6 +1239,43 @@ def _transaction_create_batch(request, batch_raw: str):
 
     messages.success(request, "Paiement fratrie enregistré ✅ (reçu unique)")
     return redirect("core:transaction_batch_success", batch_token=batch_token)
+
+
+@login_required
+@permission_required("core.change_elevetransport", raise_exception=True)
+@require_POST
+def ajax_set_transport_for_inscription(request):
+    try:
+        payload = json.loads(request.body.decode("utf-8") or "{}")
+        insc_id = int(payload.get("inscription_id") or 0)
+        enabled = bool(payload.get("enabled"))
+        tarif_raw = str(payload.get("tarif_mensuel") or "0").strip()
+        tarif = Decimal(tarif_raw.replace(",", ".")) if tarif_raw else Decimal("0.00")
+
+        if insc_id <= 0:
+            return JsonResponse({"ok": False, "error": "inscription_id invalide"}, status=400)
+
+        insc = Inscription.objects.select_related("eleve").get(pk=insc_id)
+        eleve = insc.eleve
+
+        # upsert EleveTransport
+        tr, _ = EleveTransport.objects.get_or_create(eleve=eleve)
+        tr.enabled = enabled
+        tr.tarif_mensuel = tarif if enabled else tr.tarif_mensuel  # tu peux aussi mettre 0.00 si tu veux
+        tr.save(update_fields=["enabled", "tarif_mensuel"])
+
+        # ✅ sync échéances (crée ou supprime non payées)
+        sync_transport_echeances_for_inscription(insc_id)
+
+        return JsonResponse({
+            "ok": True,
+            "enabled": tr.enabled,
+            "tarif_mensuel": str(tr.tarif_mensuel or Decimal("0.00")),
+        })
+    except Inscription.DoesNotExist:
+        return JsonResponse({"ok": False, "error": "Inscription introuvable"}, status=404)
+    except Exception as e:
+        return JsonResponse({"ok": False, "error": str(e)}, status=400)
 
 # =========================================================
 # 10) SUCCESS (single/batch)

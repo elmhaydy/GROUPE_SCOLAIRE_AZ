@@ -86,6 +86,15 @@
         {% endfor %}
       </select>
     </div>
+      <div class="az-field">
+        <div class="az-field-label">Type</div>
+        <select name="type" class="az-select">
+          <option value="">Tous</option>
+          {% for k, lbl in types_tx %}
+            <option value="{{ k }}" {% if type_selected == k %}selected{% endif %}>{{ lbl }}</option>
+          {% endfor %}
+        </select>
+      </div>
 
     <div class="az-field">
       <div class="az-field-label">Niveau</div>
@@ -130,7 +139,7 @@
 
     <div class="az-export">
       <a class="az-btn az-btn-outline"
-        href="{% url 'core:paiements_excel_export' %}?annee={{ annee_selected }}&niveau={{ niveau_selected }}&groupe={{ groupe_selected }}&periode={{ periode_selected }}&mode={{ mode_selected }}&q={{ q|urlencode }}&date_from={{ date_from_selected }}&date_to={{ date_to_selected }}">
+          href="{% url 'core:paiements_excel_export' %}?annee={{ annee_selected }}&niveau={{ niveau_selected }}&groupe={{ groupe_selected }}&periode={{ periode_selected }}&mode={{ mode_selected }}&type={{ type_selected }}&q={{ q|urlencode }}&date_from={{ date_from_selected }}&date_to={{ date_to_selected }}">
         <i class="fa-solid fa-file-excel"></i> Excel
       </a>
     </div>
