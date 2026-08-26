@@ -1,7 +1,7 @@
 {% extends "prof/base_prof.html" %}
 {% load static %}
 
-{% block title %}Mon profil | AZ Espace Prof{% endblock %}
+{% block title %}Mon profil | Groupe Scolaire | Espace Prof{% endblock %}
 {% block page_title %}Mon profil{% endblock %}
 {% block current_page %}Profil{% endblock %}
 
@@ -19,7 +19,13 @@
   <!-- HEADER CARD (HERO) -->
   <div class="azp-hero">
     <div class="azp-avatar" aria-hidden="true">
-      {{ request.user.first_name|default:"P"|slice:":1" }}{{ request.user.last_name|default:"R"|slice:":1" }}
+      {% if ens and ens.photo %}
+        <img src="{{ ens.photo.url }}" alt="{{ request.user.get_full_name }}" style="width:100%; height:100%; object-fit:cover; border-radius:inherit;">
+      {% elif user_avatar_url %}
+        <img src="{{ user_avatar_url }}" alt="{{ request.user.get_full_name }}" style="width:100%; height:100%; object-fit:cover; border-radius:inherit;">
+      {% else %}
+        {{ request.user.first_name|default:"P"|slice:":1" }}{{ request.user.last_name|default:"R"|slice:":1" }}
+      {% endif %}
     </div>
 
     <div class="azp-hero-meta">
@@ -58,10 +64,10 @@
     <section class="azp-card">
       <div class="azp-card-head">
         <h3>Informations personnelles</h3>
-        <p class="muted">Gérez vos coordonnées et informations de contact.</p>
+        <p class="muted">Gérez vos coordonnées et votre photo de profil.</p>
       </div>
 
-      <form method="post" class="azp-form" novalidate>
+      <form method="post" class="azp-form" enctype="multipart/form-data" novalidate>
         {% csrf_token %}
         <input type="hidden" name="tab" value="infos">
 
@@ -84,6 +90,11 @@
         <div class="azp-field">
           <label for="id_telephone">Téléphone</label>
           <input type="text" id="id_telephone" name="telephone" value="{% if ens and ens.telephone %}{{ ens.telephone }}{% endif %}" autocomplete="tel" placeholder="06 XX XX XX XX">
+        </div>
+
+        <div class="azp-field">
+          <label for="id_photo">Photo de profil (Changer l'image)</label>
+          <input type="file" id="id_photo" name="photo" accept="image/*">
         </div>
 
         <div class="azp-actions">

@@ -4,10 +4,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}AZ Administration{% endblock %}</title>
+    <title>{% block title %}Administration | Groupe Scolaire{% endblock %}</title>
     <script>
       (function () {
         try {
+          const setThemeAssets = (theme) => {
+            const iconPath = theme === "dark"
+              ? "{% static 'img/logo-embw.png' %}"
+              : "{% static 'img/logo-emb.png' %}";
+
+            const favicon32 = document.querySelector('link[data-az-favicon="32"]');
+            const favicon16 = document.querySelector('link[data-az-favicon="16"]');
+            const appleTouch = document.querySelector('link[data-az-favicon="apple"]');
+            const sidebarLogo = document.querySelector('[data-az-logo="sidebar"]');
+
+            if (favicon32) favicon32.href = iconPath;
+            if (favicon16) favicon16.href = iconPath;
+            if (appleTouch) appleTouch.href = iconPath;
+            if (sidebarLogo) sidebarLogo.src = iconPath;
+          };
+
           const saved = localStorage.getItem("az-theme");
 
           // ✅ Light par défaut si rien n’est sauvegardé
@@ -22,6 +38,16 @@
             localStorage.setItem("az-theme", "light");
           }
 
+          setThemeAssets(theme);
+
+          new MutationObserver(() => {
+            const currentTheme = document.documentElement.getAttribute("data-theme") || "light";
+            setThemeAssets(currentTheme);
+          }).observe(document.documentElement, {
+            attributes: true,
+            attributeFilter: ["data-theme"],
+          });
+
         } catch (e) {}
       })();
     </script>
@@ -33,18 +59,20 @@
 
     <!-- Police Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{% static 'admin/css/_ui/modal.css' %}?v=1">
+    <link rel="stylesheet" href="{% static 'admin/css/_ui/modal.css' %}?v=4">
 
 
 
     <!-- CSS principal -->
-    <link rel="stylesheet" href="{% static 'admin/css/_core/admin.css' %}?v=7">
+    <link rel="stylesheet" href="{% static 'admin/css/_core/admin.css' %}?v=9">
+    <link rel="stylesheet" href="{% static 'dist/tailwind.css' %}?v=1">
+    <link rel="stylesheet" href="{% static 'admin/css/notifications/inbox.css' %}?v=2">
     {% block extra_css %}{% endblock %}
 
     <!-- Favicon -->
-    <link rel="icon" type="image/png" sizes="32x32" href="{% static 'img/favicon.png' %}">
-    <link rel="icon" type="image/png" sizes="16x16" href="{% static 'img/favicon.png' %}">
-    <link rel="apple-touch-icon" href="{% static 'img/favicon.png' %}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{% static 'img/logo-emb.png' %}" data-az-favicon="32">
+    <link rel="icon" type="image/png" sizes="16x16" href="{% static 'img/logo-emb.png' %}" data-az-favicon="16">
+    <link rel="apple-touch-icon" href="{% static 'img/logo-emb.png' %}" data-az-favicon="apple">
 </head>
 
 <body class="az-body">
@@ -58,14 +86,12 @@
   <div class="az-sidebar-header">
     <a href="{% url 'core:dashboard' %}" class="az-logo-container">
       <div class="az-logo-glow"></div>
-      <img src="{% static 'img/logo_AZ.png' %}" class="az-logo-img" alt="AZ Logo">
+      <img src="{% static 'img/logo-emb.png' %}" class="az-logo-img" alt="Logo Groupe Scolaire" data-az-logo="sidebar">
     </a>
 
     <div class="az-brand">
       <h1 class="az-brand-title">
-        <span class="az-brand-a">A</span>
-        <span class="az-brand-z">Z</span>
-        GROUPS
+        Groupe Scolaire
       </h1>
       <div class="az-brand-subtitle">Administration</div>
     </div>
@@ -88,7 +114,7 @@
   {% if request.user.is_superuser or perms.core.view_eleve or perms.core.view_parent or perms.core.view_inscription %}
   <div class="az-nav-drop" data-drop="scolarite">
     <button class="az-nav-section az-nav-drop-btn" type="button" aria-expanded="true">
-      <span>Scolarité</span>
+      <span><i class="fas fa-layer-group az-section-icon" style="margin-right: 8px;"></i><span class="az-section-text">Scolarité</span></span>
       <i class="fas fa-chevron-down az-nav-drop-caret"></i>
     </button>
 
@@ -132,11 +158,19 @@
   {% if request.user.is_superuser or perms.core.view_paiement or perms.core.view_recouvrement or perms.core.view_depense %}
   <div class="az-nav-drop" data-drop="finance">
     <button class="az-nav-section az-nav-drop-btn" type="button" aria-expanded="true">
-      <span>Finance</span>
+      <span><i class="fas fa-coins az-section-icon" style="margin-right: 8px;"></i><span class="az-section-text">Finance</span></span>
       <i class="fas fa-chevron-down az-nav-drop-caret"></i>
     </button>
 
     <div class="az-nav-drop-panel">
+      {% if request.user.is_superuser %}
+      <a href="{% url 'core:dashboard_finance' %}"
+         class="az-nav-item {% if request.resolver_match.url_name == 'dashboard_finance' %}active{% endif %}">
+        <i class="fas fa-chart-pie"></i><span>Tableau de bord</span>
+        <div class="az-nav-indicator"></div>
+      </a>
+      {% endif %}
+
       {% if request.user.is_superuser or perms.core.view_paiement %}
       <a href="{% url 'core:paiement_list' %}"
          class="az-nav-item {% if request.resolver_match.url_name == 'paiement_list' %}active{% endif %}">
@@ -165,6 +199,18 @@
             <div class="az-nav-indicator"></div>
           </a>
           {% endif %}
+          {% if request.user.is_superuser or perms.core.view_paiement %}
+          <a href="{% url 'core:salaire_list' %}"
+            class="az-nav-item {% if request.resolver_match.url_name in 'salaire_list salaire_create salaire_edit salaire_recu' %}active{% endif %}">
+            <i class="fas fa-money-check-dollar"></i><span>Salaires & Paie</span>
+            <div class="az-nav-indicator"></div>
+          </a>
+          <a href="{% url 'core:budget_overview' %}"
+            class="az-nav-item {% if request.resolver_match.url_name == 'budget_overview' %}active{% endif %}">
+            <i class="fas fa-chart-pie"></i><span>Suivi Budgétaire</span>
+            <div class="az-nav-indicator"></div>
+          </a>
+          {% endif %}
     </div>
   </div>
   {% endif %}
@@ -173,7 +219,7 @@
   {% if request.user.is_superuser or perms.core.view_enseignant or perms.core.view_seance %}
   <div class="az-nav-drop" data-drop="pedagogie">
     <button class="az-nav-section az-nav-drop-btn" type="button" aria-expanded="true">
-      <span>Pédagogie</span>
+      <span><i class="fas fa-chalkboard az-section-icon" style="margin-right: 8px;"></i><span class="az-section-text">Pédagogie</span></span>
       <i class="fas fa-chevron-down az-nav-drop-caret"></i>
     </button>
 
@@ -213,7 +259,7 @@
   {% if request.user.is_superuser or perms.core.view_absence %}
   <div class="az-nav-drop" data-drop="assiduite">
     <button class="az-nav-section az-nav-drop-btn" type="button" aria-expanded="true">
-      <span>Assiduité</span>
+      <span><i class="fas fa-calendar-check az-section-icon" style="margin-right: 8px;"></i><span class="az-section-text">Assiduité</span></span>
       <i class="fas fa-chevron-down az-nav-drop-caret"></i>
     </button>
 
@@ -232,7 +278,7 @@
   {% if request.user.is_superuser or perms.core.view_matiere or perms.core.view_evaluation %}
   <div class="az-nav-drop" data-drop="notes">
     <button class="az-nav-section az-nav-drop-btn" type="button" aria-expanded="true">
-      <span>Notes</span>
+      <span><i class="fas fa-clipboard-list az-section-icon" style="margin-right: 8px;"></i><span class="az-section-text">Notes</span></span>
       <i class="fas fa-chevron-down az-nav-drop-caret"></i>
     </button>
 
@@ -259,7 +305,7 @@
   {% if request.user.is_superuser or perms.core.view_avis or perms.core.view_smshistorique %}
   <div class="az-nav-drop" data-drop="communication">
     <button class="az-nav-section az-nav-drop-btn" type="button" aria-expanded="true">
-      <span>Communication</span>
+      <span><i class="fas fa-comments az-section-icon" style="margin-right: 8px;"></i><span class="az-section-text">Communication</span></span>
       <i class="fas fa-chevron-down az-nav-drop-caret"></i>
     </button>
 
@@ -272,16 +318,26 @@
       </a>
       {% endif %}
 
-      {% if request.user.is_superuser or perms.core.view_smshistorique %}
+      {% if request.user.is_superuser or perms.core.view_smshistorique or perms.core.add_smshistorique %}
       <a href="{% url 'core:sms_send' %}"
-         class="az-nav-item {% if request.resolver_match.url_name == 'sms_send' %}active{% endif %}">
+         class="az-nav-item {% if request.resolver_match.url_name == 'sms_send' or request.resolver_match.url_name == 'sms_history' %}active{% endif %}">
         <i class="fas fa-sms"></i><span>SMS</span>
         <div class="az-nav-indicator"></div>
       </a>
+      {% endif %}
 
-      <a href="{% url 'core:sms_history' %}"
-         class="az-nav-item {% if request.resolver_match.url_name == 'sms_history' %}active{% endif %}">
-        <i class="fas fa-history"></i><span>Historique SMS</span>
+      {% if request.user.is_superuser or perms.core.add_smshistorique %}
+      <a href="{% url 'core:notif_compose' %}"
+         class="az-nav-item {% if request.resolver_match.url_name == 'notif_compose' %}active{% endif %}">
+        <i class="fas fa-paper-plane"></i><span>Envoyer notif.</span>
+        <div class="az-nav-indicator"></div>
+      </a>
+      {% endif %}
+
+      {% if request.user.is_superuser %}
+      <a href="{% url 'core:relance_rule_list' %}"
+         class="az-nav-item {% if 'relance' in request.resolver_match.url_name %}active{% endif %}">
+        <i class="fas fa-bell"></i><span>Relances auto</span>
         <div class="az-nav-indicator"></div>
       </a>
       {% endif %}
@@ -293,7 +349,7 @@
   {% if request.user.is_superuser or perms.auth.view_user %}
   <div class="az-nav-drop" data-drop="securite">
     <button class="az-nav-section az-nav-drop-btn" type="button" aria-expanded="true">
-      <span>Sécurité</span>
+      <span><i class="fas fa-shield-halved az-section-icon" style="margin-right: 8px;"></i><span class="az-section-text">Sécurité</span></span>
       <i class="fas fa-chevron-down az-nav-drop-caret"></i>
     </button>
 
@@ -303,6 +359,13 @@
         <i class="fas fa-user-gear"></i><span>Utilisateurs</span>
         <div class="az-nav-indicator"></div>
       </a>
+      {% if request.user.is_superuser %}
+      <a href="{% url 'core:audit_log_list' %}"
+         class="az-nav-item {% if request.resolver_match.url_name == 'audit_log_list' or request.resolver_match.url_name == 'audit_log_detail' %}active{% endif %}">
+        <i class="fas fa-shield-halved"></i><span>Journal d'audit</span>
+        <div class="az-nav-indicator"></div>
+      </a>
+      {% endif %}
     </div>
   </div>
   {% endif %}
@@ -316,7 +379,11 @@
         <div class="az-sidebar-footer">
             <div class="az-user-info">
                 <div class="az-user-avatar">
-                    <i class="fas fa-user"></i>
+                    {% if user_avatar_url %}
+                        <img src="{{ user_avatar_url }}" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">
+                    {% else %}
+                        <i class="fas fa-user"></i>
+                    {% endif %}
                 </div>
                 <div class="az-user-details">
                     <span class="az-user-name">{{ request.user.get_full_name|default:request.user.username }}</span>
@@ -327,33 +394,92 @@
             </div>
             <a href="{% url 'accounts:logout' %}" class="az-logout-btn">
                 <i class="fas fa-sign-out-alt"></i>
-                <span>Déconnexion</span>
             </a>
         </div>
     </aside>
 
-<!-- ╔════════ MAIN CONTENT ════════╗ -->
     <main class="az-main">
         <!-- Top Navbar -->
         <header class="az-topbar">
             <button class="az-sidebar-toggle" id="sidebarToggle" aria-label="Toggle sidebar">
                 <i class="fa-solid fa-bars"></i>
-
             </button>
 
             <div class="az-breadcrumb">
-                <span>AZ Admin</span>
+                <span>Admin Groupe Scolaire</span>
                 <i class="fas fa-chevron-right"></i>
                 <span class="az-current-page">{% block current_page %}{% endblock %}</span>
             </div>
 
             <div class="az-topbar-actions">
 
+                <!-- 🔔 Notifications Dropdown -->
+                {% if request.user.is_authenticated %}
+                <div class="az-notif-wrap" id="azNotifWrap">
+                  <button class="az-notif-btn" id="azNotifToggle" type="button" aria-label="Notifications">
+                    <i class="fas fa-bell"></i>
+                  </button>
+                  {% if notif_unread_count %}
+                  <span class="az-notif-badge" id="az-notif-badge">{{ notif_unread_count }}</span>
+                  {% endif %}
+
+                  <!-- Dropdown -->
+                  <div class="az-notif-dd" id="azNotifDd">
+                    <div class="az-notif-dd__head">
+                      <span class="az-notif-dd__title">
+                        <i class="fas fa-bell"></i> Notifications
+                      </span>
+                      {% if notif_unread_count %}
+                      <span class="az-notif-dd__badge">{{ notif_unread_count }} non lue{{ notif_unread_count|pluralize }}</span>
+                      {% endif %}
+                    </div>
+
+                    <div class="az-notif-dd__list">
+                      {% if notif_recent %}
+                        {% for n in notif_recent %}
+                        <div class="az-notif-dd__item {% if not n.read %}unread{% endif %}">
+                          <div class="az-notif-dd__icon ni-icon--{{ n.category_css }}">
+                            <i class="fa-solid {{ n.category_icon }}"></i>
+                          </div>
+                          <div class="az-notif-dd__body">
+                            <div class="az-notif-dd__item-title">{{ n.title|truncatechars:52 }}</div>
+                            {% if n.body %}
+                            <div class="az-notif-dd__item-text">{{ n.body|truncatechars:70 }}</div>
+                            {% endif %}
+                            <div class="az-notif-dd__item-time">
+                              <i class="fa-regular fa-clock"></i> {{ n.created_at|timesince }}
+                            </div>
+                          </div>
+                          {% if not n.read %}
+                          <div class="az-notif-dd__dot"></div>
+                          {% endif %}
+                        </div>
+                        {% endfor %}
+                      {% else %}
+                        <div class="az-notif-dd__empty">
+                          <i class="fas fa-bell-slash"></i>
+                          <p>Aucune notification</p>
+                        </div>
+                      {% endif %}
+                    </div>
+
+                    <div class="az-notif-dd__foot">
+                      <a href="{% url 'core:notif_inbox' %}" class="az-notif-dd__see-all">
+                        Voir tout <i class="fas fa-arrow-right"></i>
+                      </a>
+                    </div>
+                  </div>
+                </div>
+                {% endif %}
 
                 <div class="az-user-dropdown" id="userDropdown">
                     <button class="az-user-menu-toggle" id="userMenuToggle">
                         <div class="az-user-avatar-sm">
-                            {{ request.user.first_name|first|default:"A" }}{{ request.user.last_name|first|default:"Z" }}
+                            {% if user_avatar_url %}
+                                <img src="{{ user_avatar_url }}" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">
+                            {% else %}
+                                {{ request.user.first_name|first|default:"A" }}{{ request.user.last_name|first|default:"Z" }}
+                            {% endif %}
                         </div>
                         <span class="az-user-greeting">
                             Bonjour, <strong>{{ request.user.first_name|default:"Admin" }}</strong>
@@ -364,7 +490,11 @@
                     <div class="az-user-menu" id="userMenu">
                         <div class="az-user-menu-header">
                             <div class="az-user-avatar-lg">
-                                {{ request.user.first_name|first|default:"A" }}{{ request.user.last_name|first|default:"Z" }}
+                                {% if user_avatar_url %}
+                                    <img src="{{ user_avatar_url }}" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">
+                                {% else %}
+                                    {{ request.user.first_name|first|default:"A" }}{{ request.user.last_name|first|default:"Z" }}
+                                {% endif %}
                             </div>
                             <div>
                                 <h4>{{ request.user.get_full_name|default:request.user.username }}</h4>
@@ -385,7 +515,7 @@
                               <span id="azThemeLabelDropdown">Mode sombre</span>
                             </button>
 
-                            <a href="#" class="az-user-menu-item">
+                            <a href="{% url 'core:aide' %}" class="az-user-menu-item">
                                 <i class="fas fa-question-circle"></i>
                                 <span>Aide & Support</span>
                             </a>
@@ -431,12 +561,12 @@
   <!-- ✅ Footer devient le dernier du scroll -->
   <footer class="az-footer">
       <div class="az-footer-content">
-          <span>© 2026 AZ GROUPS - Tous droits réservés</span>
+          <span>© 2026 Groupe Scolaire • Créé par <a href="https://www.linkedin.com/in/el-mehdi-bougrin" target="_blank" rel="noopener noreferrer" style="color: #2563eb; font-weight: 700; text-decoration: none;"><i class="fab fa-linkedin"></i> El_Mehdi_Bougrin</a></span>
           <div class="az-footer-links">
-              <a href="#"><i class="fas fa-question-circle"></i> Aide</a>
-              <a href="#"><i class="fas fa-shield-alt"></i> Confidentialité</a>
-              <a href="#"><i class="fas fa-file-contract"></i> Conditions</a>
-              <a href="#"><i class="fas fa-envelope"></i> Contact</a>
+              <a href="{% url 'core:aide' %}"><i class="fas fa-question-circle"></i> Aide</a>
+              <a href="{% url 'core:confidentialite' %}"><i class="fas fa-shield-alt"></i> Confidentialité</a>
+              <a href="{% url 'core:conditions' %}"><i class="fas fa-file-contract"></i> Conditions</a>
+              <a href="{% url 'core:contact' %}"><i class="fas fa-envelope"></i> Contact</a>
           </div>
       </div>
   </footer>
@@ -450,7 +580,41 @@
 
 
 <script></script>
-<script src="{% static 'admin/js/modal.js' %}"></script>
+<script src="{% static 'admin/js/modal.js' %}?v=8"></script>
+
+<!-- Notification bell dropdown -->
+<script>
+(function () {
+  const wrap   = document.getElementById("azNotifWrap");
+  const toggle = document.getElementById("azNotifToggle");
+  const dd     = document.getElementById("azNotifDd");
+  if (!wrap || !toggle || !dd) return;
+
+  function isOpen() { return dd.classList.contains("open"); }
+
+  function open() {
+    dd.classList.add("open");
+    wrap.classList.add("active");
+  }
+  function close() {
+    dd.classList.remove("open");
+    wrap.classList.remove("active");
+  }
+
+  toggle.addEventListener("click", function (e) {
+    e.stopPropagation();
+    isOpen() ? close() : open();
+  });
+
+  document.addEventListener("click", function (e) {
+    if (isOpen() && !wrap.contains(e.target)) close();
+  });
+
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && isOpen()) close();
+  });
+})();
+</script>
 <script src="{% static 'admin/js/nav_nebula.js' %}?v=1"></script>
 
 
@@ -458,9 +622,149 @@
 
 <!-- Scripts -->
 <script src="{% static 'admin/js/admin.js' %}?v=3"></script>
+<script src="{% static 'admin/js/_ui/az-actions-menu.js' %}?v=10"></script>
 {% block extra_js %}{% endblock %}
 
-{% block modal %}{% endblock %}
+<!-- Photo Lightbox Modal & Script -->
+<style>
+.az-photo-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 9999999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.25s ease, visibility 0.25s ease;
+}
+.az-photo-lightbox.is-active {
+  opacity: 1;
+  visibility: visible;
+}
+.az-photo-lightbox-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.az-photo-lightbox-content {
+  position: relative;
+  z-index: 2;
+  max-width: 90vw;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transform: scale(0.9);
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.az-photo-lightbox.is-active .az-photo-lightbox-content {
+  transform: scale(1);
+}
+.az-photo-lightbox-img {
+  max-width: 85vw;
+  max-height: 80vh;
+  border-radius: 20px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+  border: 3px solid rgba(255, 255, 255, 0.25);
+  object-fit: contain;
+  background: #0f172a;
+}
+.az-photo-lightbox-close {
+  position: absolute;
+  top: -48px;
+  right: 0;
+  background: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  font-size: 24px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.az-photo-lightbox-close:hover {
+  background: #ef4444;
+  border-color: #ef4444;
+  transform: rotate(90deg);
+}
+.az-photo-lightbox-caption {
+  margin-top: 14px;
+  color: #ffffff;
+  font-size: 1rem;
+  font-weight: 700;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+  letter-spacing: 0.02em;
+}
+</style>
 
+<div id="azPhotoLightbox" class="az-photo-lightbox" aria-hidden="true">
+  <div class="az-photo-lightbox-backdrop" data-az-lightbox-close></div>
+  <div class="az-photo-lightbox-content">
+    <button type="button" class="az-photo-lightbox-close" data-az-lightbox-close aria-label="Fermer">&times;</button>
+    <img id="azLightboxImg" src="" alt="Photo d'élève" class="az-photo-lightbox-img">
+    <div id="azLightboxCaption" class="az-photo-lightbox-caption"></div>
+  </div>
+</div>
+
+<script>
+(function() {
+  document.addEventListener("click", function (e) {
+    const img = e.target.closest("img.fin-hero-photo, img.az-avatar, [data-zoomable]");
+    if (img && img.src) {
+      e.preventDefault();
+      const lightbox = document.getElementById("azPhotoLightbox");
+      const lightboxImg = document.getElementById("azLightboxImg");
+      const caption = document.getElementById("azLightboxCaption");
+
+      if (lightbox && lightboxImg) {
+        lightboxImg.src = img.src;
+        caption.textContent = img.alt || "Photo de l'élève";
+        lightbox.classList.add("is-active");
+        lightbox.setAttribute("aria-hidden", "false");
+      }
+      return;
+    }
+
+    if (e.target.closest("[data-az-lightbox-close]")) {
+      const lightbox = document.getElementById("azPhotoLightbox");
+      if (lightbox) {
+        lightbox.classList.remove("is-active");
+        lightbox.setAttribute("aria-hidden", "true");
+      }
+    }
+  });
+
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") {
+      const lightbox = document.getElementById("azPhotoLightbox");
+      if (lightbox && lightbox.classList.contains("is-active")) {
+        lightbox.classList.remove("is-active");
+        lightbox.setAttribute("aria-hidden", "true");
+      }
+    }
+  });
+})();
+</script>
+
+{% block modal %}
+  <div class="azm" id="azModal" aria-hidden="true">
+    <div class="azm__backdrop" data-azm-close></div>
+
+    <div class="azm__dialog" role="dialog" aria-modal="true">
+      <div class="azm__body" id="azModalBody">
+        <div class="az-sub">Chargement...</div>
+      </div>
+    </div>
+  </div>
+{% endblock %}
 </body>
 </html>

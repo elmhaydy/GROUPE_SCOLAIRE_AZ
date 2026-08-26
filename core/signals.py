@@ -11,6 +11,21 @@ from django.dispatch import receiver
 from django.utils import timezone
 
 from .utils_users import get_or_create_user_with_group
+from core.services.sms_dispatcher import send_event
+
+
+def _first_parent_for_eleve(eleve):
+    if not eleve:
+        return None
+    ParentEleve = apps.get_model("core", "ParentEleve")
+    lien = (
+        ParentEleve.objects
+        .select_related("parent")
+        .filter(eleve=eleve, parent__is_active=True)
+        .order_by("id")
+        .first()
+    )
+    return lien.parent if lien else None
 
 
 # =========================================================
@@ -30,6 +45,21 @@ def auto_regle_recouvrement(sender, instance, created: bool, **kwargs):
 
     dossier.refresh_statut_si_regle(save=True)
 
+    parent = _first_parent_for_eleve(getattr(instance.inscription, "eleve", None))
+    if not parent:
+        return
+
+    eleve = instance.inscription.eleve
+    payload = {
+        "parent": parent,
+        "eleve": f"{eleve.nom} {eleve.prenom}".strip(),
+        "groupe": getattr(getattr(instance.inscription, "groupe", None), "nom", "") or "",
+        "montant": instance.montant,
+        "date": instance.date_paiement.strftime("%d/%m/%Y") if instance.date_paiement else timezone.now().strftime("%d/%m/%Y"),
+        "ref": instance.reference or f"PAY-{instance.pk}",
+    }
+    transaction.on_commit(lambda: send_event("paiement", payload))
+
 
 # =========================================================
 # 2) Année scolaire -> créer Semestre 1 & 2 (à la création)
@@ -46,12 +76,6 @@ def creer_periodes_auto(sender, instance, created: bool, **kwargs):
 # =========================================================
 # 3) Inscription -> créer les échéances (Sep -> Jun = 10 mois)
 # =========================================================
-from datetime import date as date_cls
-from decimal import Decimal
-from django.apps import apps
-from django.db.models.signals import post_save
-from django.dispatch import receiver
-
 MONTHS_COUNT = 10
 
 def first_day_of_month(d: date_cls) -> date_cls:
@@ -96,12 +120,34 @@ def creer_echeances_sep_juin(sender, instance, created: bool, **kwargs):
 
 
 
+
+
 # =========================================================
-# 4) Parent -> rien
+# 5) Parent -> rien
 # =========================================================
 @receiver(post_save, sender="core.Parent")
 def noop_parent(sender, instance, created: bool, **kwargs):
     return
+
+
+@receiver(post_save, sender="core.Absence")
+def auto_sms_absence(sender, instance, created: bool, **kwargs):
+    if not created:
+        return
+
+    parent = _first_parent_for_eleve(getattr(instance, "eleve", None))
+    if not parent:
+        return
+
+    eleve = instance.eleve
+    payload = {
+        "parent": parent,
+        "eleve": f"{eleve.nom} {eleve.prenom}".strip(),
+        "groupe": getattr(getattr(instance, "groupe", None), "nom", "") or "",
+        "type": instance.get_type_display(),
+        "date": instance.date.strftime("%d/%m/%Y") if instance.date else timezone.now().strftime("%d/%m/%Y"),
+    }
+    transaction.on_commit(lambda: send_event("absence", payload))
 
 
 # =========================================================

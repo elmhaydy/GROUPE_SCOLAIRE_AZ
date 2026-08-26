@@ -51,18 +51,72 @@ html[data-theme="dark"]{
   box-shadow: var(--az-shadow);
 }
 
-.az-profile-avatar{
-  width:56px;
-  height:56px;
-  border-radius: 18px;
-  display:grid;
-  place-items:center;
+.az-avatar-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.az-profile-avatar-wrap {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  flex: 0 0 auto;
+}
+.az-profile-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 20px;
+  display: grid;
+  place-items: center;
   background: rgba(99,102,241,.12);
   border: 1px solid rgba(99,102,241,.25);
   color: var(--az-text);
-  flex: 0 0 auto;
 }
-html[data-theme="dark"] .az-profile-avatar{
+.az-profile-avatar-img {
+  width: 64px;
+  height: 64px;
+  border-radius: 20px;
+  object-fit: cover;
+  border: 2px solid var(--az-primary);
+  box-shadow: 0 4px 14px rgba(0,0,0,.15);
+}
+.az-avatar-upload-btn {
+  position: absolute;
+  bottom: -4px;
+  right: -4px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--az-primary);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,.25);
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+.az-avatar-upload-btn:hover {
+  transform: scale(1.15);
+  background: var(--az-primary-dark, #4f46e5);
+}
+.az-btn-remove-photo {
+  background: none;
+  border: none;
+  color: #ef4444;
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 6px;
+  transition: background 0.15s;
+}
+.az-btn-remove-photo:hover {
+  background: rgba(239,68,68,.12);
+}
+html[data-theme="dark"] .az-profile-avatar {
   background: rgba(167,139,250,.12);
   border-color: rgba(167,139,250,.25);
 }

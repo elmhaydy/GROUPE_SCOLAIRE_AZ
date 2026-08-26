@@ -1,0 +1,211 @@
+{% extends "eleve/base.html" %}
+{% load static %}
+
+{% block title %}Notifications | Portail Élève{% endblock %}
+{% block page_title %}Mes notifications{% endblock %}
+{% block current_page %}Notifications{% endblock %}
+{% block breadcrumb_current %}Notifications{% endblock %}
+
+{% block content %}
+<style>
+.en-wrap { display:flex; flex-direction:column; gap:16px; }
+
+.en-hero {
+  background: linear-gradient(135deg,#1e1b4b 0%,#312e81 60%,#4338ca 100%);
+  border-radius:16px; padding:24px 28px;
+  display:flex; align-items:center; justify-content:space-between;
+  gap:16px; flex-wrap:wrap; color:#fff;
+}
+.en-hero h2 { font-size:1.4rem; font-weight:750; margin:0 0 4px; }
+.en-hero p  { margin:0; opacity:.7; font-size:.85rem; }
+.en-hero-actions { display:flex; gap:8px; flex-wrap:wrap; }
+.en-btn {
+  display:inline-flex; align-items:center; gap:6px;
+  padding:7px 14px; border-radius:9px; font-size:.8rem; font-weight:600;
+  text-decoration:none; border:1px solid rgba(255,255,255,.25);
+  background:rgba(255,255,255,.1); color:#fff; cursor:pointer;
+  transition:opacity .15s;
+}
+.en-btn:hover { opacity:.8; }
+.en-btn.primary { background:#fff; color:#312e81; border-color:#fff; }
+
+.en-filters {
+  display:flex; gap:8px; flex-wrap:wrap; align-items:center;
+  background:#fff; border-radius:12px; padding:12px 16px;
+  box-shadow:0 2px 8px rgba(0,0,0,.05);
+}
+.en-filter-btn {
+  padding:4px 12px; border-radius:20px; font-size:.76rem; font-weight:500;
+  border:1px solid #e5e7eb; background:#f9fafb; color:#374151;
+  text-decoration:none; transition:all .15s;
+}
+.en-filter-btn.active { background:#312e81; color:#fff; border-color:#312e81; }
+.en-filter-label { font-size:.73rem; font-weight:600; color:#9ca3af; text-transform:uppercase; letter-spacing:.04em; }
+
+.en-list {
+  display:flex; flex-direction:column; gap:0;
+  background:#fff; border-radius:14px; overflow:hidden;
+  box-shadow:0 2px 12px rgba(0,0,0,.06);
+}
+.en-item {
+  display:flex; align-items:flex-start; gap:12px;
+  padding:14px 18px; border-bottom:1px solid #f3f4f6;
+  position:relative; transition:background .1s;
+}
+.en-item:last-child { border-bottom:none; }
+.en-item.unread { background:#f5f3ff; }
+.en-item:hover  { background:#f9fafb; }
+.en-item.unread:hover { background:#ede9fe; }
+
+.en-icon {
+  width:36px; height:36px; border-radius:9px;
+  display:flex; align-items:center; justify-content:center; font-size:.9rem; flex-shrink:0;
+}
+.en-icon--info     { background:#eff6ff; color:#3b82f6; }
+.en-icon--ok       { background:#d1fae5; color:#10b981; }
+.en-icon--warn     { background:#fef3c7; color:#f59e0b; }
+.en-icon--bad      { background:#fee2e2; color:#ef4444; }
+.en-icon--purple   { background:#f3e8ff; color:#8b5cf6; }
+.en-icon--muted    { background:#f3f4f6; color:#9ca3af; }
+
+.en-body { flex:1; min-width:0; }
+.en-title {
+  font-size:.85rem; font-weight:600; color:#1f2937; margin-bottom:3px;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.en-item:not(.unread) .en-title { font-weight:500; color:#374151; }
+.en-text  { font-size:.76rem; color:#9ca3af; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+.en-meta  { display:flex; align-items:center; gap:6px; margin-top:4px; flex-wrap:wrap; }
+.en-badge { display:inline-block; padding:1px 8px; border-radius:10px; font-size:.66rem; font-weight:600; text-transform:uppercase; letter-spacing:.05em; }
+.en-badge--info   { background:#eff6ff; color:#3b82f6; }
+.en-badge--ok     { background:#d1fae5; color:#059669; }
+.en-badge--warn   { background:#fef3c7; color:#d97706; }
+.en-badge--bad    { background:#fee2e2; color:#dc2626; }
+.en-badge--purple { background:#f3e8ff; color:#7c3aed; }
+.en-badge--muted  { background:#f3f4f6; color:#6b7280; }
+.en-time { font-size:.7rem; color:#c4c4c4; }
+.en-dot {
+  width:7px; height:7px; border-radius:50%; background:#6366f1;
+  flex-shrink:0; margin-top:4px;
+}
+
+.en-actions { display:flex; gap:6px; align-items:center; flex-shrink:0; }
+.en-read-btn {
+  padding:3px 10px; border-radius:7px; font-size:.71rem; font-weight:600;
+  border:1px solid #e5e7eb; background:#fff; color:#374151; cursor:pointer;
+}
+.en-read-btn:hover { background:#f3f4f6; }
+
+.en-empty { text-align:center; padding:50px 24px; color:#9ca3af; }
+.en-empty i { font-size:2.5rem; margin-bottom:12px; display:block; opacity:.4; }
+
+/* ── Dark mode — tous les styles en-* sont dans inbox.css ── */
+html[data-theme="dark"] body { background: var(--bg-shell, #020617); color: var(--text, #e5e7eb); }
+</style>
+
+<div class="en-wrap">
+
+  <!-- Hero -->
+  <div class="en-hero">
+    <div>
+      <h2><i class="fa-solid fa-bell"></i> Mes notifications</h2>
+      <p>
+        {% if total_unread %}
+          <strong>{{ total_unread }}</strong> non lue{{ total_unread|pluralize }}
+        {% else %}
+          Tout est lu
+        {% endif %}
+      </p>
+    </div>
+    {% if total_unread %}
+    <div class="en-hero-actions">
+      <form method="post" action="{% url 'core:notif_mark_all_read' %}" style="margin:0">
+        {% csrf_token %}
+        <button type="submit" class="en-btn primary">
+          <i class="fa-solid fa-check-double"></i> Tout marquer lu
+        </button>
+      </form>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Filtres -->
+  <div class="en-filters">
+    <span class="en-filter-label">Statut :</span>
+    <a href="?show=all{% if category_filter %}&category={{ category_filter }}{% endif %}"
+       class="en-filter-btn {% if show_filter == 'all' %}active{% endif %}">Toutes</a>
+    <a href="?show=unread{% if category_filter %}&category={{ category_filter }}{% endif %}"
+       class="en-filter-btn {% if show_filter == 'unread' %}active{% endif %}">Non lues</a>
+  </div>
+
+  <!-- Liste -->
+  {% if notifications %}
+  <div class="en-list">
+    {% for n in notifications %}
+    <div class="en-item {% if not n.read %}unread{% endif %}" id="notif-{{ n.pk }}">
+      <div class="en-icon en-icon--{{ n.category_css }}">
+        <i class="fa-solid {{ n.category_icon }}"></i>
+      </div>
+      <div class="en-body">
+        <div class="en-title">{{ n.title }}</div>
+        {% if n.body %}<div class="en-text">{{ n.body }}</div>{% endif %}
+        <div class="en-meta">
+          <span class="en-badge en-badge--{{ n.category_css }}">{{ n.get_category_display }}</span>
+          <span class="en-time"><i class="fa-regular fa-clock"></i> {{ n.created_at|timesince }}</span>
+        </div>
+      </div>
+      <div class="en-actions">
+        {% if not n.read %}
+        <div class="en-dot"></div>
+        <button class="en-read-btn js-mark-read" data-id="{{ n.pk }}"
+                data-url="{% url 'core:notif_mark_read' n.pk %}">
+          <i class="fa-solid fa-check"></i>
+        </button>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="en-list">
+    <div class="en-empty">
+      <i class="fa-solid fa-bell-slash"></i>
+      <p>Aucune notification{% if show_filter == 'unread' %} non lue{% endif %}.</p>
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.querySelectorAll(".js-mark-read").forEach(btn => {
+  btn.addEventListener("click", function () {
+    const id  = this.dataset.id;
+    const url = this.dataset.url;
+    fetch(url, {
+      method: "POST",
+      headers: {
+        "X-CSRFToken": document.cookie.match(/csrftoken=([^;]+)/)?.[1] || "",
+        "X-Requested-With": "XMLHttpRequest",
+      },
+    }).then(r => r.json()).then(data => {
+      if (data.ok) {
+        const item = document.getElementById("notif-" + id);
+        if (item) {
+          item.classList.remove("unread");
+          this.closest(".en-actions").querySelectorAll(".en-dot, .en-read-btn").forEach(e => e.remove());
+          const badge = document.getElementById("az-notif-badge");
+          if (badge) {
+            const cur = parseInt(badge.textContent) || 0;
+            if (cur <= 1) badge.remove();
+            else badge.textContent = cur - 1;
+          }
+        }
+      }
+    });
+  });
+});
+</script>
+{% endblock %}

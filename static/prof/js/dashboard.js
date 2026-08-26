@@ -1,5 +1,5 @@
 /**
- * AZ GROUPS - Espace Prof
+ * Groupe Scolaire - Espace Prof
  * Dashboard Functionalities
  */
 

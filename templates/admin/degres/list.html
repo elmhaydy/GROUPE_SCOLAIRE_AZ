@@ -3,16 +3,16 @@
 
 {% load core_extras %}
 
-{% block title %}Degrés | AZ{% endblock %}
+{% block title %}Degrés | Groupe Scolaire{% endblock %}
 {% block page_title %}Degrés{% endblock %}
 {% block current_page %}Structure / Degrés{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'admin/css/degres/list.css' %}?v=4">
+<link rel="stylesheet" href="{% static 'admin/css/nebula/az-lists.css' %}?v=8">
 {% endblock %}
 
 {% block content %}
-
+<div class="az-list-page">
 <div class="az-page-head">
   <div class="az-page-head-left">
     <div class="az-pill">
@@ -49,7 +49,7 @@
   </form>
 </div>
 
-<div class="az-degre-card">
+<div class="az-card az-degre-card">
   <div class="az-card-head">
     <h3 class="az-card-title">
       <i class="fa-solid fa-school"></i>
@@ -61,7 +61,7 @@
     </div>
   </div>
 
-  <div class="az-table">
+  <div class="az-table az-cols-5">
     <div class="az-thead">
       <div>Ordre</div>
       <div>Nom</div>
@@ -73,34 +73,38 @@
     <div class="az-tbody">
       {% for d in degres %}
         <div class="az-row">
-          <div class="az-cell">
+          <div class="az-cell" data-label="Ordre">
             <span class="az-badge az-badge-muted">
               <i class="fa-solid fa-hashtag"></i> {{ d.ordre }}
             </span>
           </div>
 
-          <div class="az-cell az-strong">{{ d.nom }}</div>
+          <div class="az-cell az-strong" data-label="Nom">{{ d.nom }}</div>
 
-          <div class="az-cell">
+          <div class="az-cell" data-label="Code">
             <span class="az-badge az-badge-muted">
               <i class="fa-solid fa-code"></i> {{ d.code }}
             </span>
           </div>
-<div class="az-cell">
+<div class="az-cell" data-label="Capacité">
   <span class="az-badge az-badge-muted">
     <i class="fa-solid fa-users"></i>
     <b>{{ cap_by_degre_id|get_item:d.id|default:0 }}</b> élèves
   </span>
 </div>
 
-          <div class="az-cell az-actions">
+          <div class="az-cell az-actions" data-label="Actions">
             <a class="az-btn az-btn-outline" href="{% url 'core:degre_update' d.id %}">
               <i class="fa-solid fa-pen"></i> Modifier
             </a>
 
-            <a class="az-btn az-btn-sm az-btn-danger-soft" href="{% url 'core:degre_delete' d.id %}">
-              <i class="fas fa-trash"></i> Supprimer
-            </a>
+            <button type="button"
+                    class="az-btn az-btn-sm az-btn-danger-soft"
+                    data-delete-modal
+                    data-modal-url="{% url 'core:degre_delete_modal' d.id %}">
+              <i class="fas fa-trash"></i>
+              Supprimer
+            </button>
           </div>
         </div>
       {% empty %}
@@ -112,5 +116,5 @@
     </div>
   </div>
 </div>
-
+</div>
 {% endblock %}

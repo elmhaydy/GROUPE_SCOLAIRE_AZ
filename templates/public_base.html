@@ -1,0 +1,259 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Groupe Scolaire | Espace Public{% endblock %}</title>
+
+  <!-- Google Fonts & FontAwesome -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <link rel="icon" type="image/png" sizes="32x32" href="{% static 'img/logo-emb.png' %}">
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: #f8fafc;
+      color: #0f172a;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      line-height: 1.6;
+    }
+
+    /* PUBLIC NAVBAR */
+    .pub-navbar {
+      background: #ffffff;
+      border-bottom: 1px solid #e2e8f0;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);
+    }
+
+    .pub-navbar-container {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 0.85rem 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .pub-brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      text-decoration: none;
+      color: #0f172a;
+    }
+
+    .pub-brand img {
+      height: 40px;
+      width: auto;
+      object-fit: contain;
+    }
+
+    .pub-brand-title {
+      font-size: 1.15rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+
+    .pub-brand-sub {
+      font-size: 0.72rem;
+      color: #4f46e5;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .pub-nav-links {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+    }
+
+    .pub-nav-link {
+      text-decoration: none;
+      color: #475569;
+      font-size: 0.9rem;
+      font-weight: 600;
+      transition: color 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .pub-nav-link:hover {
+      color: #4f46e5;
+    }
+
+    .pub-btn-login {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.6rem 1.25rem;
+      background: #4f46e5;
+      color: #ffffff;
+      font-weight: 700;
+      font-size: 0.88rem;
+      border-radius: 10px;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);
+    }
+
+    .pub-btn-login:hover {
+      background: #4338ca;
+      transform: translateY(-1px);
+      box-shadow: 0 6px 16px rgba(79, 70, 229, 0.35);
+    }
+
+    /* MAIN CONTAINER */
+    .pub-main-wrapper {
+      flex: 1;
+      max-width: 1280px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 2rem 1.5rem 3rem 1.5rem;
+    }
+
+    /* MESSAGES ALERTS */
+    .pub-alerts {
+      max-width: 1280px;
+      margin: 1rem auto 0 auto;
+      padding: 0 1.5rem;
+    }
+
+    .pub-alert {
+      padding: 0.9rem 1.2rem;
+      border-radius: 12px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    .pub-alert-success { background: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46; }
+    .pub-alert-error { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; }
+
+    /* FOOTER */
+    .pub-footer {
+      background: #ffffff;
+      border-top: 1px solid #e2e8f0;
+      padding: 2rem 1.5rem;
+      margin-top: auto;
+    }
+
+    .pub-footer-container {
+      max-width: 1280px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .pub-footer-copy {
+      font-size: 0.85rem;
+      color: #64748b;
+    }
+
+    .pub-footer-links {
+      display: flex;
+      gap: 1.25rem;
+    }
+
+    .pub-footer-links a {
+      color: #64748b;
+      font-size: 0.85rem;
+      text-decoration: none;
+      font-weight: 500;
+      transition: color 0.2s ease;
+    }
+
+    .pub-footer-links a:hover {
+      color: #4f46e5;
+    }
+
+    @media (max-width: 768px) {
+      .pub-nav-links {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- PUBLIC NAVBAR -->
+  <header class="pub-navbar">
+    <div class="pub-navbar-container">
+      <a href="{% url 'accounts:login' %}" class="pub-brand">
+        <img src="{% static 'img/logo-emb.png' %}" alt="Logo Groupe Scolaire">
+        <div>
+          <div class="pub-brand-title">Groupe Scolaire</div>
+          <div class="pub-brand-sub">Espace d'Information</div>
+        </div>
+      </a>
+
+      <div class="pub-nav-links">
+        <a href="{% url 'core:aide' %}" class="pub-nav-link"><i class="fa-solid fa-circle-question"></i> Aide & FAQ</a>
+        <a href="{% url 'core:confidentialite' %}" class="pub-nav-link"><i class="fa-solid fa-shield-halved"></i> Confidentialité</a>
+        <a href="{% url 'core:conditions' %}" class="pub-nav-link"><i class="fa-solid fa-file-contract"></i> CGU</a>
+        <a href="{% url 'core:contact' %}" class="pub-nav-link"><i class="fa-solid fa-envelope"></i> Contact</a>
+      </div>
+
+      <a href="{% url 'accounts:login' %}" class="pub-btn-login">
+        <i class="fa-solid fa-right-to-bracket"></i> Se connecter
+      </a>
+    </div>
+  </header>
+
+  <!-- DJANGO MESSAGES -->
+  {% if messages %}
+  <div class="pub-alerts">
+    {% for message in messages %}
+    <div class="pub-alert pub-alert-{% if message.tags == 'error' %}error{% else %}success{% endif %}">
+      <i class="fa-solid fa-{% if message.tags == 'error' %}triangle-exclamation{% else %}circle-check{% endif %}"></i>
+      {{ message }}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- MAIN CONTENT BLOCK -->
+  <main class="pub-main-wrapper">
+    {% block content %}{% endblock %}
+  </main>
+
+  <!-- PUBLIC FOOTER -->
+  <footer class="pub-footer">
+    <div class="pub-footer-container">
+      <div class="pub-footer-copy">
+        © 2026 Groupe Scolaire • Tous droits réservés.
+      </div>
+
+      <div class="pub-footer-links">
+        <a href="{% url 'core:aide' %}">Aide</a>
+        <a href="{% url 'core:confidentialite' %}">Confidentialité</a>
+        <a href="{% url 'core:conditions' %}">Conditions</a>
+        <a href="{% url 'core:contact' %}">Contact</a>
+        <a href="{% url 'accounts:login' %}">Connexion</a>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>

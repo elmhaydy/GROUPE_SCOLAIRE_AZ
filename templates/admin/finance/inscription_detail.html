@@ -1,90 +1,607 @@
 {% extends "admin/base_admin.html" %}
-{% block title %}Suivi paiement | AZ{% endblock %}
-{% block page_title %}Suivi paiement{% endblock %}
-{% block breadcrumb %}Finance / Suivi élève{% endblock %}
+{% load static %}
+
+{% block title %}Suivi Financier Élève | Groupe Scolaire{% endblock %}
+{% block page_title %}Suivi des Paiements{% endblock %}
+{% block current_page %}Finance / Suivi Inscription{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'admin/css/nebula/az-lists.css' %}?v=8">
+<style>
+/* =========================================
+   SUIVI FINANCIER ELEVE — PREMIUM DESIGN SYSTEM
+   ========================================= */
+
+.fin-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 100%;
+}
+
+/* 1. HERO BANNER HEADER */
+.fin-hero {
+  background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #1e293b 100%);
+  border-radius: 20px;
+  padding: 24px 30px;
+  color: #ffffff;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 20px;
+  box-shadow: 0 10px 30px -5px rgba(15, 23, 42, 0.25);
+  position: relative;
+  overflow: hidden;
+}
+
+.fin-hero::before {
+  content: '';
+  position: absolute;
+  top: -50px;
+  right: -50px;
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(99, 102, 241, 0.25) 0%, rgba(255, 255, 255, 0) 70%);
+  pointer-events: none;
+}
+
+.fin-hero-left {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.fin-hero-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  box-shadow: 0 8px 16px rgba(99, 102, 241, 0.35);
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.fin-hero-photo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 16px;
+  cursor: zoom-in;
+  transition: transform 0.2s ease;
+}
+.fin-hero-photo:hover {
+  transform: scale(1.08);
+}
+
+.fin-hero-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.fin-hero-name {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: #ffffff;
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+.fin-hero-tags {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.fin-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.12);
+  color: #e2e8f0;
+  backdrop-filter: blur(4px);
+}
+
+.fin-hero-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.fin-btn-glow {
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  color: #ffffff !important;
+  border: none;
+  font-weight: 700;
+  padding: 12px 20px;
+  border-radius: 12px;
+  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+}
+.fin-btn-glow:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(99, 102, 241, 0.5);
+  color: #ffffff !important;
+}
+
+.fin-btn-ghost {
+  background: rgba(255, 255, 255, 0.1);
+  color: #f8fafc !important;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  font-weight: 600;
+  padding: 12px 18px;
+  border-radius: 12px;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+}
+.fin-btn-ghost:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: #ffffff !important;
+}
+
+
+/* 2. KPI CARDS GRID */
+.fin-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 18px;
+}
+
+.fin-kpi-card {
+  background: var(--az-bg-primary, #ffffff);
+  border: 1px solid var(--az-border, #e2e8f0);
+  border-radius: 18px;
+  padding: 22px 24px;
+  box-shadow: var(--az-shadow-sm, 0 4px 20px rgba(15, 23, 42, 0.04));
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.fin-kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--az-shadow-md, 0 8px 24px rgba(15, 23, 42, 0.08));
+}
+
+.fin-kpi-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+}
+.fin-kpi-bar-global { background: linear-gradient(90deg, #ef4444 0%, #f59e0b 100%); }
+.fin-kpi-bar-insc { background: linear-gradient(90deg, #8b5cf6 0%, #6366f1 100%); }
+.fin-kpi-bar-mensuel { background: linear-gradient(90deg, #3b82f6 0%, #06b6d4 100%); }
+
+.fin-kpi-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.fin-kpi-title {
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--az-text-secondary, #64748b);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.fin-kpi-pill {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 20px;
+}
+.fin-kpi-pill-danger { background: rgba(239, 68, 68, 0.12); color: #dc2626; }
+.fin-kpi-pill-success { background: rgba(34, 197, 94, 0.12); color: #16a34a; }
+.fin-kpi-pill-info { background: rgba(99, 102, 241, 0.12); color: #4f46e5; }
+
+html[data-theme="dark"] .fin-kpi-pill-danger { background: rgba(239, 68, 68, 0.22); color: #fca5a5; }
+html[data-theme="dark"] .fin-kpi-pill-success { background: rgba(34, 197, 94, 0.22); color: #86efac; }
+html[data-theme="dark"] .fin-kpi-pill-info { background: rgba(99, 102, 241, 0.22); color: #a5b4fc; }
+
+.fin-kpi-amount {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: var(--az-text-primary, #0f172a);
+  margin-bottom: 14px;
+  line-height: 1.2;
+}
+
+.fin-kpi-stats {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 12px;
+  border-top: 1px solid var(--az-border, #f1f5f9);
+  font-size: 0.83rem;
+  color: var(--az-text-secondary, #64748b);
+}
+
+
+/* 3. TABLE SECTIONS */
+.fin-card {
+  background: var(--az-bg-primary, #ffffff);
+  border: 1px solid var(--az-border, #e2e8f0);
+  border-radius: 18px;
+  box-shadow: var(--az-shadow-sm, 0 4px 20px rgba(15, 23, 42, 0.04));
+  overflow: hidden;
+}
+
+.fin-card-head {
+  padding: 18px 24px;
+  background: var(--az-bg-secondary, #f8fafc);
+  border-bottom: 1px solid var(--az-border, #e2e8f0);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.fin-card-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--az-text-primary, #0f172a);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+}
+
+.fin-card-title i {
+  color: #6366f1;
+}
+
+.fin-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.fin-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.fin-table th {
+  background: var(--az-bg-secondary, #f1f5f9);
+  color: var(--az-text-secondary, #475569);
+  font-size: 0.76rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 14px 22px;
+  border-bottom: 1px solid var(--az-border, #e2e8f0);
+  white-space: nowrap;
+}
+
+.fin-table td {
+  padding: 16px 22px;
+  font-size: 0.88rem;
+  color: var(--az-text-primary, #1e293b);
+  border-bottom: 1px solid var(--az-border, #f1f5f9);
+  vertical-align: middle;
+}
+
+.fin-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.fin-table tbody tr {
+  transition: background-color 0.15s ease;
+}
+
+.fin-table tbody tr:hover {
+  background-color: var(--az-bg-secondary, #f8fafc);
+}
+
+/* BADGES DE STATUT */
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.status-PAYE {
+  background: #dcfce7;
+  color: #15803d;
+}
+.status-PARTIEL {
+  background: #fef3c7;
+  color: #b45309;
+}
+.status-A_PAYER {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+html[data-theme="dark"] .status-PAYE { background: rgba(34, 197, 94, 0.2); color: #86efac; }
+html[data-theme="dark"] .status-PARTIEL { background: rgba(245, 158, 11, 0.2); color: #fde68a; }
+html[data-theme="dark"] .status-A_PAYER { background: rgba(239, 68, 68, 0.2); color: #fecaca; }
+
+/* MONTH BADGE */
+.month-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: rgba(99, 102, 241, 0.1);
+  color: #6366f1;
+  font-weight: 800;
+  font-size: 0.85rem;
+}
+html[data-theme="dark"] .month-badge {
+  background: rgba(99, 102, 241, 0.2);
+  color: #818cf8;
+}
+
+.fin-empty {
+  padding: 40px 20px;
+  text-align: center;
+  color: var(--az-text-secondary, #94a3b8);
+}
+.fin-empty i {
+  font-size: 2.2rem;
+  margin-bottom: 10px;
+  opacity: 0.5;
+}
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="az-page-head">
-  <div class="az-page-head-left">
-    <div class="az-pill">
-      <i class="fa-solid fa-wallet"></i>
-      <span>{{ insc.eleve.matricule }} — {{ insc.eleve.nom }} {{ insc.eleve.prenom }}</span>
+<div class="fin-container">
+
+  <!-- =========================================================
+       1. HERO HEADER BANNER
+  ========================================================= -->
+  <div class="fin-hero">
+    <div class="fin-hero-left">
+      <div class="fin-hero-avatar">
+        {% if insc.eleve.photo %}
+          <img src="{{ insc.eleve.photo.url }}" alt="{{ insc.eleve.nom }}" class="fin-hero-photo">
+        {% else %}
+          <i class="fa-solid fa-graduation-cap"></i>
+        {% endif %}
+      </div>
+      <div class="fin-hero-info">
+        <h2 class="fin-hero-name">{{ insc.eleve.nom }} {{ insc.eleve.prenom }}</h2>
+        <div class="fin-hero-tags">
+          <span class="fin-tag">
+            <i class="fa-solid fa-id-card"></i> {{ insc.eleve.matricule }}
+          </span>
+          {% if insc.groupe %}
+            <span class="fin-tag">
+              <i class="fa-solid fa-users-rectangle"></i> {{ insc.groupe.nom }}
+            </span>
+          {% endif %}
+          {% if insc.annee %}
+            <span class="fin-tag">
+              <i class="fa-solid fa-calendar"></i> {{ insc.annee.nom }}
+            </span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div class="fin-hero-right">
+      <a class="fin-btn-ghost" href="{% url 'core:eleve_detail' insc.eleve.id %}">
+        <i class="fa-solid fa-user"></i> Fiche Élève
+      </a>
+      <a class="fin-btn-glow" href="{% url 'core:transaction_wizard' %}?inscription_id={{ insc.id }}">
+        <i class="fa-solid fa-plus-circle"></i> Enregistrer un Paiement
+      </a>
     </div>
   </div>
-  <div class="az-page-head-right">
-    <a class="az-btn az-btn-primary" href="{% url 'core:paiement_create' insc.id %}">
-      <i class="fa-solid fa-plus"></i> Ajouter paiement
-    </a>
-  </div>
-</div>
 
-<div class="az-grid" style="grid-template-columns:repeat(12,1fr);gap:12px;">
-  <div class="az-card" style="grid-column:span 4;">
-    <h4 style="margin:0;">Global</h4>
-    <p class="az-sub">Du: <b>{{ kpi.global_du }}</b> — Payé: <b>{{ kpi.global_paye }}</b></p>
-    <div class="az-kpi">
-      <span>Reste</span>
-      <b style="font-size:22px;">{{ kpi.global_reste }} MAD</b>
+  <!-- =========================================================
+       2. KPI SUMMARY CARDS
+  ========================================================= -->
+  <div class="fin-kpi-grid">
+    
+    <!-- CARD 1: GLOBAL RESTE -->
+    <div class="fin-kpi-card">
+      <div class="fin-kpi-bar fin-kpi-bar-global"></div>
+      <div class="fin-kpi-header">
+        <span class="fin-kpi-title">
+          <i class="fa-solid fa-scale-balanced" style="color:#ef4444;"></i> Reste Global Total
+        </span>
+        {% if kpi.global_reste > 0 %}
+          <span class="fin-kpi-pill fin-kpi-pill-danger">Impayé</span>
+        {% else %}
+          <span class="fin-kpi-pill fin-kpi-pill-success">Solde Reglé</span>
+        {% endif %}
+      </div>
+      <div class="fin-kpi-amount">
+        {{ kpi.global_reste }} <small style="font-size:0.9rem; font-weight:600;">MAD</small>
+      </div>
+      <div class="fin-kpi-stats">
+        <span>Total Dû : <b>{{ kpi.global_du }} MAD</b></span>
+        <span>Payé : <b style="color:#16a34a;">{{ kpi.global_paye }} MAD</b></span>
+      </div>
     </div>
+
+    <!-- CARD 2: INSCRIPTION -->
+    <div class="fin-kpi-card">
+      <div class="fin-kpi-bar fin-kpi-bar-insc"></div>
+      <div class="fin-kpi-header">
+        <span class="fin-kpi-title">
+          <i class="fa-solid fa-file-signature" style="color:#8b5cf6;"></i> Frais d'Inscription
+        </span>
+        {% if kpi.insc_reste > 0 %}
+          <span class="fin-kpi-pill fin-kpi-pill-danger">Reste : {{ kpi.insc_reste }} MAD</span>
+        {% else %}
+          <span class="fin-kpi-pill fin-kpi-pill-success"><i class="fa-solid fa-check"></i> Payé</span>
+        {% endif %}
+      </div>
+      <div class="fin-kpi-amount">
+        {{ kpi.insc_paye }} <small style="font-size:0.9rem; font-weight:600; color:var(--az-text-secondary);">/ {{ kpi.insc_du }} MAD</small>
+      </div>
+      <div class="fin-kpi-stats">
+        <span>Statut Frais Dossier</span>
+        <span>Reste : <b>{{ kpi.insc_reste }} MAD</b></span>
+      </div>
+    </div>
+
+    <!-- CARD 3: SCOLARITE MENSUELLE -->
+    <div class="fin-kpi-card">
+      <div class="fin-kpi-bar fin-kpi-bar-mensuel"></div>
+      <div class="fin-kpi-header">
+        <span class="fin-kpi-title">
+          <i class="fa-solid fa-calendar-check" style="color:#3b82f6;"></i> Scolarité Annuelle (10 mois)
+        </span>
+        {% if kpi.mensuel_reste > 0 %}
+          <span class="fin-kpi-pill fin-kpi-pill-info">En cours</span>
+        {% else %}
+          <span class="fin-kpi-pill fin-kpi-pill-success"><i class="fa-solid fa-check"></i> Complète</span>
+        {% endif %}
+      </div>
+      <div class="fin-kpi-amount">
+        {{ kpi.mensuel_paye }} <small style="font-size:0.9rem; font-weight:600; color:var(--az-text-secondary);">/ {{ kpi.mensuel_du }} MAD</small>
+      </div>
+      <div class="fin-kpi-stats">
+        <span>Reste Scolarité</span>
+        <span>Reste : <b style="color:#ef4444;">{{ kpi.mensuel_reste }} MAD</b></span>
+      </div>
+    </div>
+
   </div>
 
-  <div class="az-card" style="grid-column:span 4;">
-    <h4 style="margin:0;">Inscription</h4>
-    <p class="az-sub">Du: <b>{{ kpi.insc_du }}</b> — Payé: <b>{{ kpi.insc_paye }}</b></p>
-    <div class="az-kpi"><span>Reste</span><b>{{ kpi.insc_reste }} MAD</b></div>
-  </div>
-
-  <div class="az-card" style="grid-column:span 4;">
-    <h4 style="margin:0;">Scolarité (10 mois)</h4>
-    <p class="az-sub">Du: <b>{{ kpi.mensuel_du }}</b> — Payé: <b>{{ kpi.mensuel_paye }}</b></p>
-    <div class="az-kpi"><span>Reste</span><b>{{ kpi.mensuel_reste }} MAD</b></div>
-  </div>
-
-  <div class="az-card" style="grid-column:span 12;">
-    <h4 style="margin:0 0 10px;">Échéances mensuelles</h4>
-    <div class="az-table-wrap">
-      <table class="az-table">
+  <!-- =========================================================
+       3. ECHEANCES MENSUELLES TABLE
+  ========================================================= -->
+  <div class="fin-card">
+    <div class="fin-card-head">
+      <h3 class="fin-card-title">
+        <i class="fa-solid fa-list-check"></i> Échéances Mensuelles (10 mois)
+      </h3>
+    </div>
+    <div class="fin-table-wrap">
+      <table class="fin-table">
         <thead>
           <tr>
             <th>Mois</th>
-            <th>Date</th>
-            <th>Du</th>
-            <th>Payé</th>
-            <th>Reste</th>
+            <th>Date d'échéance</th>
+            <th>Montant Dû</th>
+            <th>Montant Payé</th>
+            <th>Reste à Payer</th>
             <th>Statut</th>
+            <th style="text-align:right;">Action</th>
           </tr>
         </thead>
         <tbody>
-        {% for e in echeances %}
-          <tr>
-            <td>M{{ e.mois_index }}</td>
-            <td>{{ e.date_echeance }}</td>
-            <td>{{ e.montant_du }}</td>
-            <td>{{ e.montant_paye }}</td>
-            <td><b>{{ e.reste }}</b></td>
-            <td>
-              {% if e.statut == "PAYE" %}
-                <span class="az-badge az-badge-success">PAYÉ</span>
-              {% elif e.statut == "PARTIEL" %}
-                <span class="az-badge az-badge-warn">PARTIEL</span>
-              {% else %}
-                <span class="az-badge az-badge-danger">À PAYER</span>
-              {% endif %}
-            </td>
-          </tr>
-        {% endfor %}
+          {% for e in echeances %}
+            <tr>
+              <td>
+                <span class="month-badge">M{{ e.mois_index }}</span>
+              </td>
+              <td>
+                <i class="fa-regular fa-calendar" style="margin-right:6px; color:var(--az-text-secondary);"></i>
+                {{ e.date_echeance|date:"d F Y" }}
+              </td>
+              <td><b>{{ e.montant_du }} MAD</b></td>
+              <td>
+                {% if e.montant_paye > 0 %}
+                  <span style="color:#16a34a; font-weight:700;">{{ e.montant_paye }} MAD</span>
+                {% else %}
+                  <span style="color:var(--az-text-secondary);">0,00 MAD</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if e.reste > 0 %}
+                  <span style="color:#ef4444; font-weight:800;">{{ e.reste }} MAD</span>
+                {% else %}
+                  <span style="color:var(--az-text-secondary);">0,00 MAD</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if e.statut == "PAYE" %}
+                  <span class="status-pill status-PAYE">
+                    <i class="fa-solid fa-circle-check"></i> PAYÉ
+                  </span>
+                {% elif e.statut == "PARTIEL" %}
+                  <span class="status-pill status-PARTIEL">
+                    <i class="fa-solid fa-clock"></i> PARTIEL
+                  </span>
+                {% else %}
+                  <span class="status-pill status-A_PAYER">
+                    <i class="fa-solid fa-circle-exclamation"></i> À PAYER
+                  </span>
+                {% endif %}
+              </td>
+              <td style="text-align:right;">
+                {% if e.statut != "PAYE" %}
+                  <a class="az-btn az-btn-soft az-btn-sm" href="{% url 'core:transaction_wizard' %}?inscription_id={{ insc.id }}&type=SCOLARITE">
+                    <i class="fa-solid fa-credit-card"></i> Payer
+                  </a>
+                {% else %}
+                  <span class="az-badge az-badge-muted" style="opacity:0.7;">Réglé</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="7" class="fin-empty">
+                <i class="fa-solid fa-calendar-xmark"></i>
+                <div>Aucune échéance mensuelle configurée pour cette inscription.</div>
+              </td>
+            </tr>
+          {% endfor %}
         </tbody>
       </table>
     </div>
   </div>
 
-  <div class="az-card" style="grid-column:span 12;">
-    <h4 style="margin:0 0 10px;">Historique des paiements</h4>
-    <div class="az-table-wrap">
-      <table class="az-table">
+  <!-- =========================================================
+       4. HISTORIQUE DES PAIEMENTS TABLE
+  ========================================================= -->
+  <div class="fin-card">
+    <div class="fin-card-head">
+      <h3 class="fin-card-title">
+        <i class="fa-solid fa-clock-rotate-left"></i> Historique des Règlements Effectués
+      </h3>
+    </div>
+    <div class="fin-table-wrap">
+      <table class="fin-table">
         <thead>
           <tr>
-            <th>Date</th>
+            <th>Date règlement</th>
             <th>Nature</th>
             <th>Échéance</th>
             <th>Montant</th>
@@ -93,21 +610,59 @@
           </tr>
         </thead>
         <tbody>
-        {% for p in paiements %}
-          <tr>
-            <td>{{ p.date_paiement }}</td>
-            <td>{{ p.get_nature_display }}</td>
-            <td>{% if p.echeance %}M{{ p.echeance.mois_index }}{% else %}—{% endif %}</td>
-            <td><b>{{ p.montant }} MAD</b></td>
-            <td>{{ p.get_mode_display }}</td>
-            <td>{{ p.reference|default:"—" }}</td>
-          </tr>
-        {% empty %}
-          <tr><td colspan="6" class="az-empty">Aucun paiement.</td></tr>
-        {% endfor %}
+          {% for p in paiements %}
+            <tr>
+              <td>
+                <i class="fa-regular fa-calendar-check" style="margin-right:6px; color:#16a34a;"></i>
+                {{ p.date_paiement|date:"d/m/Y" }}
+              </td>
+              <td>
+                {% if p.nature == "INSCRIPTION" %}
+                  <span class="az-badge az-badge-role">Frais Inscription</span>
+                {% else %}
+                  <span class="az-badge az-badge-info">Scolarité</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if p.echeance %}
+                  <span class="month-badge" style="width:30px; height:30px; font-size:0.78rem;">M{{ p.echeance.mois_index }}</span>
+                {% else %}
+                  <span style="color:var(--az-text-secondary);">—</span>
+                {% endif %}
+              </td>
+              <td>
+                <span style="color:#16a34a; font-weight:800; font-size:0.95rem;">+ {{ p.montant }} MAD</span>
+              </td>
+              <td>
+                {% if p.mode == "ESPECES" %}
+                  <i class="fa-solid fa-money-bill-wave" style="color:#16a34a; margin-right:4px;"></i>
+                {% elif p.mode == "CHEQUE" %}
+                  <i class="fa-solid fa-money-check-dollar" style="color:#3b82f6; margin-right:4px;"></i>
+                {% else %}
+                  <i class="fa-solid fa-building-columns" style="color:#8b5cf6; margin-right:4px;"></i>
+                {% endif %}
+                {{ p.get_mode_display }}
+              </td>
+              <td>
+                {% if p.reference %}
+                  <code style="background:var(--az-bg-secondary); padding:3px 8px; border-radius:6px; font-size:0.8rem;">{{ p.reference }}</code>
+                {% else %}
+                  <span style="color:var(--az-text-secondary);">—</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="6" class="fin-empty">
+                <i class="fa-solid fa-receipt"></i>
+                <div>Aucun paiement enregistré pour l'instant.</div>
+              </td>
+            </tr>
+          {% endfor %}
         </tbody>
       </table>
     </div>
   </div>
+
 </div>
 {% endblock %}

@@ -1,17 +1,33 @@
-{% extends "admin/base_admin.html" %}
-{% block title %}Supprimer rôle | AZ{% endblock %}
-{% block page_title %}Supprimer un rôle{% endblock %}
-{% block breadcrumb %}Paramètres / Rôles{% endblock %}
+<div class="az-card" style="max-width:100%;margin:0;">
+  <h2 style="margin:0 0 8px 0;">Confirmation</h2>
 
-{% block content %}
-<div class="az-card" style="grid-column:span 12; max-width: 700px;">
-  <h3 style="margin:0;">Confirmation</h3>
-  <p class="az-sub">Tu es sûr de vouloir supprimer le rôle <b>{{ role.name }}</b> ?</p>
+  <p class="az-sub" style="margin:0 0 12px 0;">
+    Tu es sûr de vouloir supprimer le rôle
+    <b>{{ role.name }}</b> ?
+  </p>
 
-  <form method="post" style="display:flex; gap:10px; flex-wrap:wrap;">
+  <div class="az-card"
+       style="padding:14px; margin-bottom:14px; border:1px solid rgba(255,80,80,.25); background:rgba(255,80,80,.04);">
+    <div style="font-weight:800;color:rgba(255,120,120,.95);">
+      Action irréversible
+    </div>
+    <div class="az-sub" style="margin-top:6px;">
+      Ce rôle sera supprimé définitivement.
+    </div>
+  </div>
+
+  <form method="post"
+        action="{% url 'core:role_delete' role.id %}"
+        style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;">
     {% csrf_token %}
-    <button class="az-btn" type="submit" style="border-color:rgba(255,80,80,.35);">🗑️ Oui, supprimer</button>
-    <a class="az-btn az-btn-gradient" href="{% url 'core:role_list' %}">Annuler</a>
+
+    <button type="button" class="az-btn az-btn-outline" data-azm-close>
+      Annuler
+    </button>
+
+    <button class="az-btn az-btn-danger-soft" type="submit">
+      <i class="fa-solid fa-trash"></i>
+      Oui, supprimer
+    </button>
   </form>
 </div>
-{% endblock %}

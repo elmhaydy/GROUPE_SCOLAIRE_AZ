@@ -14,14 +14,13 @@ def ensure_group(name: str) -> Group:
     g, _ = Group.objects.get_or_create(name=name)
     return g
 
+
 def get_or_create_user_with_group(username, group_name, length=10):
     """
     Crée (ou récupère) un user par username, et s'assure qu'il appartient au groupe group_name.
 
     Retour:
       (user, password_temp, created)
-      - password_temp: seulement utile si user créé (ou si tu veux l’afficher).
-      - created: True si nouveau user créé.
     """
     User = get_user_model()
     username = (username or "").strip()
@@ -29,7 +28,6 @@ def get_or_create_user_with_group(username, group_name, length=10):
     if not username:
         raise ValueError("username vide")
 
-    # groupe (crée si n’existe pas)
     group, _ = Group.objects.get_or_create(name=group_name)
 
     user = User.objects.filter(username=username).first()
@@ -43,24 +41,33 @@ def get_or_create_user_with_group(username, group_name, length=10):
         user.save()
         created = True
 
-    # s'assurer du rôle
     user.groups.add(group)
-
     return user, pwd, created
+
 
 def reset_password(user) -> str:
     """
-    Reset le mdp d’un user (temporaire) + le stocke dans TempPassword
+    Génère un mot de passe temporaire pour l'utilisateur et l'oblige à le changer
+    à sa prochaine connexion. Le mot de passe temporaire est stocké dans TempPassword
+    uniquement pour l'export CSV admin — il est effacé dès que l'utilisateur change
+    son mot de passe via l'interface.
     """
-    # ✅ import lazy pour éviter circular import
     from .models import TempPassword
+    from accounts.models import UserSecurityProfile
 
     pwd = generate_temp_password()
     user.set_password(pwd)
     user.save(update_fields=["password"])
 
+    # Store temp password for admin CSV export only
     TempPassword.objects.update_or_create(
         user=user,
-        defaults={"password": pwd, "updated_at": timezone.now()}
+        defaults={"password": pwd},
     )
+
+    # Force password change on next login
+    sp = UserSecurityProfile.get_for(user)
+    sp.must_change_password = True
+    sp.save(update_fields=["must_change_password"])
+
     return pwd

@@ -9,6 +9,7 @@ from datetime import datetime
 from django.db.models import Q
 from django.utils.dateparse import parse_date
 
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from core.permissions import group_required
 from core.models import AnneeScolaire, Depense, CategorieDepense
 from core.forms_depenses import DepenseForm, CategorieDepenseForm
@@ -16,7 +17,6 @@ from core.forms_depenses import DepenseForm, CategorieDepenseForm
 
 def _annee_active():
     return AnneeScolaire.objects.filter(is_active=True).first()
-
 
 
 @group_required("SUPER_ADMIN", "ADMIN", "COMPTABLE")
@@ -60,11 +60,22 @@ def depense_list(request):
         s=Coalesce(Sum("montant"), Decimal("0.00"), output_field=DecimalField(max_digits=10, decimal_places=2))
     )["s"] or Decimal("0.00")
 
+    depenses_qs = qs.order_by("-date_depense", "-id")
+    page_number = request.GET.get("page", 1)
+    paginator = Paginator(depenses_qs, 50)
+    try:
+        page_obj = paginator.page(page_number)
+    except PageNotAnInteger:
+        page_obj = paginator.page(1)
+    except EmptyPage:
+        page_obj = paginator.page(paginator.num_pages)
+
     ctx = {
         "annee_active": annee_active,
         "annees": AnneeScolaire.objects.order_by("-date_debut"),
         "categories": CategorieDepense.objects.order_by("ordre", "nom"),
-        "depenses": qs.order_by("-date_depense", "-id"),
+        "depenses": page_obj,
+        "page_obj": page_obj,
         "total": total,
         "f": {
             "annee": str(annee_id),
@@ -120,15 +131,30 @@ def depense_edit(request, pk: int):
     })
 
 
+from django.shortcuts import get_object_or_404, render, redirect
+from django.contrib import messages
+from .models import Depense  # adapte si besoin
+
 @group_required("SUPER_ADMIN", "ADMIN", "COMPTABLE")
 def depense_delete(request, pk: int):
     obj = get_object_or_404(Depense, pk=pk)
+
     if request.method == "POST":
         obj.delete()
         messages.success(request, "🗑️ Dépense supprimée.")
         return redirect("core:depense_list")
-    return render(request, "admin/depenses/delete.html", {"obj": obj})
 
+    # ❌ pas de page normale
+    return redirect("core:depense_list")
+
+
+@group_required("SUPER_ADMIN", "ADMIN", "COMPTABLE")
+def depense_delete_modal(request, pk: int):
+    """
+    Fragment HTML pour injection dans #azModalBody
+    """
+    obj = get_object_or_404(Depense, pk=pk)
+    return render(request, "admin/depenses/delete.html", {"obj": obj})
 
 # ======================
 # Catégories

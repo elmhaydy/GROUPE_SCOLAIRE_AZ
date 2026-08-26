@@ -430,3 +430,46 @@ html[data-theme="dark"] .az-select optgroup{
   background-color: #0b1220 !important;
   color: #e5e7eb !important;
 }
+.az-page-head-right{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+}
+
+.az-counter-pill{
+  display:inline-flex !important;
+  align-items:center !important;
+  gap:8px !important;
+  padding:8px 14px !important;
+  border-radius:999px !important;
+  border:1px solid var(--az-border, #cbd5e1) !important;
+  background: var(--az-bg-primary, #ffffff) !important;
+  color: var(--az-text-primary, #0f172a) !important;
+  font-weight:700 !important;
+  line-height:1 !important;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06) !important;
+}
+
+.az-counter-pill i{
+  color: var(--az-primary, #6366f1) !important;
+  opacity: 1 !important;
+}
+
+.az-counter-pill b,
+.az-counter-pill span{
+  color: var(--az-text-primary, #0f172a) !important;
+  font-weight:800 !important;
+}
+
+html[data-theme="dark"] .az-counter-pill{
+  border-color: rgba(255, 255, 255, 0.16) !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  color: var(--az-text-secondary, #cbd5e1) !important;
+  box-shadow: none !important;
+}
+
+html[data-theme="dark"] .az-counter-pill b,
+html[data-theme="dark"] .az-counter-pill span{
+  color: var(--az-text-primary, #f8fafc) !important;
+}

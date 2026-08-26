@@ -510,3 +510,28 @@ html[data-theme="dark"] .az-filter-form .az-field:has(select.az-select)::after{
 @media (max-width: 600px){
   .az-sub-mini{ max-width: 160px; }
 }
+.az-cell.az-actions{
+  display: flex;
+  justify-content: flex-end;
+}
+
+.az-menu .az-menu-item{
+  width: 100%;
+  text-align: left;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+}
+
+.az-menu-item-danger{
+  color: rgba(255,120,120,.95) !important;
+}
+
+.az-menu-item-danger i{
+  color: rgba(255,120,120,.95) !important;
+}
+
+.az-menu-item-danger:hover{
+  background: rgba(255,80,80,.08) !important;
+}

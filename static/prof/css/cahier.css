@@ -1,5 +1,5 @@
 /* =========================================================
-   AZ GROUPS — Cahier de texte (Form)
+   Groupe Scolaire — Cahier de texte (Form)
    Responsive • Dark/Light (via variables globales)
    Fichier: static/prof/css/cahier.css
    ========================================================= */
@@ -303,7 +303,7 @@
   box-shadow: 0 10px 25px -22px rgba(0,0,0,.18);
 }
 /* =========================================================
-   AZ GROUPS — Cahier (LISTE + FILTRES + TABLE)
+   Groupe Scolaire — Cahier (LISTE + FILTRES + TABLE)
    Compatible variables dark/light de ton base_prof.css
    Fichier: static/prof/css/cahier.css
    ========================================================= */

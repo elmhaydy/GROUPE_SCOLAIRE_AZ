@@ -21,7 +21,7 @@
 
   function syncThemeIcons(theme) {
     const isDark = theme === "dark";
-    document.querySelectorAll("#themeToggle i, #themeToggleDesk i").forEach((ico) => {
+    document.querySelectorAll("#themeToggle i, #themeToggleDesk i, #themeToggleNav i, [data-theme-toggle] i").forEach((ico) => {
       if (!ico) return;
       ico.classList.remove("fa-moon", "fa-sun");
       ico.classList.add(isDark ? "fa-sun" : "fa-moon");
@@ -53,10 +53,9 @@
     }
   })();
 
-  const themeBtn = document.getElementById("themeToggle");
-  const themeBtnDesk = document.getElementById("themeToggleDesk");
-  if (themeBtn) themeBtn.addEventListener("click", toggleTheme);
-  if (themeBtnDesk) themeBtnDesk.addEventListener("click", toggleTheme);
+  document.querySelectorAll("#themeToggle, #themeToggleDesk, #themeToggleNav, [data-theme-toggle]").forEach(b => {
+    if (b) b.addEventListener("click", toggleTheme);
+  });
 
   // -----------------------------
   // DRAWER SIDEBAR

@@ -1,16 +1,16 @@
 {% extends "admin/base_admin.html" %}
 {% load static %}
 
-{% block title %}Années scolaires | AZ{% endblock %}
+{% block title %}Années scolaires | Groupe Scolaire{% endblock %}
 {% block page_title %}Années scolaires{% endblock %}
 {% block current_page %}Paramètres / Années scolaires{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'admin/css/annees/list.css' %}?v=1">
+<link rel="stylesheet" href="{% static 'admin/css/nebula/az-lists.css' %}?v=8">
 {% endblock %}
 
 {% block content %}
-
+<div class="az-list-page">
 <div class="az-page-head">
   <div class="az-page-head-left">
     <div class="az-pill">
@@ -40,7 +40,7 @@
     </h3>
   </div>
 
-  <div class="az-table">
+  <div class="az-table az-cols-5">
     <div class="az-thead">
       <div>Nom</div>
       <div>Début</div>
@@ -52,15 +52,15 @@
     <div class="az-tbody">
       {% for a in annees %}
         <div class="az-row">
-          <div class="az-cell az-strong">{{ a.nom }}</div>
-          <div class="az-cell">
+          <div class="az-cell az-strong" data-label="Nom">{{ a.nom }}</div>
+          <div class="az-cell" data-label="Début">
             {{ a.date_debut|date:"d F Y" }}
           </div>
-          <div class="az-cell">
+          <div class="az-cell" data-label="Fin">
             {{ a.date_fin|date:"d F Y" }}
           </div>
 
-          <div class="az-cell">
+          <div class="az-cell" data-label="Active">
             {% if a.is_active %}
               <span class="az-badge az-badge-success">
                 <i class="fa-solid fa-check"></i> Oui
@@ -70,7 +70,7 @@
             {% endif %}
           </div>
 
-          <div class="az-cell az-actions">
+          <div class="az-cell az-actions" data-label="Actions">
             {% if not a.is_active %}
               <a class="az-btn az-btn-soft" href="{% url 'core:annee_activer' a.id %}">
                 <i class="fa-solid fa-bolt"></i> Activer
@@ -85,10 +85,13 @@
               <i class="fa-solid fa-pen"></i> Modifier
             </a>
 
-<a class="az-btn az-btn-sm az-btn-danger-soft"
-   href="{% url 'core:annee_delete' a.id %}">
-  <i class="fas fa-trash"></i> Supprimer
-</a>
+<button type="button"
+        class="az-btn az-btn-sm az-btn-danger-soft"
+        data-delete-modal
+        data-modal-url="{% url 'core:annee_delete_modal' a.id %}">
+  <i class="fas fa-trash"></i>
+  Supprimer
+</button>
 
 
 
@@ -103,8 +106,5 @@
     </div>
   </div>
 </div>
-{% block extra_js %}
-<script src="{% static 'admin/js/modal.js' %}"></script>
-{% endblock %}
-
+</div>
 {% endblock %}

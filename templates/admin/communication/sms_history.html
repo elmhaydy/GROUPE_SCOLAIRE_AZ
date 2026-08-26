@@ -1,16 +1,16 @@
 {% extends "admin/base_admin.html" %}
 {% load static %}
 
-{% block title %}Historique SMS | AZ{% endblock %}
+{% block title %}Historique SMS | Groupe Scolaire{% endblock %}
 {% block page_title %}Historique SMS{% endblock %}
 {% block current_page %}Communication / SMS / Historique{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'admin/css/sms/history.css' %}?v=1">
+<link rel="stylesheet" href="{% static 'admin/css/sms/history.css' %}?v=2">
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'admin/js/sms/history.js' %}?v=1" defer></script>
+<script src="{% static 'admin/js/sms/history.js' %}?v=2" defer></script>
 {% endblock %}
 
 {% block content %}
@@ -60,6 +60,24 @@
       </div>
 
       <div class="azsmsH-field">
+        <label>Événement</label>
+        <select class="azsmsH-select" name="event" id="id_event">
+          <option value="">Tous</option>
+          {% with ev_list=event_choices|default:None %}
+            {% if ev_list %}
+              {% for ev, ev_label in ev_list %}
+                <option value="{{ ev }}" {% if ev == event_selected %}selected{% endif %}>{{ ev_label }}</option>
+              {% endfor %}
+            {% else %}
+              <option value="absence" {% if event_selected == "absence" %}selected{% endif %}>Absence/Retard</option>
+              <option value="paiement" {% if event_selected == "paiement" %}selected{% endif %}>Paiement/Reçu</option>
+              <option value="impaye" {% if event_selected == "impaye" %}selected{% endif %}>Impayé/Relance</option>
+            {% endif %}
+          {% endwith %}
+        </select>
+      </div>
+
+      <div class="azsmsH-field">
         <label>Statut</label>
         <select class="azsmsH-select" name="status" id="id_status">
           <option value="">Tous</option>
@@ -83,9 +101,9 @@
         <button class="azsmsH-btn azsmsH-btn-soft" type="submit">
           <i class="fa-solid fa-sliders"></i> Appliquer
         </button>
-        <a class="azsmsH-btn azsmsH-btn-ghost" href="{% url 'core:sms_history' %}">
+        <span class="azsmsH-btn azsmsH-btn-ghost is-disabled">
           <i class="fa-solid fa-rotate-right"></i> Reset
-        </a>
+        </span>
       </div>
 
     </form>
@@ -107,6 +125,7 @@
 
         <div class="azsmsH-thead">
           <div>Date</div>
+          <div>Événement</div>
           <div>Parent</div>
           <div>Téléphone</div>
           <div>Statut</div>
@@ -121,11 +140,24 @@
                  data-parent="{{ s.parent|default:'—'|escape }}"
                  data-phone="{{ s.telephone|default:''|escape }}"
                  data-status="{{ s.status|default:'—'|escape }}"
+                 data-event="{{ s.event|default:'—'|escape }}"
                  data-date="{{ s.created_at|date:'d/m/Y H:i'|escape }}"
                  data-error="{{ s.error_message|default:''|escape }}"
             >
               <div class="azsmsH-cell">
                 <b>{{ s.created_at|date:"d/m/Y H:i" }}</b>
+              </div>
+
+              <div class="azsmsH-cell">
+                {% if s.event == "absence" %}
+                  <span class="azsmsH-badge azsmsH-badge-muted"><i class="fa-solid fa-user-clock"></i> Absence/Retard</span>
+                {% elif s.event == "paiement" %}
+                  <span class="azsmsH-badge azsmsH-badge-success"><i class="fa-solid fa-receipt"></i> Paiement</span>
+                {% elif s.event == "impaye" %}
+                  <span class="azsmsH-badge azsmsH-badge-danger"><i class="fa-solid fa-triangle-exclamation"></i> Impayé</span>
+                {% else %}
+                  <span class="azsmsH-badge azsmsH-badge-muted"><i class="fa-regular fa-message"></i> Autre</span>
+                {% endif %}
               </div>
 
               <div class="azsmsH-cell azsmsH-strong">

@@ -262,6 +262,14 @@ html[data-theme="dark"] .az-btn-outline{
 .az-avatar-wrapper{ position:relative; flex:0 0 auto; transition: transform .25s ease; }
 .az-avatar-wrapper.is-hover{ transform: scale(1.03); }
 
+.az-avatar {
+  cursor: zoom-in;
+  transition: transform 0.2s ease;
+}
+.az-avatar:hover {
+  transform: scale(1.05);
+}
+
 .az-avatar,
 .az-avatar-placeholder{
   width: 92px;
@@ -994,4 +1002,14 @@ html[data-theme="dark"] .az-parent-chev{
 .az-parent-item.az-parent-link:focus-visible{
   box-shadow: 0 0 0 4px rgba(114, 9, 183, .22);
   border-color: rgba(114, 9, 183, .45);
+}
+.az-btn-danger{
+  background: linear-gradient(180deg, #ef4444, #dc2626);
+  border: 1px solid rgba(239,68,68,.35);
+  color: #fff;
+}
+
+.az-btn-danger:hover{
+  filter: brightness(1.05);
+  box-shadow: 0 0 0 3px rgba(239,68,68,.2);
 }

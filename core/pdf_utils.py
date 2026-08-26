@@ -39,7 +39,7 @@ def _footer(c):
     w, _ = A4
     c.setFont("Helvetica", 8)
     c.setFillColor(colors.grey)
-    c.drawRightString(w - 18 * mm, 12 * mm, "Groupe Scolaire AZ")
+    c.drawRightString(w - 18 * mm, 12 * mm, "Groupe Scolaire")
     c.setFillColor(colors.black)
 
 
@@ -150,7 +150,7 @@ def paiement_recu_pdf(p, total_paye, reste):
         # =========================
         # Logo
         # =========================
-        logo_path = finders.find("img/logo_AZ.png")
+        logo_path = finders.find("img/logo-embw.png")
         logo_img = None
         if logo_path:
             try:
@@ -267,7 +267,7 @@ def paiement_recu_pdf(p, total_paye, reste):
 
             c.setFont("Helvetica", 8.5)
             c.setFillColor(colors.HexColor(COLOR_MUTED))
-            c.drawString(margin_x + 31*mm, y_top - 18*mm, "Groupe Scolaire AZ • Administration")
+            c.drawString(margin_x + 31*mm, y_top - 18*mm, "Groupe Scolaire • Administration")
             c.setFillColor(colors.black)
 
             # top pills
@@ -371,7 +371,7 @@ def paiement_recu_batch_pdf(first_paiement, paiements_qs, total_batch: Decimal, 
         code_recu = f"AZB-{year}-{str(batch_token)[:8].upper()}"
 
         # Logo
-        logo_path = finders.find("img/logo_AZ.png")
+        logo_path = finders.find("img/logo-embw.png")
         logo_img = None
         if logo_path:
             try:
@@ -506,7 +506,7 @@ def paiement_recu_batch_pdf(first_paiement, paiements_qs, total_batch: Decimal, 
 
             c.setFont("Helvetica", 8.5)
             c.setFillColor(colors.HexColor(COLOR_MUTED))
-            c.drawString(margin_x + 31*mm, y_top - 18*mm, "Groupe Scolaire AZ • Paiement groupé")
+            c.drawString(margin_x + 31*mm, y_top - 18*mm, "Groupe Scolaire • Paiement groupé")
             c.setFillColor(colors.black)
 
             pill(margin_x + receipt_w - 94*mm, y_top - 23*mm, code_recu, bg="#f5f3ff", fg=COLOR_ACCENT, wmm=88)

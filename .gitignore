@@ -12,6 +12,9 @@ staticfiles/
 media/
 db.sqlite3
 
+# Frontend
+node_modules/
+
 # Cache / tools
 .mypy_cache/
 .dist/

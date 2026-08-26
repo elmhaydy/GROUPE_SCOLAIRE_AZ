@@ -4,7 +4,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>{% block title %}AZ • Espace Prof{% endblock %}</title>
+  <title>{% block title %}Groupe Scolaire | Espace Prof{% endblock %}</title>
 
   <!-- Pré-chargement du thème pour éviter le flash blanc -->
   <script>
@@ -33,9 +33,10 @@
 
   <!-- Styles Modernes -->
   <link rel="stylesheet" href="{% static 'prof/css/prof.css' %}?v=3">
+  <link rel="stylesheet" href="{% static 'admin/css/notifications/inbox.css' %}?v=2">
   {% block extra_css %}{% endblock %}
 
-  <link rel="icon" type="image/png" sizes="32x32" href="{% static 'img/favicon.png' %}">
+  <link rel="icon" type="image/png" sizes="32x32" href="{% static 'img/logo-embw.png' %}">
 </head>
 
 <body class="az-body">
@@ -48,12 +49,11 @@
     <aside class="az-sidebar" id="sidebar">
       <div class="az-sidebar-header">
         <a href="{% url 'prof:dashboard' %}" class="az-logo-container">
-          <div class="az-logo-glow"></div>
-          <img src="{% static 'img/logo_AZ.png' %}" class="az-logo-img" alt="AZ Logo">
+          <img src="{% static 'img/logo-emb.png' %}" class="az-logo-img" alt="Logo Groupe Scolaire">
         </a>
         <div class="az-brand">
           <h1 class="az-brand-title">
-            <span class="az-brand-a">A</span><span class="az-brand-z">Z</span> GROUPS
+            Groupe Scolaire
           </h1>
           <div class="az-brand-subtitle">Espace Prof</div>
         </div>
@@ -70,7 +70,7 @@
         <!-- Section Pédagogie -->
         <div class="az-nav-drop" data-open="true">
           <button class="az-nav-section az-nav-drop-btn" type="button">
-            <span>Pédagogie</span>
+            <span><i class="fas fa-chalkboard-user" style="margin-right: 8px; opacity: 0.85;"></i>Pédagogie</span>
             <i class="fas fa-chevron-down az-nav-drop-caret"></i>
           </button>
 
@@ -105,7 +105,13 @@
       <div class="az-sidebar-footer">
         <div class="az-user-info">
           <div class="az-user-avatar">
-            {{ request.user.first_name|first|default:"E" }}{{ request.user.last_name|first|default:"P" }}
+            {% if ens and ens.photo %}
+              <img src="{{ ens.photo.url }}" alt="Avatar" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">
+            {% elif user_avatar_url %}
+              <img src="{{ user_avatar_url }}" alt="Avatar" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">
+            {% else %}
+              {{ request.user.first_name|first|default:"E" }}{{ request.user.last_name|first|default:"P" }}
+            {% endif %}
           </div>
           <div class="az-user-details">
             <span class="az-user-name">{{ request.user.get_full_name|default:request.user.username }}</span>
@@ -134,10 +140,53 @@
         </div>
 
         <div class="az-topbar-actions">
+
+          <!-- Cloche notifications -->
+          {% if request.user.is_authenticated %}
+          <div class="az-notif-wrap" id="azNotifWrap">
+            <button class="az-notif-btn" id="azNotifToggle" type="button" aria-label="Notifications">
+              <i class="fas fa-bell"></i>
+            </button>
+            {% if notif_unread_count %}
+            <span class="az-notif-badge" id="az-notif-badge">{{ notif_unread_count }}</span>
+            {% endif %}
+            <div class="az-notif-dd" id="azNotifDd">
+              <div class="az-notif-dd__head">
+                <span class="az-notif-dd__title"><i class="fas fa-bell"></i> Notifications</span>
+                {% if notif_unread_count %}<span class="az-notif-dd__badge">{{ notif_unread_count }} non lue{{ notif_unread_count|pluralize }}</span>{% endif %}
+              </div>
+              <div class="az-notif-dd__list">
+                {% if notif_recent %}
+                  {% for n in notif_recent %}
+                  <div class="az-notif-dd__item {% if not n.read %}unread{% endif %}">
+                    <div class="az-notif-dd__icon ni-icon--{{ n.category_css }}"><i class="fa-solid {{ n.category_icon }}"></i></div>
+                    <div class="az-notif-dd__body">
+                      <div class="az-notif-dd__item-title">{{ n.title|truncatechars:52 }}</div>
+                      {% if n.body %}<div class="az-notif-dd__item-text">{{ n.body|truncatechars:70 }}</div>{% endif %}
+                      <div class="az-notif-dd__item-time"><i class="fa-regular fa-clock"></i> {{ n.created_at|timesince }}</div>
+                    </div>
+                    {% if not n.read %}<div class="az-notif-dd__dot"></div>{% endif %}
+                  </div>
+                  {% endfor %}
+                {% else %}
+                  <div class="az-notif-dd__empty"><i class="fas fa-bell-slash"></i><p>Aucune notification</p></div>
+                {% endif %}
+              </div>
+              <div class="az-notif-dd__foot">
+                <a href="{% url 'core:notif_inbox' %}" class="az-notif-dd__see-all">Voir tout <i class="fas fa-arrow-right"></i></a>
+              </div>
+            </div>
+          </div>
+          {% endif %}
+
           <div class="az-user-dropdown">
             <button class="az-user-menu-toggle" id="userMenuToggle" type="button">
               <div class="az-user-avatar-sm">
-                {{ request.user.first_name|first|default:"E" }}{{ request.user.last_name|first|default:"P" }}
+                {% if user_avatar_url %}
+                  <img src="{{ user_avatar_url }}" alt="Avatar" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">
+                {% else %}
+                  {{ request.user.first_name|first|default:"E" }}{{ request.user.last_name|first|default:"P" }}
+                {% endif %}
               </div>
               <span class="az-user-greeting">
                 Bonjour, <strong>{{ request.user.first_name|default:"Prof" }}</strong>
@@ -148,7 +197,11 @@
             <div class="az-user-menu" id="userMenu">
               <div class="az-user-menu-header">
                 <div class="az-user-avatar-lg">
-                  {{ request.user.first_name|first|default:"E" }}{{ request.user.last_name|first|default:"P" }}
+                  {% if user_avatar_url %}
+                    <img src="{{ user_avatar_url }}" alt="Avatar" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">
+                  {% else %}
+                    {{ request.user.first_name|first|default:"E" }}{{ request.user.last_name|first|default:"P" }}
+                  {% endif %}
                 </div>
                 <h4>{{ request.user.get_full_name|default:request.user.username }}</h4>
               </div>
@@ -198,10 +251,12 @@
 
       <footer class="az-footer">
         <div class="az-footer-content">
-          <span>© 2026 AZ GROUPS — Espace Prof</span>
+          <span>© 2026 Groupe Scolaire - Espace Prof • Créé par <a href="https://www.linkedin.com/in/el-mehdi-bougrin" target="_blank" rel="noopener noreferrer" style="color: #2563eb; font-weight: 700; text-decoration: none;"><i class="fab fa-linkedin"></i> El_Mehdi_Bougrin</a></span>
           <div class="az-footer-links">
-            <a href="#"><i class="fas fa-question-circle"></i> Aide</a>
-            <a href="#"><i class="fas fa-shield-alt"></i> Confidentialité</a>
+            <a href="{% url 'core:aide' %}"><i class="fas fa-question-circle"></i> Aide</a>
+            <a href="{% url 'core:confidentialite' %}"><i class="fas fa-shield-alt"></i> Confidentialité</a>
+            <a href="{% url 'core:conditions' %}"><i class="fas fa-file-contract"></i> Conditions</a>
+            <a href="{% url 'core:contact' %}"><i class="fas fa-envelope"></i> Contact</a>
           </div>
         </div>
       </footer>
@@ -210,5 +265,20 @@
 
   <script src="{% static 'prof/js/prof.js' %}?v=3"></script>
   {% block extra_js %}{% endblock %}
+
+  <script>
+  (function () {
+    const wrap = document.getElementById("azNotifWrap");
+    const toggle = document.getElementById("azNotifToggle");
+    const dd = document.getElementById("azNotifDd");
+    if (!wrap || !toggle || !dd) return;
+    function isOpen() { return dd.classList.contains("open"); }
+    function open()  { dd.classList.add("open");    wrap.classList.add("active"); }
+    function close() { dd.classList.remove("open"); wrap.classList.remove("active"); }
+    toggle.addEventListener("click", function(e) { e.stopPropagation(); isOpen() ? close() : open(); });
+    document.addEventListener("click", function(e) { if (isOpen() && !wrap.contains(e.target)) close(); });
+    document.addEventListener("keydown", function(e) { if (e.key === "Escape" && isOpen()) close(); });
+  })();
+  </script>
 </body>
 </html>

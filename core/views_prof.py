@@ -1003,9 +1003,18 @@ def prof_profil(request):
             request.user.email = email
             request.user.save(update_fields=["first_name", "last_name", "email"])
 
-            if ens is not None and hasattr(ens, "telephone"):
-                ens.telephone = telephone
+            if ens is not None:
+                if hasattr(ens, "telephone"):
+                    ens.telephone = telephone
+                if "photo" in request.FILES:
+                    ens.photo = request.FILES["photo"]
                 ens.save()
+
+            if "photo" in request.FILES:
+                from accounts.models import UserSecurityProfile
+                sec, _ = UserSecurityProfile.objects.get_or_create(user=request.user)
+                sec.avatar = request.FILES["photo"]
+                sec.save()
 
             messages.success(request, "✅ Profil mis à jour.")
             return redirect("prof:profil")

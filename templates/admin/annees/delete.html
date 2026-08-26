@@ -1,54 +1,34 @@
-{% extends "admin/base_admin.html" %}
-{% load static %}
+<div class="az-card" style="max-width:100%;margin:0;">
+  <h2 style="margin:0 0 8px 0;">Confirmation</h2>
 
-{% block title %}Supprimer année | AZ{% endblock %}
-{% block page_title %}Supprimer une année{% endblock %}
-{% block current_page %}Paramètres / Années scolaires / Suppression{% endblock %}
+  <p class="az-sub" style="margin:0 0 12px 0;">
+    Tu es sûr de vouloir supprimer l’année scolaire
+    <b>{{ annee.nom }}</b> ?
+  </p>
 
-{% block extra_css %}
-<link rel="stylesheet" href="{% static 'admin/css/annees/delete.css' %}?v=1">
-{% endblock %}
-
-{% block extra_js %}
-<script src="{% static 'admin/js/annees/delete.js' %}?v=1" defer></script>
-{% endblock %}
-
-{% block content %}
-<div class="az-del-page">
-  <div class="az-del-wrap">
-    <div class="az-del-card">
-      <div class="az-del-head">
-        <div class="az-del-title">
-          <i class="fas fa-triangle-exclamation"></i>
-          Supprimer une année
-        </div>
-        <div class="az-del-sub">Confirmation de suppression (action irréversible)</div>
-      </div>
-
-      <div class="az-del-body">
-        <p class="az-del-text">
-          Tu es sûr de vouloir supprimer <b>{{ annee.nom }}</b> ?
-        </p>
-
-        <div class="az-danger-box">
-          <i class="fas fa-circle-info"></i>
-          Cette action est irréversible.
-        </div>
-      </div>
-
-      <div class="az-del-actions">
-        <a class="az-btn az-btn-ghost" href="{% url 'core:annee_list' %}">
-          <i class="fas fa-arrow-left"></i> Annuler
-        </a>
-
-        <form method="post" class="az-del-form" data-az-modal-form>
-          {% csrf_token %}
-          <button class="az-btn az-btn-danger" type="submit">
-            <i class="fas fa-trash"></i> Oui, supprimer
-          </button>
-        </form>
-      </div>
+  <div class="az-card"
+       style="padding:14px; margin-bottom:14px; border:1px solid rgba(255,80,80,.25); background:rgba(255,80,80,.04);">
+    <div style="font-weight:800;color:rgba(255,120,120,.95);">
+      Action irréversible
+    </div>
+    <div class="az-sub" style="margin-top:6px;">
+      Si cette année contient déjà des groupes, élèves, paiements ou séances,
+      la suppression sera bloquée automatiquement.
     </div>
   </div>
+
+  <form method="post"
+        action="{% url 'core:annee_delete' annee.id %}"
+        style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;">
+    {% csrf_token %}
+
+    <button type="button" class="az-btn az-btn-outline" data-azm-close>
+      Annuler
+    </button>
+
+    <button class="az-btn az-btn-danger" type="submit">
+      <i class="fas fa-trash"></i>
+      Oui, supprimer
+    </button>
+  </form>
 </div>
-{% endblock %}

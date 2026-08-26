@@ -1,4 +1,4 @@
-// admin/js/dashboard/admin.js
+// AZ Dashboard Admin v2
 (function () {
   "use strict";
 
@@ -6,169 +6,122 @@
 
   const $ = (sel, root = document) => root.querySelector(sel);
 
-  function safeParseJsonScript(id) {
-    const el = document.getElementById(id);
-    if (!el) return null;
+  function loadChartData() {
+    const script = document.getElementById("azd-chart-data");
+    if (!script) return null;
     try {
-      return JSON.parse(el.textContent || "{}");
+      return JSON.parse(script.textContent || "{}");
     } catch (e) {
-      console.warn("[AZ] JSON script parse failed:", e);
+      console.warn("[AZ] chart JSON parse error:", e);
       return null;
     }
   }
 
-  function getChartData() {
-    // ✅ 1) json_script (recommandé)
-    const fromScript = safeParseJsonScript("monthly-chart-data");
-    if (fromScript && (fromScript.labels || fromScript.paiements || fromScript.inscriptions)) {
-      // support plusieurs formats
-      return {
-        labels: fromScript.labels || [],
-        paiements: fromScript.paiements || [],
-        inscriptions: fromScript.inscriptions || [],
-      };
-    }
-
-    // ✅ 2) fallback window.AZ_CHART
-    if (window.AZ_CHART) {
-      return {
-        labels: window.AZ_CHART.labels || [],
-        paiements: window.AZ_CHART.paiements || [],
-        inscriptions: window.AZ_CHART.inscriptions || [],
-      };
-    }
-
-    return { labels: [], paiements: [], inscriptions: [] };
+  function sliceData(base, count) {
+    const take = (arr) => Array.isArray(arr) ? arr.slice(Math.max(arr.length - count, 0)) : [];
+    return {
+      labels: take(base.labels || []),
+      net: take(base.net || []),
+      depenses: take(base.depenses || []),
+      impayes: take(base.impayes || []),
+    };
   }
 
-  function sliceLast(arr, n) {
-    const a = Array.isArray(arr) ? arr : [];
-    return a.slice(Math.max(a.length - n, 0));
+  function gradient(ctx, color) {
+    const g = ctx.createLinearGradient(0, 0, 0, 260);
+    g.addColorStop(0, color.replace("1)", "0.28)"));
+    g.addColorStop(1, color.replace("1)", "0.03)"));
+    return g;
   }
 
-  function formatMAD(v) {
-    const num = Number(v || 0);
-    // format simple (tu peux le remplacer par Intl si tu veux)
-    return num.toLocaleString("fr-FR");
-  }
+  function buildChart(canvas, base, range) {
+    if (!canvas || !base) return;
 
-  function buildChart(canvas, base, period) {
-    const count = period === "6m" ? 6 : 12;
+    const ctx = canvas.getContext("2d");
+    const data = sliceData(base, range);
 
-    const labels = sliceLast(base.labels, count);
-    const paiements = sliceLast(base.paiements, count);
-    const inscriptions = sliceLast(base.inscriptions, count);
-
-    // destroy ancien
     if (chart) {
       chart.destroy();
       chart = null;
     }
 
-    // si pas de données
-    const hasAny =
-      labels.length &&
-      (paiements.some((x) => Number(x) !== 0) || inscriptions.some((x) => Number(x) !== 0));
-
-    if (!hasAny) {
-      // garde le canvas vide mais au moins visible
-      return null;
-    }
-
-    chart = new Chart(canvas.getContext("2d"), {
+    chart = new Chart(ctx, {
       type: "line",
       data: {
-        labels,
+        labels: data.labels,
         datasets: [
           {
-            label: "Paiements (MAD)",
-            data: paiements,
+            label: "Net",
+            data: data.net,
+            borderColor: "rgba(14,165,233,1)",
+            backgroundColor: gradient(ctx, "rgba(14,165,233,1)"),
             tension: 0.35,
-            pointRadius: 3,
-            pointHoverRadius: 5,
+            fill: true,
             borderWidth: 2,
+            pointRadius: 3,
           },
           {
-            label: "Inscriptions (nb)",
-            data: inscriptions,
+            label: "D&eacute;penses",
+            data: data.depenses,
+            borderColor: "rgba(239,68,68,1)",
+            backgroundColor: gradient(ctx, "rgba(239,68,68,1)"),
             tension: 0.35,
-            pointRadius: 3,
-            pointHoverRadius: 5,
+            fill: true,
             borderWidth: 2,
-            yAxisID: "y2",
+            pointRadius: 3,
+          },
+          {
+            label: "Impay&eacute;s",
+            data: data.impayes,
+            borderColor: "rgba(249,115,22,1)",
+            backgroundColor: gradient(ctx, "rgba(249,115,22,1)"),
+            tension: 0.35,
+            fill: true,
+            borderWidth: 2,
+            pointRadius: 3,
           },
         ],
       },
       options: {
         responsive: true,
-        maintainAspectRatio: false, // ✅ avec notre height CSS
+        maintainAspectRatio: false,
         interaction: { mode: "index", intersect: false },
         plugins: {
-          legend: {
-            labels: { boxWidth: 10, boxHeight: 10 },
-          },
+          legend: { labels: { boxWidth: 12, boxHeight: 12 } },
           tooltip: {
             callbacks: {
-              label: function (ctx) {
-                const label = ctx.dataset.label || "";
-                const v = ctx.parsed.y;
-                if (label.includes("MAD")) return `${label}: ${formatMAD(v)}`;
-                return `${label}: ${v}`;
-              },
+              label: (ctx) => `${ctx.dataset.label}: ${Number(ctx.parsed.y || 0).toLocaleString("fr-FR")}`,
             },
           },
         },
         scales: {
           y: {
             beginAtZero: true,
-            ticks: {
-              callback: (v) => formatMAD(v),
-            },
+            ticks: { callback: (v) => Number(v).toLocaleString("fr-FR") },
+            grid: { color: "rgba(148,163,184,0.16)" },
           },
-          y2: {
-            beginAtZero: true,
-            position: "right",
-            grid: { drawOnChartArea: false },
+          x: {
+            grid: { color: "rgba(148,163,184,0.10)" },
           },
         },
       },
     });
-
-    return chart;
-  }
-
-  function setTitle(period) {
-    const h3 = $(".azad-card-head h3");
-    if (!h3) return;
-    const base = h3.textContent.replace(/\(\s*\d+\s*mois\s*\)/i, "").trim();
-    const txt = period === "6m" ? "Pilotage (6 mois)" : "Pilotage (12 mois)";
-    // si ton h3 contient déjà l'icône via HTML, on évite de casser : on modifie seulement le texte si possible
-    // => on fait simple : on remplace juste la partie texte si elle existe
-    if (h3.innerText) h3.innerText = txt;
   }
 
   function init() {
-    const canvas = $("#monthlyChart");
-    const periodSel = $("#chartPeriod");
-    const exportBtn = $("#exportChart");
+    const canvas = $("#azdChart");
+    const rangeSel = $("#azdChartRange");
+    const exportBtn = $("#azdExportChart");
+    const base = loadChartData();
+    if (!canvas || !base) return;
 
-    if (!canvas) {
-      console.warn("[AZ] #monthlyChart not found");
-      return;
-    }
+    const defaultRange = Number(rangeSel?.value || 12);
+    buildChart(canvas, base, defaultRange);
 
-    const baseData = getChartData();
-
-    // default
-    const defaultPeriod = periodSel ? (periodSel.value || "12m") : "12m";
-    buildChart(canvas, baseData, defaultPeriod);
-    setTitle(defaultPeriod);
-
-    if (periodSel) {
-      periodSel.addEventListener("change", () => {
-        const p = periodSel.value || "12m";
-        buildChart(canvas, baseData, p);
-        setTitle(p);
+    if (rangeSel) {
+      rangeSel.addEventListener("change", () => {
+        const r = Number(rangeSel.value || 12);
+        buildChart(canvas, base, r);
       });
     }
 
@@ -177,7 +130,7 @@
         if (!chart) return;
         const a = document.createElement("a");
         a.href = chart.toBase64Image("image/png", 1);
-        a.download = "pilotage.png";
+        a.download = "dashboard-az.png";
         a.click();
       });
     }

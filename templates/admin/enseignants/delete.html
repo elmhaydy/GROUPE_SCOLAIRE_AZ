@@ -1,75 +1,52 @@
-{% extends "admin/base_admin.html" %}
-{% block title %}Supprimer séance{% endblock %}
-{% block page_title %}Supprimer une séance{% endblock %}
-{% block breadcrumb %}Pédagogie / Emploi du temps / Supprimer{% endblock %}
+<div class="az-card" style="max-width:100%;margin:0;">
+  <h2 style="margin:0 0 8px 0;">Confirmation</h2>
 
-{% block content %}
-<div class="az-card" style="grid-column:span 12;">
-
-  <h3>Confirmation</h3>
-  <p class="az-sub">
-    Supprimer la séance :
-    <b>{{ s.annee.nom }}</b> —
-    {{ s.groupe.niveau.degre.nom }}/{{ s.groupe.niveau.nom }}/{{ s.groupe.nom }} —
-    <b>{{ s.jour }} {{ s.heure_debut }}-{{ s.heure_fin }}</b>
-    — {{ s.enseignant.nom }} {{ s.enseignant.prenom }}
-    {% if s.matiere %} — {{ s.matiere }}{% endif %}
-    {% if s.salle %} (Salle {{ s.salle }}){% endif %}
-    ?
+  <p class="az-sub" style="margin:0 0 12px 0;">
+    Supprimer l’enseignant :
+    <b>{{ ens.nom }} {{ ens.prenom }}</b>
+    {% if ens.matricule %} ({{ ens.matricule }}){% endif %} ?
   </p>
 
-  {% if absences_bloquantes %}
-    <div class="az-alert az-alert-danger" style="margin-top:14px;">
+  {% if seances_bloquantes %}
+    <div class="az-alert az-alert-danger" style="margin-bottom:14px;">
       <b>❌ Suppression impossible</b><br>
-      Cette séance est liée à <b>{{ absences_bloquantes|length }}</b> absence(s).
-      Supprime ces absences (ou mets les élèves en PRESENT via la feuille de présence),
-      puis réessaie.
+      Cet enseignant est lié à <b>{{ seances_bloquantes|length }}</b> séance(s).
     </div>
 
-    <div style="margin-top:14px;">
-      <h4 style="margin:0 0 10px 0;">Absences liées</h4>
-
+    <div style="margin-bottom:14px;">
+      <h4 style="margin:0 0 10px 0;">Séances liées</h4>
       <ul style="padding-left:18px;margin:0;">
-        {% for a in absences_bloquantes %}
+        {% for s in seances_bloquantes %}
           <li style="margin-bottom:8px;">
-            <b>{{ a.date }}</b> —
-            {{ a.eleve.matricule }} — {{ a.eleve.nom }} {{ a.eleve.prenom }}
-            — <b>{{ a.get_type_display }}</b>
-            {% if a.justifie %} ✅ Justifiée{% endif %}
-            {% if a.motif %} — {{ a.motif }}{% endif %}
-
-            <div style="margin-top:6px;display:flex;gap:8px;flex-wrap:wrap;">
-              <a class="az-btn az-btn-soft" href="{% url 'core:absence_update' a.id %}">
-                Modifier l’absence
-              </a>
-              <a class="az-btn az-btn-soft" href="{% url 'core:absence_delete' a.id %}">
-                Supprimer l’absence
-              </a>
-            </div>
+            <b>{{ s.annee.nom }}</b> —
+            {{ s.groupe.niveau.degre.nom }}/{{ s.groupe.niveau.nom }}/{{ s.groupe.nom }} —
+            <b>{{ s.jour }} {{ s.heure_debut }}-{{ s.heure_fin }}</b>
+            {% if s.matiere %} — {{ s.matiere }}{% endif %}
           </li>
         {% endfor %}
       </ul>
     </div>
   {% endif %}
 
-  <form method="post" style="margin-top:18px;display:flex;gap:10px;flex-wrap:wrap;">
+  <form method="post"
+        action="{% url 'core:enseignant_delete' ens.id %}"
+        style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;">
     {% csrf_token %}
 
-    {% if absences_bloquantes %}
-      <button class="az-btn" type="button" disabled
-              style="opacity:.5;cursor:not-allowed;border-color:rgba(255,80,80,.35);">
-        🗑️ Suppression bloquée
+    <button type="button" class="az-btn az-btn-outline" data-azm-close>
+      Annuler
+    </button>
+
+    {% if seances_bloquantes %}
+      <button class="az-btn az-btn-danger" type="button" disabled style="opacity:.5;cursor:not-allowed;">
+        <i class="fa-solid fa-trash"></i>
+        Suppression bloquée
       </button>
     {% else %}
-      <button class="az-btn" type="submit" style="border-color:rgba(255,80,80,.35);">
-        🗑️ Oui, supprimer
+      <button class="az-btn az-btn-danger" type="submit">
+        <i class="fa-solid fa-trash"></i>
+        Supprimer
       </button>
     {% endif %}
-
-    <a class="az-btn az-btn-gradient" href="{% url 'core:seance_list' %}">
-      Annuler
-    </a>
   </form>
-
 </div>
-{% endblock %}

@@ -1,7 +1,7 @@
 {% extends "admin/base_admin.html" %}
 {% load static %}
 
-{% block title %}Envoyer SMS | AZ{% endblock %}
+{% block title %}Envoyer SMS | Groupe Scolaire{% endblock %}
 {% block page_title %}Envoyer SMS{% endblock %}
 {% block current_page %}Communication / SMS / Envoi{% endblock %}
 
@@ -74,7 +74,7 @@
           <div class="azsms-field">
             <label for="id_cible_type">Type de cible</label>
             {{ form.cible_type }}
-            <div class="azsms-help">Si tu choisis “Élève”, fais Groupe → Élève.</div>
+            <div class="azsms-help">Élève : Groupe → Élève. Parents sélectionnés : choisis directement les parents ci-dessous.</div>
           </div>
         </div>
 
@@ -110,6 +110,16 @@
           </div>
 
           <div class="azsms-targets">
+
+            <div class="azsms-field" id="wrap-parents">
+              <label for="parents_select">Parents</label>
+              <select name="parents" id="parents_select" class="azsms-select" multiple>
+                {% for p in parents_list %}
+                  <option value="{{ p.id }}">{{ p.nom }} {{ p.prenom }} ({{ p.telephone|default:"-" }})</option>
+                {% endfor %}
+              </select>
+              <div class="azsms-help">Sélection multiple autorisée.</div>
+            </div>
 
             <div class="azsms-field" id="wrap-degre">
               <label for="degre_select">Degré</label>

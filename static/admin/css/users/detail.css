@@ -139,6 +139,12 @@
     border-radius: 20px;
     padding: 1.5rem;
     transition: all 0.3s;
+    box-sizing: border-box;
+}
+
+.info-box-modern.full-width {
+    grid-column: 1 / -1;
+    width: 100%;
 }
 
 .info-box-modern:hover {

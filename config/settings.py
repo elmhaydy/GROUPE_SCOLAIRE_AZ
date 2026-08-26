@@ -61,6 +61,8 @@ INSTALLED_APPS = [
 
     "accounts",
     "core.apps.CoreConfig",
+
+    "prof", 
 ]
 # =============================
 # SESSION TIMEOUT (inactivité)
@@ -85,7 +87,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "accounts.middleware.InactivityLogoutMiddleware",
-
+    "accounts.middleware.MustChangePasswordMiddleware",
     "accounts.middleware.CurrentUserMiddleware",
 ]
 
@@ -104,9 +106,10 @@ TEMPLATES = [
 
                 "core.context_processors.annee_active",
                 "django.template.context_processors.debug",
-
-                "accounts.context_processors.user_roles",
                 "core.context_processors.roles_flags",
+                "core.context_processors.notifications",
+                "core.context_processors.user_avatar",
+                "core.context_processors.user_base_template",
             ],
         },
     },
@@ -134,10 +137,13 @@ DATABASES = {
 # =============================
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
-    {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
+    {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator", "OPTIONS": {"min_length": 8}},
     {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
+
+# Lien de reset valide 24h (en secondes)
+PASSWORD_RESET_TIMEOUT = 86400
 
 # =============================
 # I18N / TZ

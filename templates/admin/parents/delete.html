@@ -1,17 +1,47 @@
-{% extends "admin/base_admin.html" %}
-{% block title %}Supprimer | AZ{% endblock %}
-{% block page_title %}Supprimer un parent{% endblock %}
-{% block breadcrumb %}Scolaire / Parents{% endblock %}
+{# templates/admin/parents/delete.html — FRAGMENT (modal) #}
 
-{% block content %}
-<div class="az-card" style="grid-column:span 12;max-width:720px;">
-  <h3>Confirmation</h3>
-  <p class="az-sub">Supprimer <b>{{ p.nom }} {{ p.prenom }}</b> ?</p>
+<div class="az-card" style="grid-column:span 12;max-width:900px;">
 
-  <form method="post" style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap;">
+  <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap;">
+    <div>
+      <h2 style="margin:0 0 6px 0;">Confirmation</h2>
+      <p class="az-sub" style="margin:0;">
+        Supprimer le parent :
+        <b>{{ p.nom }} {{ p.prenom }}</b>
+      </p>
+    </div>
+  </div>
+
+  {% if tx_count|default:0 > 0 %}
+    <div class="az-card" style="padding:14px;margin:14px 0;border:1px solid rgba(255,80,80,.25);background:rgba(255,80,80,.04);">
+      <div style="font-weight:800;color:rgba(255,120,120,.95);">
+        Suppression bloquée
+      </div>
+      <div class="az-sub" style="margin-top:6px;">
+        Ce parent est lié à <b>{{ tx_count }}</b> transaction(s). Réaffecte/supprime d'abord ces transactions.
+      </div>
+    </div>
+  {% else %}
+    <div class="az-card" style="padding:14px;margin:14px 0;">
+      <div class="az-sub">
+        Cette action est <b>définitive</b>.
+      </div>
+    </div>
+  {% endif %}
+
+  <form method="post" action="{% url 'core:parent_delete' p.id %}" style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;">
     {% csrf_token %}
-    <button class="az-btn" type="submit" style="border-color:rgba(255,80,80,.35);">🗑️ Oui, supprimer</button>
-    <a class="az-btn az-btn-gradient" href="{% url 'core:parent_list' %}">Annuler</a>
+
+    <button type="button" class="az-btn az-btn-outline" data-azm-close>
+      Annuler
+    </button>
+
+    <button class="az-btn"
+            type="submit"
+            {% if tx_count|default:0 > 0 %}disabled{% endif %}
+            style="border-color:rgba(255,80,80,.35);">
+      <i class="fa-solid fa-trash"></i>
+      Supprimer définitivement
+    </button>
   </form>
 </div>
-{% endblock %}

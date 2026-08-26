@@ -1,5 +1,5 @@
 /* ╔════════════════════════════════════╗
-   ║  PORTAIL ÉLÈVE — BASE (AZ GROUPS)  ║
+   ║  PORTAIL ÉLÈVE — BASE (Groupe Scolaire)  ║
    ╚════════════════════════════════════╝ */
 
 /* ======================================================================
@@ -510,6 +510,7 @@ img{ max-width:100%; height:auto; display:block; }
   padding: 0 2.2rem 1.6rem;
   display:flex;
   flex-direction:column;
+  flex:1;
   gap:1rem;
 }
 
@@ -863,41 +864,22 @@ body.no-scroll{ overflow:hidden; }
   .azs-user{ top: 0; }
 }
 /* =========================================================
-   AZ — FOOTER FIXE EN BAS (PORTAIL ÉLÈVE)
+   AZ — FOOTER BAS DE PAGE (PORTAIL ÉLÈVE)
    ========================================================= */
 
-/* Hauteur officielle du footer */
-:root{
-  --footer-h: 54px;
-}
-
-/* Le content doit prévoir la place du footer */
-.modern-content{
-  padding-bottom: var(--footer-h);
-}
-
-/* Footer fixé */
 .main-footer{
-  position: fixed;
-  left: 260px;              /* largeur sidebar desktop */
-  right: 0;
-  bottom: 0;
-  height: var(--footer-h);
-
+  margin-top: auto;
+  min-height: 54px;
   display: flex;
   align-items: center;
-
   background: color-mix(in srgb, var(--card), #000 4%);
   border-top: 1px solid var(--border);
-  backdrop-filter: blur(8px);
-
-  z-index: 15;
 }
 
 /* Contenu interne */
 .main-footer .footer-content{
   width: 100%;
-  padding: 0 2rem;
+  padding: .9rem 2rem;
 
   display: flex;
   align-items: center;
@@ -927,19 +909,8 @@ body.no-scroll{ overflow:hidden; }
    MOBILE / TABLET
    ========================================================= */
 @media (max-width:1024px){
-
-  /* footer prend toute la largeur */
-  .main-footer{
-    left: 0;
-  }
-
-  /* padding content toujours OK */
-  .modern-content{
-    padding-bottom: calc(var(--footer-h) + 6px);
-  }
-
   .main-footer .footer-content{
-    padding: 0 1rem;
+    padding: .85rem 1rem;
   }
 }
 /* =========================================================

@@ -241,9 +241,7 @@ def inscription_finance_detail(request, inscription_id: int):
         .order_by("mois_index")
     )
 
-    # si tu as insc.paiements (relation), garde; sinon enlève
-    paiements = getattr(insc, "paiements", None)
-    paiements = paiements.select_related("echeance").all() if paiements is not None else []
+    paiements = insc.paiements.select_related("echeance").order_by("-date_paiement", "-id")
 
     total_mensuel_du = sum((e.montant_du or Decimal("0.00")) for e in echeances)
     total_mensuel_paye = sum((e.montant_paye or Decimal("0.00")) for e in echeances)
@@ -1563,3 +1561,276 @@ def ajax_enfants_by_parent(request):
         })
 
     return JsonResponse({"items": items})
+
+
+# =========================================================
+# Tableau de bord Finance
+# =========================================================
+@login_required
+def dashboard_finance(request):
+    if not (request.user.is_superuser or request.user.has_perm("core.view_paiement")):
+        from django.http import Http404
+        raise Http404()
+
+    from django.db.models import Count, FloatField
+    from django.db.models.functions import Coalesce
+    import json as _json
+
+    annee = AnneeScolaire.objects.filter(is_active=True).first()
+    ZERO = Decimal("0.00")
+
+    MOIS_LABELS = {
+        1: "Sep", 2: "Oct", 3: "Nov", 4: "Déc",
+        5: "Jan", 6: "Fév", 7: "Mar", 8: "Avr", 9: "Mai", 10: "Jun",
+    }
+    MOIS_LONGS = {
+        1: "Septembre", 2: "Octobre", 3: "Novembre", 4: "Décembre",
+        5: "Janvier", 6: "Février", 7: "Mars", 8: "Avril", 9: "Mai", 10: "Juin",
+    }
+
+    if not annee:
+        return render(request, "admin/finance/dashboard.html", {
+            "no_annee": True,
+            "annee_active": None,
+        })
+
+    # ── 1. Scolarité par mois ────────────────────────────────────────────────
+    sco_rows = {
+        r["mois_index"]: r
+        for r in (
+            EcheanceMensuelle.objects
+            .filter(annee=annee)
+            .values("mois_index")
+            .annotate(
+                du=Coalesce(Sum("montant_du"), ZERO),
+                paye=Coalesce(Sum("montant_paye"), ZERO),
+            )
+        )
+    }
+
+    # ── 2. Transport par mois ────────────────────────────────────────────────
+    tr_rows = {
+        r["mois_index"]: r
+        for r in (
+            EcheanceTransportMensuelle.objects
+            .filter(annee=annee)
+            .values("mois_index")
+            .annotate(
+                du=Coalesce(Sum("montant_du"), ZERO),
+                paye=Coalesce(Sum("montant_paye"), ZERO),
+            )
+        )
+    }
+
+    # ── 3. Frais inscription ─────────────────────────────────────────────────
+    insc_agg = Inscription.objects.filter(annee=annee, eleve__is_active=True).aggregate(
+        du=Coalesce(Sum("frais_inscription_du"), ZERO),
+        paye=Coalesce(Sum("frais_inscription_paye"), ZERO),
+    )
+    insc_du   = insc_agg["du"]
+    insc_paye = insc_agg["paye"]
+    insc_reste = max(insc_du - insc_paye, ZERO)
+
+    # ── 4. Arrays par mois (1..10) ───────────────────────────────────────────
+    labels, sco_du_l, sco_paye_l, tr_du_l, tr_paye_l = [], [], [], [], []
+    total_sco_du = total_sco_paye = total_tr_du = total_tr_paye = ZERO
+
+    from django.utils import timezone as tz
+    today = tz.localdate()
+    # mois courant scolaire (approximation rapide)
+    cal_to_sco = {9:1,10:2,11:3,12:4,1:5,2:6,3:7,4:8,5:9,6:10}
+    mois_actuel_idx = cal_to_sco.get(today.month, 10)
+
+    for i in range(1, 11):
+        s = sco_rows.get(i, {})
+        t = tr_rows.get(i, {})
+        sd = s.get("du", ZERO); sp = s.get("paye", ZERO)
+        td = t.get("du", ZERO); tp_ = t.get("paye", ZERO)
+        labels.append(MOIS_LABELS[i])
+        sco_du_l.append(float(sd)); sco_paye_l.append(float(sp))
+        tr_du_l.append(float(td)); tr_paye_l.append(float(tp_))
+        total_sco_du   += sd; total_sco_paye  += sp
+        total_tr_du    += td; total_tr_paye   += tp_
+
+    # ── 5. Impayés par groupe ────────────────────────────────────────────────
+    # Scolarité
+    impayes_sco_qs = list(
+        EcheanceMensuelle.objects
+        .filter(annee=annee, statut__in=["A_PAYER", "PARTIEL"])
+        .values("groupe__nom", "groupe__niveau__nom")
+        .annotate(
+            nb=Count("eleve", distinct=True),
+            reste=Coalesce(
+                Sum(F("montant_du") - F("montant_paye")),
+                ZERO, output_field=DecimalField(max_digits=14, decimal_places=2)
+            ),
+        )
+        .order_by("-reste")[:15]
+    )
+
+    # Transport (merge par groupe nom)
+    impayes_tr_map = {
+        r["groupe__nom"]: r
+        for r in (
+            EcheanceTransportMensuelle.objects
+            .filter(annee=annee, statut__in=["A_PAYER", "PARTIEL"])
+            .values("groupe__nom")
+            .annotate(
+                reste_tr=Coalesce(
+                    Sum(F("montant_du") - F("montant_paye")),
+                    ZERO, output_field=DecimalField(max_digits=14, decimal_places=2)
+                )
+            )
+        )
+    }
+
+    # Fusion
+    impayes_groupe = []
+    for row in impayes_sco_qs:
+        gnom = row["groupe__nom"] or "—"
+        tr_r = Decimal(str(impayes_tr_map.get(gnom, {}).get("reste_tr", ZERO)))
+        total_r = Decimal(str(row["reste"])) + tr_r
+        impayes_groupe.append({
+            "groupe":   gnom,
+            "niveau":   row["groupe__niveau__nom"] or "",
+            "nb":       row["nb"],
+            "reste_sco": float(row["reste"]),
+            "reste_tr":  float(tr_r),
+            "reste":     float(total_r),
+        })
+
+    # ── 6. Stats transport ───────────────────────────────────────────────────
+    nb_transport = EleveTransport.objects.filter(enabled=True).count()
+    nb_inscriptions = Inscription.objects.filter(annee=annee, eleve__is_active=True).count()
+    nb_sans_transport = max(nb_inscriptions - nb_transport, 0)
+
+    tr_total_du   = total_tr_du
+    tr_total_paye = total_tr_paye
+    tr_total_reste = max(tr_total_du - tr_total_paye, ZERO)
+    tr_taux = int(float(tr_total_paye) / float(tr_total_du) * 100) if tr_total_du else 0
+
+    # ── 7. KPIs globaux ──────────────────────────────────────────────────────
+    total_du    = total_sco_du + total_tr_du + insc_du
+    total_paye  = total_sco_paye + total_tr_paye + insc_paye
+    total_reste = max(total_du - total_paye, ZERO)
+    taux_global = int(float(total_paye) / float(total_du) * 100) if total_du else 0
+
+    # Nb élèves avec impayés (scolarité OU transport)
+    nb_impayes_eleves = (
+        EcheanceMensuelle.objects
+        .filter(annee=annee, statut__in=["A_PAYER", "PARTIEL"])
+        .values("eleve_id").distinct().count()
+    )
+
+    # ── 8. Prévisionnel ─────────────────────────────────────────────────────
+    # Pour chaque mois : attendu = sco_du + tr_du ; encaissé = sco_paye + tr_paye
+    # Taux par mois passés → projection pour mois futurs
+    prev_attendu  = [sco_du_l[i] + tr_du_l[i] for i in range(10)]
+    prev_encaisse = [sco_paye_l[i] + tr_paye_l[i] for i in range(10)]
+
+    # Taux moyen sur mois avec du > 0
+    taux_mois_passes = [
+        round(prev_encaisse[i] / prev_attendu[i] * 100, 1) if prev_attendu[i] else 0
+        for i in range(10)
+    ]
+    mois_ecoules = [i for i in range(10) if prev_attendu[i] > 0 and i < mois_actuel_idx]
+    taux_moyen_hist = (
+        round(sum(taux_mois_passes[i] for i in mois_ecoules) / len(mois_ecoules), 1)
+        if mois_ecoules else 0
+    )
+    # Projection : pour chaque mois futur, on prédit taux_moyen_hist %
+    prev_projection = [
+        round(prev_attendu[i] * taux_moyen_hist / 100, 2) if i >= mois_actuel_idx else None
+        for i in range(10)
+    ]
+
+    # Total attendu fin d'année
+    fin_annee_attendu  = sum(prev_attendu)
+    fin_annee_encaisse = sum(prev_encaisse)
+    fin_annee_projete  = sum(
+        (prev_projection[i] or prev_encaisse[i]) for i in range(10)
+    )
+
+    # ── 9. Tableau récap mensuel ─────────────────────────────────────────────
+    mois_recap = []
+    for i in range(10):
+        mois_recap.append({
+            "idx":      i + 1,
+            "nom":      MOIS_LONGS[i + 1],
+            "sco_du":   sco_du_l[i],
+            "sco_paye": sco_paye_l[i],
+            "tr_du":    tr_du_l[i],
+            "tr_paye":  tr_paye_l[i],
+            "total_du":   prev_attendu[i],
+            "total_paye": prev_encaisse[i],
+            "reste":      round(prev_attendu[i] - prev_encaisse[i], 2),
+            "taux":       taux_mois_passes[i],
+            "est_futur":  (i + 1) > mois_actuel_idx,
+        })
+
+    # ── Payloads JSON ────────────────────────────────────────────────────────
+    chart_encaisse = _json.dumps({
+        "labels":    labels,
+        "sco_du":    sco_du_l,
+        "sco_paye":  sco_paye_l,
+        "tr_du":     tr_du_l,
+        "tr_paye":   tr_paye_l,
+    })
+
+    chart_impayes = _json.dumps({
+        "labels": [g["groupe"] for g in impayes_groupe],
+        "reste":  [g["reste"] for g in impayes_groupe],
+        "nb":     [g["nb"] for g in impayes_groupe],
+    })
+
+    chart_transport = _json.dumps({
+        "avec":    nb_transport,
+        "sans":    nb_sans_transport,
+        "du_mois": tr_du_l,
+        "paye_mois": tr_paye_l,
+    })
+
+    chart_previsionnel = _json.dumps({
+        "labels":      labels,
+        "attendu":     prev_attendu,
+        "encaisse":    prev_encaisse,
+        "projection":  prev_projection,
+        "taux":        taux_mois_passes,
+        "taux_moyen":  taux_moyen_hist,
+        "mois_actuel": mois_actuel_idx,
+    })
+
+    return render(request, "admin/finance/dashboard.html", {
+        "annee_active":      annee,
+        # KPIs globaux
+        "total_du":          total_du,
+        "total_paye":        total_paye,
+        "total_reste":       total_reste,
+        "taux_global":       taux_global,
+        "nb_impayes_eleves": nb_impayes_eleves,
+        "insc_du":           insc_du,
+        "insc_paye":         insc_paye,
+        "insc_reste":        insc_reste,
+        # Transport
+        "nb_transport":      nb_transport,
+        "nb_sans_transport": nb_sans_transport,
+        "tr_total_du":       tr_total_du,
+        "tr_total_paye":     tr_total_paye,
+        "tr_total_reste":    tr_total_reste,
+        "tr_taux":           tr_taux,
+        # Tableau mensuel
+        "mois_recap":        mois_recap,
+        "impayes_groupe":    impayes_groupe,
+        # Payloads JSON pour Chart.js
+        "chart_encaisse":    chart_encaisse,
+        "chart_impayes":     chart_impayes,
+        "chart_transport":   chart_transport,
+        "chart_previsionnel": chart_previsionnel,
+        # Prévisionnel texte
+        "fin_annee_attendu":  round(fin_annee_attendu, 2),
+        "fin_annee_encaisse": round(fin_annee_encaisse, 2),
+        "fin_annee_projete":  round(fin_annee_projete, 2),
+        "taux_moyen_hist":    taux_moyen_hist,
+        "mois_actuel_idx":    mois_actuel_idx,
+        "mois_actuel_nom":    MOIS_LONGS.get(mois_actuel_idx, ""),
+    })

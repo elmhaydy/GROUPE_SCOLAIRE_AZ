@@ -1,447 +1,456 @@
 {% extends "admin/base_admin.html" %}
 {% load static %}
 
-{% block current_page %}Super Admin • Tableau de bord{% endblock %}
+{% block title %}Super Admin • Pilotage Stratégique{% endblock %}
+{% block current_page %}Super Admin • Pilotage Stratégique{% endblock %}
+{% block page_title %}{% endblock %}
+{% block page_actions %}{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'admin/css/dashboard/superadmin.css' %}?v=3">
+<link rel="stylesheet" href="{% static 'admin/css/dashboard/superadmin.css' %}?v=20">
 {% endblock %}
 
 {% block content %}
-<div class="azsa">
+<div class="sa-container">
 
-  <!-- HERO / HEADER -->
-  <div class="azsa-hero">
-    <div class="azsa-hero-left">
-      <div class="azsa-pill">
-        <i class="fa-solid fa-shield-halved"></i>
-        <span>Super Admin</span>
-        <span class="azsa-pill-sep">•</span>
-        <span>Système & pilotage global</span>
+  <!-- HERO SECTION -->
+  <header class="sa-hero">
+    <div class="sa-hero__info">
+      <div class="sa-badge-pill">
+        <span class="pulse-dot"></span>
+        <i class="fa-solid fa-shield-halved"></i> Super Admin Center
       </div>
-
-      <h1 class="azsa-title">
-        <i class="fa-solid fa-chart-line"></i>
-        Centre de contrôle
-      </h1>
-
-      <p class="azsa-subtitle">
-        Vue globale de l’activité (finances, impayés, inscriptions) + état du système (utilisateurs, rôles, configuration).
-      </p>
-    </div>
-
-    <div class="azsa-hero-right">
-      <div class="azsa-date">
-        <i class="fa-regular fa-calendar"></i>
-        <span id="currentDate">{{ current_date|date:"d F Y" }}</span>
-      </div>
-
-      <div class="azsa-actions">
-        <a class="azsa-btn azsa-btn-soft" href="{% url 'core:users_list' %}">
-          <i class="fa-solid fa-user-shield"></i> Utilisateurs
-        </a>
-        <a class="azsa-btn azsa-btn-soft" href="{% url 'core:recouvrement_list' %}">
-          <i class="fa-solid fa-triangle-exclamation"></i> Recouvrement
-        </a>
-        <button class="azsa-btn azsa-btn-primary" id="refreshDashboard">
-          <i class="fa-solid fa-rotate"></i> Actualiser
-        </button>
-      </div>
-    </div>
-
-    <div class="azsa-hero-glow"></div>
-  </div>
-
-  <div class="azsa-kpi-head">
-    <div class="azsa-kpi-title">
-      <i class="fa-solid fa-sliders"></i>
-      <span>Indicateurs</span>
-      <span class="azsa-kpi-range">
-        {{ period_label }} • {{ date_from|date:"d/m/Y" }} → {{ date_to|date:"d/m/Y" }}
-      </span>
-    </div>
-
-    <form class="azsa-kpi-filter" method="get">
-      <input type="hidden" name="period" value="{{ period|default:'month' }}">
-
-      <button class="azsa-chip {% if period == '7d' %}is-active{% endif %}" type="submit"
-              onclick="this.form.period.value='7d'">7j</button>
-
-      <button class="azsa-chip {% if period == 'month' %}is-active{% endif %}" type="submit"
-              onclick="this.form.period.value='month'">Mois</button>
-
-      <button class="azsa-chip {% if period == 'year' %}is-active{% endif %}" type="submit"
-              onclick="this.form.period.value='year'">Année</button>
-    </form>
-  </div>
-
-  <div class="azsa-kpi-grid azsa-kpi-grid-4">
-
-    <div class="azsa-kpi">
-      <div class="azsa-kpi-ic azsa-ic-grad a">
-        <i class="fa-solid fa-user-graduate"></i>
-      </div>
-      <div class="azsa-kpi-meta">
-        <div class="azsa-kpi-val">{{ nb_eleves|default:0 }}</div>
-        <div class="azsa-kpi-label">Élèves actifs</div>
-        <div class="azsa-kpi-sub">Année : {{ annee_active|default:"—" }}</div>
-      </div>
-    </div>
-
-    <div class="azsa-kpi">
-      <div class="azsa-kpi-ic azsa-ic-grad c">
-        <i class="fa-solid fa-coins"></i>
-      </div>
-      <div class="azsa-kpi-meta">
-        <div class="azsa-kpi-val">{{ total_net_mois|default:"0" }} <span class="azsa-kpi-unit">MAD</span></div>
-        <div class="azsa-kpi-label">Encaissement net</div>
-      </div>
-    </div>
-
-    <div class="azsa-kpi azsa-kpi-soft">
-      <div class="azsa-kpi-ic azsa-ic-grad f">
-        <i class="fa-solid fa-arrow-trend-down"></i>
-      </div>
-      <div class="azsa-kpi-meta">
-        <div class="azsa-kpi-val">{{ total_depenses|default:"0" }} <span class="azsa-kpi-unit">MAD</span></div>
-        <div class="azsa-kpi-label">Dépenses</div>
-        <div class="azsa-kpi-sub">Période : {{ period_label }}</div>
-      </div>
-    </div>
-
-    <div class="azsa-kpi azsa-kpi-warn">
-      <div class="azsa-kpi-ic azsa-ic-grad d">
-        <i class="fa-solid fa-triangle-exclamation"></i>
-      </div>
-      <div class="azsa-kpi-meta">
-        <div class="azsa-kpi-val">{{ total_impayes|default:"0" }} <span class="azsa-kpi-unit">MAD</span></div>
-        <div class="azsa-kpi-label">Impayés</div>
-        <div class="azsa-kpi-sub">
-          <i class="fa-solid fa-clock"></i> {{ nb_impayes|default:0 }} élèves
-        </div>
-      </div>
-    </div>
-
-  </div>
-
-  <!-- HEALTH / CONFIG + ACTIONS -->
-  <div class="azsa-panels">
-
-    <div class="azsa-card">
-      <div class="azsa-card-head">
-        <h3><i class="fa-solid fa-heart-pulse"></i> Santé & alertes</h3>
-        <span class="azsa-badge">
-          {% if nb_impayes|default:0|add:0 > 0 %}Action requise{% else %}OK{% endif %}
+      <h1 class="sa-hero__title">Centre de pilotage stratégique</h1>
+      <p class="sa-hero__subtitle">Performance financière, suivi du recouvrement, effectifs et santé opérationnelle.</p>
+      
+      <div class="sa-meta-chips">
+        <span class="chip-item">
+          <i class="fa-regular fa-calendar-alt"></i> {{ current_date|date:"d/m/Y" }}
+        </span>
+        <span class="chip-item soft">
+          <i class="fa-solid fa-layer-group"></i> {{ period_label }} • {{ date_from|date:"d/m/Y" }} → {{ date_to|date:"d/m/Y" }}
+        </span>
+        <span class="chip-item soft glow">
+          <i class="fa-solid fa-graduation-cap"></i> Année {{ annee_active|default:"—" }}
         </span>
       </div>
-
-      <div class="azsa-health-grid">
-        <div class="azsa-health">
-          <div class="azsa-health-top">
-            <span class="azsa-health-label">Année active</span>
-            <span class="azsa-health-val">{{ annee_active|default:"—" }}</span>
-          </div>
-          <div class="azsa-health-sub">
-            <i class="fa-regular fa-calendar-check"></i>
-            <span>Configuration scolaire</span>
-          </div>
-        </div>
-
-        <div class="azsa-health">
-          <div class="azsa-health-top">
-            <span class="azsa-health-label">Objectif annuel</span>
-            <span class="azsa-health-val">{{ objectif_annuel|default:"0" }} MAD</span>
-          </div>
-        <div class="azsa-health-sub">
-          <i class="fa-solid fa-target"></i>
-          <span>{{ objectif_atteint|default:0 }}% atteint</span>
-          <span style="margin-left:10px; opacity:.85;">
-            • Reste : {{ objectif_reste|default:"0" }} MAD
-          </span>
-        </div>
-
-        </div>
-
-        <div class="azsa-health azsa-health-warn">
-          <div class="azsa-health-top">
-            <span class="azsa-health-label">Impayés</span>
-            <span class="azsa-health-val">{{ nb_impayes|default:0 }}</span>
-          </div>
-          <div class="azsa-health-sub">
-            <i class="fa-solid fa-bell"></i>
-            <span>Relances & recouvrement</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="azsa-quick">
-        <a class="azsa-q" href="{% url 'core:paiement_list' %}">
-          <i class="fa-solid fa-money-check-dollar"></i>
-          <div>
-            <div class="azsa-q-title">Paiements</div>
-            <div class="azsa-q-sub">Liste & filtres</div>
-          </div>
-          <i class="fa-solid fa-arrow-right azsa-q-go"></i>
-        </a>
-
-        <a class="azsa-q" href="{% url 'core:impayes_mensuels_list' %}">
-          <i class="fa-solid fa-file-circle-exclamation"></i>
-          <div>
-            <div class="azsa-q-title">Impayés mensuels</div>
-            <div class="azsa-q-sub">Échéances & retards</div>
-          </div>
-          <i class="fa-solid fa-arrow-right azsa-q-go"></i>
-        </a>
-
-        <a class="azsa-q" href="{% url 'core:recouvrement_list' %}">
-          <i class="fa-solid fa-hand-holding-dollar"></i>
-          <div>
-            <div class="azsa-q-title">Recouvrement</div>
-            <div class="azsa-q-sub">Dossiers & relances</div>
-          </div>
-          <i class="fa-solid fa-arrow-right azsa-q-go"></i>
-        </a>
-      </div>
     </div>
 
-    <div class="azsa-card">
-      <div class="azsa-card-head">
-        <h3><i class="fa-solid fa-chart-column"></i> Pilotage (12 mois)</h3>
-        <div class="azsa-card-actions">
-          <select class="azsa-select" id="chartPeriod">
-            <option value="12m" selected>12 mois</option>
-            <option value="6m">6 mois</option>
-          </select>
-          <button class="azsa-btn azsa-btn-ghost" id="exportChart" title="Exporter le graphique">
-            <i class="fa-solid fa-download"></i>
+    <div class="sa-hero__actions">
+      <button class="sa-btn sa-btn--cmdk" type="button" id="saCmdk">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <span>Rechercher...</span>
+        <kbd>Ctrl K</kbd>
+      </button>
+      <a class="sa-btn sa-btn--secondary" href="{% url 'core:users_list' %}">
+        <i class="fa-solid fa-user-shield"></i> Utilisateurs
+      </a>
+      <a class="sa-btn sa-btn--accent" href="{% url 'core:recouvrement_list' %}">
+        <i class="fa-solid fa-triangle-exclamation"></i> Recouvrements
+      </a>
+      <button class="sa-btn sa-btn--primary" id="saRefresh" type="button">
+        <i class="fa-solid fa-rotate"></i> Actualiser
+      </button>
+    </div>
+  </header>
+
+  <!-- PERIOD FILTERS -->
+  <form class="sa-period-bar" method="get" id="periodForm">
+    <input type="hidden" name="period" id="periodInput" value="{{ period|default:'month' }}">
+    <div class="sa-filter-group">
+      <span class="sa-filter-label"><i class="fa-solid fa-filter"></i> Période :</span>
+      <button class="sa-filter-btn {% if period == '7d' %}active{% endif %}" type="submit" onclick="document.getElementById('periodInput').value='7d'">
+        7 Derniers Jours
+      </button>
+      <button class="sa-filter-btn {% if period == 'month' %}active{% endif %}" type="submit" onclick="document.getElementById('periodInput').value='month'">
+        Mois en cours
+      </button>
+      <button class="sa-filter-btn {% if period == 'year' %}active{% endif %}" type="submit" onclick="document.getElementById('periodInput').value='year'">
+        Année Scolaire
+      </button>
+    </div>
+  </form>
+
+  <!-- KPI METRICS GRID WITH SPARKLINES -->
+  <section class="sa-kpi-grid">
+    <!-- NET REVENUE -->
+    <article class="sa-kpi-card sa-kpi-card--primary" id="kpi-revenue">
+      <div class="sa-kpi-header">
+        <div class="sa-kpi-icon sa-kpi-icon--emerald">
+          <i class="fa-solid fa-coins"></i>
+        </div>
+        <div class="sa-kpi-trend positive">
+          <i class="fa-solid fa-arrow-trend-up"></i> Net Période
+        </div>
+      </div>
+      <div class="sa-kpi-body">
+        <div class="sa-kpi-value">{{ total_net_mois|default:"0" }} <span class="unit">MAD</span></div>
+        <div class="sa-kpi-subtext">Dépenses engagées : <strong>{{ total_depenses|default:"0" }} MAD</strong></div>
+      </div>
+      <div class="sa-kpi-sparkline" id="sparkline-revenue"></div>
+    </article>
+
+    <!-- IMPAYES -->
+    <article class="sa-kpi-card sa-kpi-card--warning" id="kpi-impaye">
+      <div class="sa-kpi-header">
+        <div class="sa-kpi-icon sa-kpi-icon--amber">
+          <i class="fa-solid fa-circle-exclamation"></i>
+        </div>
+        <div class="sa-kpi-trend negative">
+          <i class="fa-solid fa-circle-info"></i> Attention
+        </div>
+      </div>
+      <div class="sa-kpi-body">
+        <div class="sa-kpi-value warn-color">{{ total_impayes|default:"0" }} <span class="unit">MAD</span></div>
+        <div class="sa-kpi-subtext">Dossiers en retard : <strong>{{ nb_impayes|default:0 }} dossiers</strong></div>
+      </div>
+      <div class="sa-kpi-sparkline" id="sparkline-impayes"></div>
+    </article>
+
+    <!-- OBJECTIF -->
+    <article class="sa-kpi-card sa-kpi-card--success">
+      <div class="sa-kpi-header">
+        <div class="sa-kpi-icon sa-kpi-icon--indigo">
+          <i class="fa-solid fa-bullseye"></i>
+        </div>
+        <div class="sa-kpi-badge">Objectif Annuel</div>
+      </div>
+      <div class="sa-kpi-body">
+        <div class="sa-kpi-value">{{ objectif_atteint|default:0 }}<span class="unit">%</span></div>
+        <div class="sa-kpi-progress">
+          <div class="sa-kpi-progress-bar" style="width: {{ objectif_atteint|default:0 }}%;"></div>
+        </div>
+        <div class="sa-kpi-subtext">Reste à collecter : <strong>{{ objectif_reste|default:0 }} MAD</strong></div>
+      </div>
+    </article>
+
+    <!-- USERS / EFFECTIFS -->
+    <article class="sa-kpi-card sa-kpi-card--info">
+      <div class="sa-kpi-header">
+        <div class="sa-kpi-icon sa-kpi-icon--cyan">
+          <i class="fa-solid fa-users-gear"></i>
+        </div>
+        <div class="sa-kpi-badge">Comptes Système</div>
+      </div>
+      <div class="sa-kpi-body">
+        <div class="sa-kpi-value">{{ nb_users|default:0 }}</div>
+        <div class="sa-kpi-subtext">
+          <span class="tag-pill">{{ nb_staff|default:0 }} Staff</span>
+          <span class="tag-pill dark">{{ nb_superusers|default:0 }} SuperAdmin</span>
+        </div>
+      </div>
+    </article>
+  </section>
+
+  <!-- MAIN ANALYTICS & HEALTH GRID -->
+  <section class="sa-main-grid">
+    <!-- APEXCHARTS FINANCIAL GRAPH -->
+    <article class="sa-card sa-card--chart">
+      <div class="sa-card-head">
+        <div>
+          <span class="sa-card-eyebrow"><i class="fa-solid fa-chart-line"></i> Performance</span>
+          <h3 class="sa-card-title">Flux financier (Recettes • Dépenses • Impayés)</h3>
+        </div>
+        <div class="sa-card-actions">
+          <div class="sa-select-wrap">
+            <select id="saChartRange" class="sa-select">
+              <option value="6">6 derniers mois</option>
+              <option value="12" selected>12 derniers mois</option>
+            </select>
+          </div>
+          <button class="sa-btn sa-btn--sm sa-btn--secondary" id="saExport" type="button">
+            <i class="fa-solid fa-download"></i> Exporter
           </button>
         </div>
       </div>
-      <div class="azsa-chart">
-        <canvas id="monthlyChart"></canvas>
+
+      <div class="sa-chart-container">
+        <div id="apexSaChart"></div>
+        <canvas id="saChart" height="260" style="display:none;"></canvas>
       </div>
-    </div>
+      {{ chart_payload|json_script:"sa-chart-data" }}
+    </article>
 
-  </div>
-
-  <!-- ACTIVITÉ RÉCENTE -->
-  <div class="azsa-activity">
-    <div class="azsa-card">
-      <div class="azsa-card-head">
-        <h3><i class="fa-solid fa-clock-rotate-left"></i> Activité récente</h3>
-        <div class="azsa-tabs">
-          <button class="azsa-tab active" data-tab="paiements">Paiements</button>
-          <button class="azsa-tab" data-tab="inscriptions">Inscriptions</button>
-          <button class="azsa-tab" data-tab="impayes">Impayés</button>
+    <!-- SYSTEM HEALTH & QUICK ACTIONS -->
+    <article class="sa-card sa-card--side">
+      <div class="sa-card-head">
+        <div>
+          <span class="sa-card-eyebrow"><i class="fa-solid fa-heart-pulse"></i> Synthèse</span>
+          <h3 class="sa-card-title">Santé & Accès</h3>
         </div>
+        <span class="sa-status-badge {% if nb_impayes|default:0|add:0 > 0 %}status-warn{% else %}status-ok{% endif %}">
+          {% if nb_impayes|default:0|add:0 > 0 %}<i class="fa-solid fa-bell"></i> Action requise{% else %}<i class="fa-solid fa-check"></i> Système fluide{% endif %}
+        </span>
       </div>
 
-      <!-- PAIEMENTS -->
-      <div class="azsa-tabpanel active" id="paiementsTab">
-        <div class="azsa-table-head">
-          <span>Derniers paiements</span>
-          <a class="azsa-link" href="{% url 'core:paiement_list' %}">Voir tout <i class="fa-solid fa-arrow-right"></i></a>
+      <div class="sa-health-metrics">
+        <div class="health-item">
+          <span class="health-label">Année Scolaire Active</span>
+          <strong class="health-val">{{ annee_active|default:"—" }}</strong>
         </div>
-
-        <div class="azsa-list">
-          {% for p in derniers_paiements %}
-            <div class="azsa-row">
-              <div class="azsa-row-left">
-                <div class="azsa-avatar">
-                  {{ p.eleve_nom|default:"—"|slice:":1"|upper }}
-                </div>
-                <div class="azsa-row-info">
-                  <div class="azsa-row-title">{{ p.eleve_nom|default:"—" }}</div>
-                  <div class="azsa-row-sub">{{ p.groupe_nom|default:"—" }}</div>
-                </div>
-              </div>
-
-              <div class="azsa-row-right">
-                <div class="azsa-amt">
-                  <div class="azsa-amt-val">{{ p.montant|default:"0" }} MAD</div>
-                  <div class="azsa-amt-sub">{% if p.date %}{{ p.date|date:"d/m/Y" }}{% else %}—{% endif %}</div>
-                </div>
-
-                <div class="azsa-badges">
-                  {% if p.type == "NEW" %}
-                    <span class="azsa-badge-mode tx">
-                      <i class="fa-solid fa-arrows-rotate"></i> Transaction
-                    </span>
-                  {% else %}
-                    <span class="azsa-badge-mode old">
-                      <i class="fa-solid fa-receipt"></i> Paiement
-                    </span>
-                  {% endif %}
-
-                  {% if p.mode %}
-                    <span class="azsa-badge-mode {{ p.mode|lower }}">
-                      <i class="fa-solid fa-{% if p.mode == 'ESPECES' %}money-bill{% elif p.mode == 'CHEQUE' %}file-invoice{% elif p.mode == 'VIREMENT' %}right-left{% else %}credit-card{% endif %}"></i>
-                      {{ p.mode_label|default:"—" }}
-                    </span>
-                  {% endif %}
-                </div>
-              </div>
-            </div>
-          {% empty %}
-            <div class="azsa-empty">
-              <i class="fa-solid fa-receipt"></i>
-              <span>Aucun paiement récent</span>
-            </div>
-          {% endfor %}
+        <div class="health-item">
+          <span class="health-label">Taux Présence Jour</span>
+          <strong class="health-val text-emerald">{{ presences.taux_presence|default:0 }}%</strong>
+        </div>
+        <div class="health-item">
+          <span class="health-label">Objectif de Recouvrement</span>
+          <strong class="health-val">{{ objectif_annuel|default:0 }} MAD</strong>
         </div>
       </div>
 
-      <!-- INSCRIPTIONS -->
-      <div class="azsa-tabpanel" id="inscriptionsTab">
-        <div class="azsa-table-head">
-          <span>Nouvelles inscriptions</span>
-          <a class="azsa-link" href="{% url 'core:inscription_list' %}">Voir tout <i class="fa-solid fa-arrow-right"></i></a>
-        </div>
-
-        <div class="azsa-list">
-          {% for inscription in nouvelles_inscriptions %}
-            <div class="azsa-row">
-              <div class="azsa-row-left">
-                <div class="azsa-avatar">{{ inscription.eleve.nom|first|upper }}</div>
-                <div class="azsa-row-info">
-                  <div class="azsa-row-title">{{ inscription.eleve.nom_complet }}</div>
-                  <div class="azsa-row-sub">{{ inscription.groupe.niveau.nom }} • {{ inscription.groupe.nom }}</div>
-                </div>
-              </div>
-
-              <div class="azsa-row-right">
-                <div class="azsa-amt">
-                  <div class="azsa-amt-val">{{ inscription.montant_total|default:"0" }} MAD</div>
-                  <div class="azsa-amt-sub">{{ inscription.date_inscription|date:"d/m/Y" }}</div>
-                </div>
-
-                <div class="azsa-badges">
-                  {% if inscription.statut == 'VALIDEE' %}
-                    <span class="azsa-badge-ok">Validée</span>
-                  {% elif inscription.statut == 'EN_COURS' %}
-                    <span class="azsa-badge-warn">En cours</span>
-                  {% else %}
-                    <span class="azsa-badge-soft">{{ inscription.get_statut_display }}</span>
-                  {% endif %}
-                </div>
-              </div>
-            </div>
-          {% empty %}
-            <div class="azsa-empty">
-              <i class="fa-solid fa-user-plus"></i>
-              <span>Aucune inscription récente</span>
-            </div>
-          {% endfor %}
-        </div>
-      </div>
-
-      <!-- IMPAYÉS -->
-      <div class="azsa-tabpanel" id="impayesTab">
-        <div class="azsa-table-head">
-          <span>Impayés (Top)</span>
-          <a class="azsa-link" href="{% url 'core:impayes_mensuels_list' %}">Gérer <i class="fa-solid fa-arrow-right"></i></a>
-        </div>
-
-        <div class="azsa-list">
-          {% for impaye in impayes_recents %}
-            <div class="azsa-row">
-              <div class="azsa-row-left">
-                <div class="azsa-avatar azsa-avatar-warn"><i class="fa-solid fa-triangle-exclamation"></i></div>
-                <div class="azsa-row-info">
-                  <div class="azsa-row-title">{{ impaye.eleve.nom_complet }}</div>
-                  <div class="azsa-row-sub">{{ impaye.groupe.nom }}</div>
-                </div>
-              </div>
-
-              <div class="azsa-row-right">
-                <div class="azsa-amt">
-                  <div class="azsa-amt-val azsa-amt-warn">{{ impaye.reste }} MAD</div>
-                  <div class="azsa-amt-sub">En attente</div>
-                </div>
-
-                <div class="azsa-actions-mini">
-                  <a class="azsa-icbtn" href="{% url 'core:recouvrement_list' %}" title="Ouvrir recouvrement">
-                    <i class="fa-solid fa-hand-holding-dollar"></i>
-                  </a>
-                  <a class="azsa-icbtn" href="{% url 'core:impayes_mensuels_list' %}" title="Détails impayés">
-                    <i class="fa-solid fa-arrow-up-right-from-square"></i>
-                  </a>
-                </div>
-              </div>
-            </div>
-          {% empty %}
-            <div class="azsa-empty">
-              <i class="fa-solid fa-circle-check"></i>
-              <span>Aucun impayé en attente</span>
-            </div>
-          {% endfor %}
-        </div>
-      </div>
-
-    </div>
-
-    <!-- MINI CARD: PRÉSENCES -->
-    <div class="azsa-card">
-      <div class="azsa-card-head">
-        <h3><i class="fa-solid fa-clipboard-check"></i> Présences (aujourd’hui)</h3>
-        <span class="azsa-badge">{{ today|date:"d/m/Y" }}</span>
-      </div>
-
-      <div class="azsa-pres-grid">
-        <div class="azsa-pres">
-          <div class="azsa-pres-top ok"><i class="fa-solid fa-user-check"></i> Présents</div>
-          <div class="azsa-pres-val">{{ presences.presents|default:0 }}</div>
-          <div class="azsa-pres-sub">{{ presences.taux_presence|default:0 }}%</div>
-        </div>
-        <div class="azsa-pres">
-          <div class="azsa-pres-top bad"><i class="fa-solid fa-user-xmark"></i> Absents</div>
-          <div class="azsa-pres-val">{{ presences.absents|default:0 }}</div>
-          <div class="azsa-pres-sub">{{ presences.taux_absence|default:0 }}%</div>
-        </div>
-        <div class="azsa-pres">
-          <div class="azsa-pres-top warn"><i class="fa-solid fa-clock"></i> Retards</div>
-          <div class="azsa-pres-val">{{ presences.retards|default:0 }}</div>
-          <div class="azsa-pres-sub">{{ presences.taux_retard|default:0 }}%</div>
-        </div>
-        <div class="azsa-pres">
-          <div class="azsa-pres-top soft"><i class="fa-solid fa-users"></i> Total</div>
-          <div class="azsa-pres-val">{{ presences.total|default:0 }}</div>
-          <div class="azsa-pres-sub">100%</div>
-        </div>
-      </div>
-
-      <div class="azsa-pres-actions">
-        <a class="azsa-btn azsa-btn-primary" href="{% url 'core:absence_list' %}">
-          <i class="fa-solid fa-clipboard-check"></i> Gérer
+      <div class="sa-quick-menu">
+        <a class="quick-link-card" href="{% url 'core:paiement_list' %}">
+          <div class="ql-icon ql-icon--green"><i class="fa-solid fa-money-check-dollar"></i></div>
+          <div class="ql-info">
+            <b>Encaissements</b>
+            <span>Voir les paiements reçus</span>
+          </div>
+          <i class="fa-solid fa-chevron-right ql-arrow"></i>
         </a>
-        <button class="azsa-btn azsa-btn-soft" id="sendReminders">
-          <i class="fa-solid fa-bell"></i> Rappels
-        </button>
+
+        <a class="quick-link-card" href="{% url 'core:impayes_mensuels_list' %}">
+          <div class="ql-icon ql-icon--amber"><i class="fa-solid fa-file-circle-exclamation"></i></div>
+          <div class="ql-info">
+            <b>Impayés mensuels</b>
+            <span>Gérer les échéances</span>
+          </div>
+          <i class="fa-solid fa-chevron-right ql-arrow"></i>
+        </a>
+
+        <a class="quick-link-card" href="{% url 'core:recouvrement_list' %}">
+          <div class="ql-icon ql-icon--red"><i class="fa-solid fa-hand-holding-dollar"></i></div>
+          <div class="ql-info">
+            <b>Dossiers Recouvrement</b>
+            <span>Procédure de relance</span>
+          </div>
+          <i class="fa-solid fa-chevron-right ql-arrow"></i>
+        </a>
+      </div>
+    </article>
+  </section>
+
+  <!-- ACTIVITY STREAM & PRESENCE BREAKDOWN -->
+  <section class="sa-secondary-grid">
+    <!-- REALTIME ACTIVITY STREAM -->
+    <article class="sa-card">
+      <div class="sa-card-head">
+        <div>
+          <span class="sa-card-eyebrow"><i class="fa-solid fa-bolt"></i> Temps réel</span>
+          <h3 class="sa-card-title">Flux d'activités</h3>
+        </div>
+        <div class="sa-tab-buttons">
+          <button class="sa-tab-btn active" data-tab="pay"><i class="fa-solid fa-coins"></i> Paiements</button>
+          <button class="sa-tab-btn" data-tab="insc"><i class="fa-solid fa-user-plus"></i> Inscriptions</button>
+          <button class="sa-tab-btn" data-tab="imp"><i class="fa-solid fa-triangle-exclamation"></i> Impayés</button>
+        </div>
+      </div>
+
+      <!-- TAB PAIEMENTS -->
+      <div class="sa-tab-panel active" id="tab-pay">
+        <div class="sa-panel-header">
+          <span>Derniers paiements validés</span>
+          <a class="sa-text-link" href="{% url 'core:paiement_list' %}">Voir tout <i class="fa-solid fa-arrow-right"></i></a>
+        </div>
+        <div class="sa-activity-list">
+          {% for p in derniers_paiements %}
+            <div class="activity-row">
+              <div class="avatar-circle avatar-emerald">{{ p.eleve_nom|default:"—"|slice:":1"|upper }}</div>
+              <div class="activity-details">
+                <div class="title-main">{{ p.eleve_nom|default:"—" }}</div>
+                <div class="subtitle-sub">{{ p.groupe_nom|default:"—" }}</div>
+              </div>
+              <div class="activity-meta">
+                <span class="amount-badge emerald">+{{ p.montant|default:"0" }} MAD</span>
+                <span class="time-stamp">{% if p.date %}{{ p.date|date:"d/m" }}{% else %}—{% endif %}</span>
+              </div>
+            </div>
+          {% empty %}
+            <div class="sa-empty-state"><i class="fa-solid fa-receipt"></i> Aucun paiement enregistré pour le moment.</div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- TAB INSCRIPTIONS -->
+      <div class="sa-tab-panel" id="tab-insc">
+        <div class="sa-panel-header">
+          <span>Nouvelles inscriptions enregistrées</span>
+          <a class="sa-text-link" href="{% url 'core:inscription_list' %}">Voir tout <i class="fa-solid fa-arrow-right"></i></a>
+        </div>
+        <div class="sa-activity-list">
+          {% for i in nouvelles_inscriptions %}
+            <div class="activity-row">
+              <div class="avatar-circle avatar-indigo">{{ i.eleve.nom|default:"—"|slice:":1"|upper }}</div>
+              <div class="activity-details">
+                <div class="title-main">{{ i.eleve.nom_complet }}</div>
+                <div class="subtitle-sub">{{ i.groupe.niveau.nom }} • {{ i.groupe.nom }}</div>
+              </div>
+              <div class="activity-meta">
+                <span class="amount-badge indigo">{{ i.montant_total|default:"0" }} MAD</span>
+                <span class="time-stamp">{{ i.date_inscription|date:"d/m" }}</span>
+              </div>
+            </div>
+          {% empty %}
+            <div class="sa-empty-state"><i class="fa-solid fa-user-plus"></i> Aucune nouvelle inscription.</div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- TAB IMPAYES -->
+      <div class="sa-tab-panel" id="tab-imp">
+        <div class="sa-panel-header">
+          <span>Dossiers d'impayés prioritaires</span>
+          <a class="sa-text-link" href="{% url 'core:impayes_mensuels_list' %}">Gérer les impayés <i class="fa-solid fa-arrow-right"></i></a>
+        </div>
+        <div class="sa-activity-list">
+          {% for imp in impayes_recents %}
+            <div class="activity-row">
+              <div class="avatar-circle avatar-amber"><i class="fa-solid fa-triangle-exclamation"></i></div>
+              <div class="activity-details">
+                <div class="title-main">{{ imp.eleve.nom_complet }}</div>
+                <div class="subtitle-sub">{{ imp.groupe.nom }}</div>
+              </div>
+              <div class="activity-meta">
+                <span class="amount-badge amber">{{ imp.reste }} MAD</span>
+              </div>
+            </div>
+          {% empty %}
+            <div class="sa-empty-state"><i class="fa-solid fa-circle-check"></i> Aucun impayé prioritaire. Bravo !</div>
+          {% endfor %}
+        </div>
+      </div>
+    </article>
+
+    <!-- TODAY PRESENCE METRICS & BREAKDOWN -->
+    <article class="sa-card">
+      <div class="sa-card-head">
+        <div>
+          <span class="sa-card-eyebrow"><i class="fa-solid fa-clipboard-user"></i> Quotidien</span>
+          <h3 class="sa-card-title">Présences des élèves</h3>
+        </div>
+        <span class="sa-date-badge"><i class="fa-regular fa-calendar"></i> {{ today|date:"d/m/Y" }}</span>
+      </div>
+
+      <div class="sa-presence-bars">
+        <div class="pres-bar-item pres-ok">
+          <div class="pbi-top">
+            <span><i class="fa-solid fa-user-check"></i> Présents</span>
+            <strong>{{ presences.presents|default:0 }} ({{ presences.taux_presence|default:0 }}%)</strong>
+          </div>
+          <div class="pbi-track"><div class="pbi-fill" style="width: {{ presences.taux_presence|default:0 }}%"></div></div>
+        </div>
+
+        <div class="pres-bar-item pres-warn">
+          <div class="pbi-top">
+            <span><i class="fa-solid fa-clock"></i> Retards</span>
+            <strong>{{ presences.retards|default:0 }} ({{ presences.taux_retard|default:0 }}%)</strong>
+          </div>
+          <div class="pbi-track"><div class="pbi-fill" style="width: {{ presences.taux_retard|default:0 }}%"></div></div>
+        </div>
+
+        <div class="pres-bar-item pres-bad">
+          <div class="pbi-top">
+            <span><i class="fa-solid fa-user-xmark"></i> Absents</span>
+            <strong>{{ presences.absents|default:0 }} ({{ presences.taux_absence|default:0 }}%)</strong>
+          </div>
+          <div class="pbi-track"><div class="pbi-fill" style="width: {{ presences.taux_absence|default:0 }}%"></div></div>
+        </div>
+      </div>
+
+      <div class="sa-presence-footer">
+        <div class="pres-total-pill"><i class="fa-solid fa-users"></i> Total attendus : {{ presences.total|default:0 }}</div>
+        <a class="sa-text-link" href="{% url 'core:absence_list' %}">Gérer les présences <i class="fa-solid fa-arrow-right"></i></a>
+      </div>
+
+      <!-- PRESENCE LIST DETAIL CHIPS -->
+      <div class="sa-presence-cards">
+        <div class="pres-subcard">
+          <div class="pres-subcard-head ok-text">
+            <span><i class="fa-solid fa-user-check"></i> Présents ({{ presences.presents|default:0 }})</span>
+            <span>{{ presences.taux_presence|default:0 }}%</span>
+          </div>
+          <div class="pres-chip-flex">
+            {% if presences.details_presents %}
+              {% for a in presences.details_presents %}
+                <span class="tiny-chip chip-ok">{{ a }}</span>
+              {% endfor %}
+            {% else %}
+              <span class="muted-text">Aucun nom disponible</span>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="pres-subcard">
+          <div class="pres-subcard-head warn-text">
+            <span><i class="fa-solid fa-clock"></i> Retards ({{ presences.retards|default:0 }})</span>
+            <span>{{ presences.taux_retard|default:0 }}%</span>
+          </div>
+          <div class="pres-chip-flex">
+            {% if presences.details_retards %}
+              {% for a in presences.details_retards %}
+                <span class="tiny-chip chip-warn">{{ a }}</span>
+              {% endfor %}
+            {% else %}
+              <span class="muted-text">Aucun retard ce jour.</span>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="pres-subcard">
+          <div class="pres-subcard-head bad-text">
+            <span><i class="fa-solid fa-user-xmark"></i> Absents ({{ presences.absents|default:0 }})</span>
+            <span>{{ presences.taux_absence|default:0 }}%</span>
+          </div>
+          <div class="pres-chip-flex">
+            {% if presences.details_absents %}
+              {% for a in presences.details_absents %}
+                <span class="tiny-chip chip-bad">{{ a }}</span>
+              {% endfor %}
+            {% else %}
+              <span class="muted-text">Aucune absence déclarée.</span>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </article>
+  </section>
+
+  <!-- COMMAND PALETTE MODAL (CTRL + K) -->
+  <div class="sa-cmdk-overlay" id="saCmdkModal" aria-hidden="true">
+    <div class="sa-cmdk-box">
+      <div class="sa-cmdk-search-row">
+        <i class="fa-solid fa-magnifying-glass search-icon"></i>
+        <input type="text" id="saCmdkInput" placeholder="Tapez une commande ou recherchez (ex: Élève, Paiement, Impayés)..." autocomplete="off">
+        <span class="cmdk-esc-tag">ESC</span>
+      </div>
+      <div class="sa-cmdk-results" id="saCmdkResults">
+        <div class="cmdk-group-title">Raccourcis système</div>
+        <a href="{% url 'core:eleve_list' %}" class="cmdk-item"><i class="fa-solid fa-user-graduate"></i> Liste des Élèves <span>Rechercher un élève</span></a>
+        <a href="{% url 'core:paiement_list' %}" class="cmdk-item"><i class="fa-solid fa-money-bill-wave"></i> Encaisser un Paiement <span>Historique & Saisie</span></a>
+        <a href="{% url 'core:impayes_mensuels_list' %}" class="cmdk-item"><i class="fa-solid fa-circle-exclamation"></i> Liste des Impayés <span>Relance des familles</span></a>
+        <a href="{% url 'core:recouvrement_list' %}" class="cmdk-item"><i class="fa-solid fa-hand-holding-dollar"></i> Dossiers de Recouvrement <span>Gestion des contentieux</span></a>
+        <a href="{% url 'core:users_list' %}" class="cmdk-item"><i class="fa-solid fa-users-gear"></i> Gestion des Utilisateurs <span>Comptes et droits</span></a>
       </div>
     </div>
-
   </div>
+
+  <script type="application/json" id="sa-link-map">
+    {
+      "eleves": "{% url 'core:eleve_list' %}",
+      "parents": "{% url 'core:parent_list' %}",
+      "paiements": "{% url 'core:paiement_list' %}",
+      "impayes": "{% url 'core:impayes_mensuels_list' %}",
+      "recouvrement": "{% url 'core:recouvrement_list' %}",
+      "users": "{% url 'core:users_list' %}",
+      "dashboard": "{% url 'core:dashboard_superadmin' %}"
+    }
+  </script>
 
 </div>
-
-<script>
-  // ✅ données chart backend (Pilotage 12 mois) — NET vs DEPENSES vs IMPAYES
-  window.AZ_CHART = {
-    labels: JSON.parse('{{ chart_labels|escapejs }}'),
-    net: JSON.parse('{{ chart_net|escapejs }}'),
-    depenses: JSON.parse('{{ chart_depenses|escapejs }}'),
-    impayes: JSON.parse('{{ chart_impayes|escapejs }}')
-  };
-
-  window.AZ_DASH = {
-    repartitionLen: {{ repartition_eleves|length|default:0 }},
-    repartitionLabels: [{% for n in repartition_eleves %}'{{ n.nom|escapejs }}',{% endfor %}],
-    repartitionData: [{% for n in repartition_eleves %}{{ n.total }},{% endfor %}]
-  };
-</script>
 {% endblock %}
 
 {% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="{% static 'admin/js/dashboard/superadmin.js' %}?v=12"></script>
+<script src="{% static 'admin/js/dashboard/superadmin.js' %}?v=20"></script>
 {% endblock %}
+

@@ -1,0 +1,49 @@
+{% extends base_template|default:"admin/base_admin.html" %}
+{% load static %}
+
+{% block title %}Conditions d'Utilisation | Groupe Scolaire{% endblock %}
+
+{% block content %}
+<div class="az-page">
+  <!-- HERO HEADER -->
+  <div style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #431407 100%); border-radius: 20px; padding: 36px 32px; color: #fff; margin-bottom: 28px; box-shadow: 0 10px 25px rgba(0,0,0,0.15);">
+    <div style="max-width: 750px;">
+      <span style="background: rgba(249,115,22,0.25); color: #fdba74; padding: 4px 14px; border-radius: 20px; font-size: 0.82rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; display: inline-block; margin-bottom: 12px;">
+        <i class="fa-solid fa-file-contract"></i> CGU & Règlement Général
+      </span>
+      <h1 style="font-size: 1.8rem; font-weight: 800; margin-bottom: 8px;">Conditions Générales d'Utilisation (CGU)</h1>
+      <p style="color: #cbd5e1; font-size: 0.95rem; line-height: 1.5;"> RÈgles et modalités d'accès au portail de gestion du Groupe Scolaire pour le personnel administratif, les enseignants, les élèves et les parents.</p>
+    </div>
+  </div>
+
+  <div class="az-card" style="padding: 36px; border-radius: 20px; line-height: 1.7; color: var(--az-text, #334155); font-size: 0.92rem;">
+    <h2 style="font-size: 1.2rem; font-weight: 800; color: var(--az-text, #0f172a); margin-bottom: 12px; display: flex; align-items: center; gap: 10px;">
+      <i class="fa-solid fa-gavel" style="color: #f97316;"></i> 1. Objet et Champ d'Application
+    </h2>
+    <p style="margin-bottom: 20px;">
+      Les présentes Conditions Générales d'Utilisation ont pour objet de définir les modalités de mise à disposition de la plateforme web du Groupe Scolaire AZ. L'accès et l'utilisation du logiciel impliquent l'acceptation sans réserve du présent règlement par tout utilisateur disposant d'un compte actif.
+    </p>
+
+    <h2 style="font-size: 1.2rem; font-weight: 800; color: var(--az-text, #0f172a); margin-bottom: 12px; display: flex; align-items: center; gap: 10px;">
+      <i class="fa-solid fa-key" style="color: #6366f1;"></i> 2. Responsabilité et Sécurité des Identifiants
+    </h2>
+    <p style="margin-bottom: 20px;">
+      Chaque utilisateur est seul responsable du maintien de la confidentialité de son identifiant et de son mot de passe. Tout accès effectué avec vos identifiants est réputé avoir été réalisé par vous-même. En cas de perte, de vol ou de compromission de votre mot de passe, utilisez la procédure de réinitialisation sécurisée par code de vérification ou contactez l'administration.
+    </p>
+
+    <h2 style="font-size: 1.2rem; font-weight: 800; color: var(--az-text, #0f172a); margin-bottom: 12px; display: flex; align-items: center; gap: 10px;">
+      <i class="fa-solid fa-laptop-code" style="color: #10b981;"></i> 3. Usage Autorisé et Interdictions
+    </h2>
+    <p style="margin-bottom: 20px;">
+      L'accès au portail est strictement réservé aux fins de consultation du suivi scolaire, des présences, des notes, des emplois du temps et des règlements de scolarité. Sont strictement interdits : toute tentative d'extraction massive de données, d'usurpation d'identité, de modification non autorisée de relevés de notes ou de désactivation des systèmes de sécurité.
+    </p>
+
+    <h2 style="font-size: 1.2rem; font-weight: 800; color: var(--az-text, #0f172a); margin-bottom: 12px; display: flex; align-items: center; gap: 10px;">
+      <i class="fa-solid fa-circle-exclamation" style="color: #ef4444;"></i> 4. Modification et Évolution des Services
+    </h2>
+    <p style="margin-bottom: 20px;">
+      Le Groupe Scolaire se réserve le droit d'apporter des améliorations, des mises à jour techniques ou des ajustements de sécurité à la plateforme à tout moment afin de garantir le bon déroulement de l'année académique.
+    </p>
+  </div>
+</div>
+{% endblock %}

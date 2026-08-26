@@ -1,190 +1,560 @@
-/* =========================================================
-   AZ NEBULA — MODAL (Final)
-   Compatible:
-   - .az-modal wrapper
-   - [data-close="1"] close
-   - .az-danger-box warning
-   Dark/Light via html[data-theme]
-   ========================================================= */
+/* =========================================
+   AZ • Modal UI (NEBULA) — FINAL
+   - dark/light via html[data-theme]
+   - ouverture via .azm.is-open
+   - safe z-index + pointer-events
+   ========================================= */
 
 :root{
-  --az-primary:#6366f1;
-  --az-primary-2:#a78bfa;
-  --az-grad: linear-gradient(135deg, #6366f1, #ec4899);
+  --azm-bg: #ffffff;
+  --azm-card: #ffffff;
+  --azm-text: #0b1220;
+  --azm-muted: rgba(11,18,32,.72);
+  --azm-line: rgba(11,18,32,.10);
+  --azm-shadow: 0 20px 60px rgba(0,0,0,.18);
 
-  --az-radius-lg: 22px;
-  --az-radius-md: 16px;
-  --az-transition: all .22s cubic-bezier(.2,.7,.2,1);
+  --azm-danger: #ef4444;
+  --azm-danger-2: #dc2626;
 
-  /* Light */
-  --az-surface:#ffffff;
-  --az-surface-2:#f2f4ff;
-  --az-text:#0f172a;
-  --az-muted:#64748b;
-  --az-border: rgba(15,23,42,.10);
-  --az-shadow: 0 22px 80px rgba(2,6,23,.16);
-
-  --az-danger:#ef4444;
-  --az-danger-bg: rgba(239,68,68,.12);
-
-  --az-glow: 0 0 0 4px rgba(167,139,250,.22);
+  --azm-focus: 0 0 0 3px rgba(114,9,183,.28); /* glow violet */
 }
 
 html[data-theme="dark"]{
-  color-scheme: dark;
-
-  --az-surface:#0b1220;
-  --az-surface-2:#0f1a30;
-  --az-text:#eaf0ff;
-  --az-muted: rgba(234,240,255,.70);
-  --az-border: rgba(255,255,255,.10);
-  --az-shadow: 0 26px 100px rgba(0,0,0,.65);
-
-  --az-danger-bg: rgba(239,68,68,.14);
-  --az-glow: 0 0 0 4px rgba(167,139,250,.25);
+  --azm-bg: #0b1220;
+  --azm-card: #0f172a;
+  --azm-text: #e8eefc;
+  --azm-muted: rgba(232,238,252,.72);
+  --azm-line: rgba(232,238,252,.10);
+  --azm-shadow: 0 25px 70px rgba(0,0,0,.55);
 }
 
-/* ===== Overlay ===== */
-.az-modal{
+/* ✅ overlay shell */
+.azm{
   position: fixed;
   inset: 0;
-  z-index: 9999;
+  z-index: 999999; /* plus haut que topbar/menus */
+  display: block;            /* ✅ jamais none */
+  opacity: 0;                /* ✅ caché */
+  visibility: hidden;        /* ✅ caché */
+  pointer-events: none;      /* ✅ clique traversant */
+  transition: opacity .16s ease, visibility .16s ease;
+}
+
+/* ✅ open state */
+.azm.is-open{
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+/* ✅ backdrop */
+.azm__backdrop{
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,.55);
+  backdrop-filter: blur(6px);
+}
+
+/* ✅ center dialog */
+.azm__dialog{
+  position: relative;
+  width: min(740px, calc(100% - 28px));
+  max-height: calc(100vh - 90px);
+  margin: 6vh auto 0;
+  background: var(--azm-card);
+  color: var(--azm-text);
+  border: 1px solid var(--azm-line);
+  border-radius: 18px;
+  box-shadow: var(--azm-shadow);
+  overflow: hidden;
+
+  transform: translateY(10px) scale(.985);
+  transition: transform .16s ease;
+}
+
+/* ✅ animate dialog only when open */
+.azm.is-open .azm__dialog{
+  transform: translateY(0) scale(1);
+}
+
+/* header */
+.azm__head{
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 16px 16px 12px 16px;
+  border-bottom: 1px solid var(--azm-line);
+}
+
+.azm__icon{
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
   display: grid;
   place-items: center;
-  padding: 14px;
+  flex: 0 0 42px;
+  background: rgba(114, 9, 183, .10);
+  border: 1px solid rgba(114, 9, 183, .18);
 }
 
-.az-modal-backdrop{
-  position:absolute;
-  inset:0;
-  background: rgba(0,0,0,.58);
-  backdrop-filter: blur(7px);
+.azm__icon--danger{
+  background: rgba(239,68,68,.12);
+  border-color: rgba(239,68,68,.22);
+  color: var(--azm-danger);
 }
 
-/* ===== Panel ===== */
-.az-modal-panel{
-  position: relative;
-  width: min(720px, calc(100% - 22px));
-  border-radius: var(--az-radius-lg);
-  background:
-    radial-gradient(900px 250px at 10% 0%, rgba(99,102,241,.16), transparent 55%),
-    radial-gradient(800px 240px at 90% 10%, rgba(236,72,153,.12), transparent 55%),
-    var(--az-surface);
-  border: 1px solid var(--az-border);
-  box-shadow: var(--az-shadow);
-  overflow:hidden;
+.azm__titles{ flex: 1; min-width: 0; }
 
-  transform: translateY(8px) scale(.98);
-  opacity: 0;
-  animation: azModalIn .18s ease forwards;
-}
-
-@keyframes azModalIn{
-  to { transform: translateY(0) scale(1); opacity: 1; }
-}
-
-/* ===== Head ===== */
-.az-modal-head{
-  padding: 14px 16px;
-  border-bottom: 1px solid var(--az-border);
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:10px;
-}
-
-.az-modal-title{
-  display:flex;
-  align-items:center;
-  gap:10px;
-  font-size: 15px;
-  font-weight: 950;
-  color: var(--az-text);
-}
-.az-modal-title i{
-  color: var(--az-danger);
-  filter: drop-shadow(0 10px 20px rgba(239,68,68,.25));
-}
-
-/* ===== Body ===== */
-.az-modal-body{
-  padding: 14px 16px 6px;
-  color: var(--az-text);
-}
-
-.az-sub{
+.azm__title{
   margin: 0;
-  color: var(--az-muted);
-  font-size: 13px;
-  line-height: 1.55;
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: .2px;
 }
 
-/* Danger info box */
-.az-danger-box{
-  display:flex;
-  align-items:flex-start;
-  gap:10px;
-  padding: 12px 12px;
-  border-radius: var(--az-radius-md);
-  border: 1px solid rgba(239,68,68,.28);
-  background: var(--az-danger-bg);
-  color: var(--az-text);
+.azm__desc{
+  margin: 4px 0 0 0;
+  font-size: 13px;
+  color: var(--azm-muted);
+}
+
+.azm__x{
+  border: 0;
+  background: transparent;
+  color: var(--azm-muted);
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+.azm__x:hover{
+  background: rgba(114,9,183,.10);
+  color: var(--azm-text);
+}
+.azm__x:focus{ outline: none; box-shadow: var(--azm-focus); }
+
+/* body scroll */
+.azm__body{
+  padding: 14px 16px 16px;
+  overflow: auto;
+  max-height: calc(100vh - 180px);
+}
+
+.azm__dangerbox{
+  border: 1px solid rgba(239,68,68,.22);
+  background: rgba(239,68,68,.08);
+  border-radius: 14px;
+  padding: 12px;
+}
+
+.azm__dangerline{
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.azm__dangerlabel{
+  font-size: 12px;
+  font-weight: 800;
+  opacity: .95;
+}
+
+.azm__dangername{
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--azm-danger);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.azm__dangerhint{
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--azm-muted);
+}
+
+.azm__extra{
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--azm-muted);
+  border: 1px dashed var(--azm-line);
+  border-radius: 12px;
+  padding: 10px;
+}
+
+.azm__actions{
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 14px;
+}
+
+.azm__btn{
+  border: 1px solid var(--azm-line);
+  background: transparent;
+  color: var(--azm-text);
+  padding: 10px 12px;
+  border-radius: 12px;
   font-weight: 800;
   font-size: 13px;
+  cursor: pointer;
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
 }
-.az-danger-box i{
-  margin-top: 2px;
-  color: var(--az-danger);
+.azm__btn:focus{ outline: none; box-shadow: var(--azm-focus); }
+
+.azm__btn--ghost:hover{
+  background: rgba(114,9,183,.10);
+  border-color: rgba(114,9,183,.18);
 }
 
-/* ===== Footer ===== */
-.az-modal-foot{
-  padding: 12px 16px 16px;
-  border-top: 1px solid var(--az-border);
+.azm__btn--danger{
+  background: linear-gradient(180deg, var(--azm-danger), var(--azm-danger-2));
+  border-color: rgba(239,68,68,.35);
+  color: #fff;
+}
+.azm__btn--danger:hover{
+  filter: brightness(1.02);
+}
+.azpw-modal{
   display:flex;
-  justify-content:flex-end;
+  flex-direction:column;
+  gap:16px;
+  color:var(--azm-text, #0f172a);
+}
+
+.azpw-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:14px;
+  padding-bottom:14px;
+  border-bottom:1px solid rgba(148,163,184,.18);
+}
+
+.azpw-head-left{
+  display:flex;
+  align-items:flex-start;
+  gap:14px;
+}
+
+.azpw-icon{
+  width:52px;
+  height:52px;
+  border-radius:16px;
+  display:grid;
+  place-items:center;
+  background:linear-gradient(135deg, rgba(99,102,241,.16), rgba(139,92,246,.16));
+  border:1px solid rgba(99,102,241,.20);
+  color:#6366f1;
+  font-size:18px;
+}
+
+.azpw-title{
+  margin:0;
+  font-size:1.18rem;
+  font-weight:800;
+}
+
+.azpw-sub{
+  margin:4px 0 0;
+  color:rgba(100,116,139,.95);
+  font-size:.92rem;
+}
+
+html[data-theme="dark"] .azpw-sub{
+  color:rgba(203,213,225,.78);
+}
+
+.azpw-close{
+  width:40px;
+  height:40px;
+  border:none;
+  border-radius:12px;
+  background:transparent;
+  cursor:pointer;
+  color:inherit;
+}
+
+.azpw-close:hover{
+  background:rgba(148,163,184,.12);
+}
+
+.azpw-user-card{
+  display:flex;
+  align-items:center;
+  gap:14px;
+  padding:14px;
+  border:1px solid rgba(148,163,184,.18);
+  border-radius:18px;
+  background:linear-gradient(180deg, rgba(255,255,255,.68), rgba(255,255,255,.50));
+}
+
+html[data-theme="dark"] .azpw-user-card{
+  background:linear-gradient(180deg, rgba(15,23,42,.82), rgba(15,23,42,.68));
+}
+
+.azpw-user-avatar{
+  width:52px;
+  height:52px;
+  border-radius:16px;
+  display:grid;
+  place-items:center;
+  background:rgba(99,102,241,.12);
+  color:#6366f1;
+  font-size:18px;
+  flex:0 0 52px;
+}
+
+.azpw-user-meta{
+  flex:1;
+  min-width:0;
+}
+
+.azpw-user-top{
+  display:flex;
   align-items:center;
   gap:10px;
   flex-wrap:wrap;
 }
 
-/* ===== Buttons (si pas déjà global) ===== */
-.az-btn{
+.azpw-user-top h4{
+  margin:0;
+  font-size:1rem;
+  font-weight:800;
+}
+
+.azpw-user-lines{
+  margin-top:6px;
+  display:flex;
+  gap:14px;
+  flex-wrap:wrap;
+  font-size:.9rem;
+  color:rgba(100,116,139,.95);
+}
+
+html[data-theme="dark"] .azpw-user-lines{
+  color:rgba(203,213,225,.78);
+}
+
+.azpw-badge{
   display:inline-flex;
   align-items:center;
-  gap:8px;
-  padding: 10px 12px;
-  border-radius: 999px;
-  border: 1px solid var(--az-border);
-  background: var(--az-surface);
-  color: var(--az-text);
-  font-weight: 900;
-  font-size: 12px;
+  padding:4px 10px;
+  border-radius:999px;
+  font-size:.76rem;
+  font-weight:800;
+}
+
+.azpw-badge-success{
+  background:rgba(16,185,129,.12);
+  color:#059669;
+  border:1px solid rgba(16,185,129,.22);
+}
+
+.azpw-badge-danger{
+  background:rgba(239,68,68,.12);
+  color:#dc2626;
+  border:1px solid rgba(239,68,68,.22);
+}
+
+.azpw-alert{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:12px 14px;
+  border-radius:14px;
+  font-weight:700;
+}
+
+.azpw-alert-danger{
+  background:rgba(239,68,68,.10);
+  color:#dc2626;
+  border:1px solid rgba(239,68,68,.18);
+}
+
+.azpw-option-card,
+.azpw-manual-box{
+  border:1px solid rgba(148,163,184,.18);
+  border-radius:18px;
+  padding:16px;
+  background:rgba(148,163,184,.05);
+}
+
+.azpw-option-head h5{
+  margin:0;
+  font-size:.98rem;
+  font-weight:800;
+}
+
+.azpw-option-head p{
+  margin:4px 0 0;
+  font-size:.88rem;
+  color:rgba(100,116,139,.95);
+}
+
+html[data-theme="dark"] .azpw-option-head p{
+  color:rgba(203,213,225,.78);
+}
+
+.azpw-switch-row{
+  margin-top:14px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+}
+
+.azpw-switch-text{
+  display:flex;
+  flex-direction:column;
+  gap:3px;
+}
+
+.azpw-switch-text small{
+  color:rgba(100,116,139,.95);
+}
+
+html[data-theme="dark"] .azpw-switch-text small{
+  color:rgba(203,213,225,.78);
+}
+
+.azpw-switch-wrap{
+  position:relative;
+  display:inline-flex;
+  align-items:center;
+}
+
+.azpw-switch-wrap input{
+  position:absolute;
+  opacity:0;
+  width:0;
+  height:0;
+}
+
+.azpw-switch-ui{
+  width:54px;
+  height:30px;
+  border-radius:999px;
+  background:rgba(148,163,184,.35);
+  position:relative;
+  transition:.2s ease;
   cursor:pointer;
-  transition: var(--az-transition);
 }
 
-.az-btn:hover{ transform: translateY(-1px); }
-.az-btn:focus{ outline:none; box-shadow: var(--az-glow); }
-
-.az-btn-danger{
-  background: rgba(239,68,68,.12);
-  border-color: rgba(239,68,68,.28);
+.azpw-switch-ui::after{
+  content:"";
+  position:absolute;
+  top:4px;
+  left:4px;
+  width:22px;
+  height:22px;
+  border-radius:50%;
+  background:#fff;
+  box-shadow:0 2px 8px rgba(0,0,0,.18);
+  transition:.2s ease;
 }
-.az-btn-danger:hover{
-  background: rgba(239,68,68,.16);
+
+.azpw-switch-wrap input:checked + .azpw-switch-ui{
+  background:linear-gradient(135deg, #6366f1, #8b5cf6);
 }
 
-/* ===== Mobile ===== */
-@media (max-width: 520px){
-  .az-modal-foot{
-    justify-content:stretch;
+.azpw-switch-wrap input:checked + .azpw-switch-ui::after{
+  transform:translateX(24px);
+}
+
+.azpw-field{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+
+.azpw-field label{
+  font-weight:800;
+  font-size:.92rem;
+}
+
+.azpw-password-wrap{
+  position:relative;
+}
+
+.azpw-password-wrap input{
+  width:100%;
+  padding:13px 46px 13px 14px;
+  border-radius:14px;
+  border:1px solid rgba(148,163,184,.24);
+  background:rgba(255,255,255,.78);
+  color:inherit;
+}
+
+html[data-theme="dark"] .azpw-password-wrap input{
+  background:rgba(15,23,42,.86);
+  color:#e5e7eb;
+}
+
+.azpw-password-wrap input:focus{
+  outline:none;
+  border-color:#8b5cf6;
+  box-shadow:0 0 0 4px rgba(139,92,246,.14);
+}
+
+.azpw-eye{
+  position:absolute;
+  top:50%;
+  right:10px;
+  transform:translateY(-50%);
+  border:none;
+  background:transparent;
+  width:32px;
+  height:32px;
+  border-radius:10px;
+  cursor:pointer;
+  color:rgba(100,116,139,.95);
+}
+
+.azpw-eye:hover{
+  background:rgba(148,163,184,.12);
+}
+
+.azpw-help{
+  font-size:.82rem;
+  color:rgba(100,116,139,.95);
+}
+
+html[data-theme="dark"] .azpw-help{
+  color:rgba(203,213,225,.78);
+}
+
+.azpw-error{
+  color:#dc2626;
+  font-size:.84rem;
+  font-weight:700;
+}
+
+.azpw-footer{
+  display:flex;
+  justify-content:flex-end;
+  gap:10px;
+  margin-top:4px;
+}
+
+@media (max-width: 640px){
+  .azpw-switch-row{
+    flex-direction:column;
+    align-items:flex-start;
   }
-  .az-modal-foot .az-btn,
-  .az-modal-foot form{
-    width:100%;
+
+  .azpw-footer{
+    flex-direction:column-reverse;
   }
-  .az-modal-foot form button{
+
+  .azpw-footer .az-btn{
     width:100%;
     justify-content:center;
   }

@@ -1,7 +1,7 @@
 {% extends "admin/base_admin.html" %}
 {% load static %}
 
-{% block title %}Rôles | AZ{% endblock %}
+{% block title %}Rôles | Groupe Scolaire{% endblock %}
 {% block page_title %}Rôles & Permissions{% endblock %}
 {% block breadcrumb %}Paramètres / Rôles{% endblock %}
 
@@ -62,9 +62,13 @@
                             <a href="{% url 'core:role_update' r.id %}" class="btn-icon btn-edit" title="Modifier">
                                 <i class="fas fa-pen-to-square"></i>
                             </a>
-                            <a href="{% url 'core:role_delete' r.id %}" class="btn-icon btn-delete" title="Supprimer">
-                                <i class="fas fa-trash-can"></i>
-                            </a>
+  <button type="button"
+        class="btn-icon btn-delete"
+        title="Supprimer"
+        data-delete-modal
+        data-modal-url="{% url 'core:role_delete_modal' r.id %}">
+  <i class="fas fa-trash-can"></i>
+</button>
                         </div>
                     </td>
                 </tr>

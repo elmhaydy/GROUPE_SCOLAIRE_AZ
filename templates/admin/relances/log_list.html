@@ -1,0 +1,182 @@
+{% extends "admin/base_admin.html" %}
+{% load static %}
+
+{% block title %}Historique relances | Groupe Scolaire{% endblock %}
+{% block page_title %}Historique des relances{% endblock %}
+{% block current_page %}Communication / Relances / Historique{% endblock %}
+
+{% block extra_css %}
+<style>
+.log-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px}
+.log-header h1{font-size:1.3rem;font-weight:700;margin:0;color:var(--az-text-primary, #1f2937)}
+
+.az-filter-bar{background:var(--az-bg-primary, #fff);border:1px solid var(--az-border, #e2e8f0);border-radius:12px;padding:16px 20px;margin-bottom:20px;box-shadow:var(--az-shadow-sm, 0 1px 8px rgba(0,0,0,.05));display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end}
+.az-filter-bar select,.az-filter-bar input{font-size:.85rem}
+
+.log-table-wrap{background:var(--az-bg-primary, #fff);border:1px solid var(--az-border, #e2e8f0);border-radius:14px;box-shadow:var(--az-shadow-sm, 0 2px 16px rgba(0,0,0,.06));overflow:hidden}
+.log-table{width:100%;border-collapse:collapse}
+.log-table th{background:var(--az-bg-secondary, #f4f6fb);font-size:.73rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--az-text-tertiary, #6b7280);padding:11px 14px;border-bottom:1px solid var(--az-border, #e5e7eb)}
+.log-table td{padding:10px 14px;border-bottom:1px solid var(--az-border, #f3f4f6);font-size:.84rem;color:var(--az-text-primary, #374151)}
+.log-table tr:last-child td{border-bottom:none}
+.log-table tr:hover td{background:var(--az-bg-secondary, #f9fafb)}
+
+.badge-type{display:inline-block;padding:2px 9px;border-radius:20px;font-size:.7rem;font-weight:600;text-transform:uppercase}
+.badge-IMPAYE{background:#fef3c7;color:#92400e}
+.badge-ABSENCE{background:#dbeafe;color:#1e40af}
+.badge-RETARD{background:#ede9fe;color:#5b21b6}
+.badge-RENOUVELLEMENT{background:#d1fae5;color:#065f46}
+
+html[data-theme="dark"] .badge-IMPAYE{background:rgba(245,158,11,.18);color:#fde68a}
+html[data-theme="dark"] .badge-ABSENCE{background:rgba(59,130,246,.18);color:#bfdbfe}
+html[data-theme="dark"] .badge-RETARD{background:rgba(139,92,246,.18);color:#ddd6fe}
+html[data-theme="dark"] .badge-RENOUVELLEMENT{background:rgba(16,185,129,.18);color:#bbf7d0}
+
+.pill-ok{background:#ecfdf5;color:#059669;padding:2px 8px;border-radius:10px;font-size:.72rem;font-weight:600}
+.pill-fail{background:#fef2f2;color:#dc2626;padding:2px 8px;border-radius:10px;font-size:.72rem;font-weight:600}
+.pill-dry{background:#f3f4f6;color:#6b7280;padding:2px 8px;border-radius:10px;font-size:.72rem;font-weight:600}
+
+html[data-theme="dark"] .pill-ok{background:rgba(16,185,129,.18);color:#bbf7d0}
+html[data-theme="dark"] .pill-fail{background:rgba(239,68,68,.18);color:#fecaca}
+html[data-theme="dark"] .pill-dry{background:rgba(148,163,184,.18);color:#cbd5e1}
+
+.pagination{display:flex;gap:6px;justify-content:center;padding:16px}
+.pagination a,.pagination span{padding:6px 12px;border-radius:8px;font-size:.85rem;text-decoration:none;border:1px solid var(--az-border, #e5e7eb);color:var(--az-text-primary, #374151)}
+.pagination .active{background:#6366f1;color:#fff;border-color:#6366f1}
+
+.msg-cell{max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.8rem;color:var(--az-text-tertiary, #6b7280)}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="log-header">
+  <h1><i class="fa-solid fa-clock-rotate-left" style="color:#6366f1;margin-right:8px"></i>Historique des relances</h1>
+  <div style="display:flex;gap:10px">
+    <a href="{% url 'core:relance_rule_list' %}" class="az-btn">
+      <i class="fa-solid fa-arrow-left"></i> Retour aux règles
+    </a>
+  </div>
+</div>
+
+<div class="az-filter-bar">
+  <form method="get" style="display:contents">
+    <div class="az-field">
+      <div class="az-field-label">Type</div>
+      <select name="type" class="az-select" onchange="this.form.submit()">
+        <option value="">Tous</option>
+        {% for val, lbl in type_choices %}
+          <option value="{{ val }}" {% if ftype == val %}selected{% endif %}>{{ lbl }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="az-field">
+      <div class="az-field-label">Mode</div>
+      <select name="dry" class="az-select" onchange="this.form.submit()">
+        <option value="">Tous</option>
+        <option value="0" {% if fdry == "0" %}selected{% endif %}>Envois réels</option>
+        <option value="1" {% if fdry == "1" %}selected{% endif %}>Simulations</option>
+      </select>
+    </div>
+    <div class="az-field">
+      <div class="az-field-label">Statut</div>
+      <select name="ok" class="az-select" onchange="this.form.submit()">
+        <option value="">Tous</option>
+        <option value="1" {% if fok == "1" %}selected{% endif %}>Succès</option>
+        <option value="0" {% if fok == "0" %}selected{% endif %}>Échecs</option>
+      </select>
+    </div>
+    <div class="az-field">
+      <div class="az-field-label">Période</div>
+      <select name="period" class="az-select" onchange="this.form.submit()">
+        <option value="7"  {% if fperiod == "7"  %}selected{% endif %}>7 jours</option>
+        <option value="30" {% if fperiod == "30" %}selected{% endif %}>30 jours</option>
+        <option value="90" {% if fperiod == "90" %}selected{% endif %}>90 jours</option>
+        <option value="365" {% if fperiod == "365" %}selected{% endif %}>1 an</option>
+      </select>
+    </div>
+    <div class="az-field">
+      <div class="az-field-label">Recherche</div>
+      <input type="text" name="q" value="{{ fq }}" class="az-input" placeholder="Message...">
+    </div>
+    <button type="submit" class="az-btn az-btn-primary">Filtrer</button>
+    <a href="{% url 'core:relance_log_list' %}" class="az-btn">Reset</a>
+  </form>
+</div>
+
+<div style="margin-bottom:12px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+  <div style="color:var(--az-text-secondary, #6b7280); font-size:.85rem">
+    <strong>{{ total }}</strong> entrée{{ total|pluralize }}
+  </div>
+  {% include "admin/includes/gmail_pagination.html" %}
+</div>
+
+<div class="log-table-wrap">
+  {% if page_obj %}
+  <table class="log-table">
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Type</th>
+        <th>Élève</th>
+        <th>Parent</th>
+        <th>Règle</th>
+        <th>Message</th>
+        <th>Statut</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for log in page_obj %}
+      <tr>
+        <td style="white-space:nowrap;font-size:.8rem">{{ log.sent_at|date:"d/m/Y H:i" }}</td>
+        <td><span class="badge-type badge-{{ log.type_relance }}">{{ log.get_type_relance_display }}</span></td>
+        <td>
+          {% if log.eleve %}
+            <a href="{% url 'core:eleve_detail' log.eleve.pk %}" style="color:#6366f1;text-decoration:none;font-weight:500">
+              {{ log.eleve.nom }} {{ log.eleve.prenom }}
+            </a>
+          {% else %}—{% endif %}
+        </td>
+        <td style="font-size:.82rem;color:#6b7280">
+          {% if log.parent %}{{ log.parent.nom }} {{ log.parent.prenom }}{% else %}—{% endif %}
+        </td>
+        <td style="font-size:.8rem">{{ log.rule.nom|truncatechars:30 }}</td>
+        <td class="msg-cell" title="{{ log.message }}">{{ log.message }}</td>
+        <td>
+          {% if log.dry_run %}
+            <span class="pill-dry">Simulation</span>
+          {% elif log.success %}
+            <span class="pill-ok"><i class="fa-solid fa-check"></i> Envoyé</span>
+          {% else %}
+            <span class="pill-fail" title="{{ log.error }}"><i class="fa-solid fa-xmark"></i> Échec</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% if page_obj.has_other_pages %}
+  <div class="pagination">
+    {% if page_obj.has_previous %}
+      <a href="?{% querystring page=page_obj.previous_page_number %}">‹</a>
+    {% endif %}
+    {% for num in page_obj.paginator.page_range %}
+      {% if num == page_obj.number %}
+        <span class="active">{{ num }}</span>
+      {% elif num >= page_obj.number|add:"-2" and num <= page_obj.number|add:"2" %}
+        <a href="?{% querystring page=num %}">{{ num }}</a>
+      {% endif %}
+    {% endfor %}
+    {% if page_obj.has_next %}
+      <a href="?{% querystring page=page_obj.next_page_number %}">›</a>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% else %}
+  <div style="text-align:center;padding:48px 24px;color:#9ca3af">
+    <i class="fa-solid fa-inbox" style="font-size:2rem;margin-bottom:12px;display:block"></i>
+    Aucun log pour ces filtres.
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,130 @@
+{% extends "admin/base_admin.html" %}
+{% load static %}
+
+{% block title %}{{ action }} règle de relance | Groupe Scolaire{% endblock %}
+{% block page_title %}{{ action }} règle{% endblock %}
+{% block current_page %}Communication / Relances / {{ action }}{% endblock %}
+
+{% block extra_css %}
+<style>
+.rule-form-card{background:var(--az-bg-primary, #fff);border:1px solid var(--az-border, #e2e8f0);border-radius:16px;box-shadow:var(--az-shadow-sm, 0 2px 20px rgba(0,0,0,.07));max-width:700px;padding:32px;margin:0 auto}
+.rule-form-card h2{font-size:1.2rem;font-weight:700;margin:0 0 24px;color:var(--az-text-primary, #1f2937);border-bottom:2px solid var(--az-border, #f3f4f6);padding-bottom:12px}
+.form-group{margin-bottom:18px}
+.form-group label{display:block;font-size:.8rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--az-text-tertiary, #6b7280);margin-bottom:6px}
+.form-group .hint{font-size:.75rem;color:var(--az-text-tertiary, #9ca3af);margin-top:4px}
+.form-group .error{font-size:.75rem;color:#dc2626;margin-top:4px}
+.form-row-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.form-actions{display:flex;gap:12px;justify-content:flex-end;margin-top:28px;padding-top:20px;border-top:1px solid var(--az-border, #f3f4f6)}
+
+.type-hint{display:none;background:var(--az-bg-secondary, #f0fdf4);border:1px solid var(--az-border, #bbf7d0);border-radius:8px;padding:12px 16px;font-size:.82rem;color:var(--az-text-primary, #166534);margin-bottom:16px}
+.type-hint.visible{display:block}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="rule-form-card">
+  <h2>
+    {% if rule %}<i class="fa-solid fa-pen" style="color:#6366f1;margin-right:8px"></i>Modifier : {{ rule.nom }}
+    {% else %}<i class="fa-solid fa-plus-circle" style="color:#10b981;margin-right:8px"></i>Nouvelle règle de relance{% endif %}
+  </h2>
+
+  <div id="typeHint" class="type-hint"></div>
+
+  <form method="post">
+    {% csrf_token %}
+
+    <div class="form-row-2">
+      <div class="form-group">
+        {{ form.type.label_tag }}
+        {{ form.type }}
+        {% if form.type.errors %}<div class="error">{{ form.type.errors.0 }}</div>{% endif %}
+      </div>
+      <div class="form-group">
+        {{ form.nom.label_tag }}
+        {{ form.nom }}
+        {% if form.nom.errors %}<div class="error">{{ form.nom.errors.0 }}</div>{% endif %}
+      </div>
+    </div>
+
+    <div class="form-row-2">
+      <div class="form-group">
+        {{ form.niveau_relance.label_tag }}
+        {{ form.niveau_relance }}
+        <div class="hint">1=Rappel · 2=Urgent · 3=Dernier avis (pour les impayés)</div>
+      </div>
+      <div class="form-group">
+        {{ form.ordre.label_tag }}
+        {{ form.ordre }}
+        <div class="hint">Ordre d'affichage (0 = premier)</div>
+      </div>
+    </div>
+
+    <div class="form-row-2">
+      <div class="form-group" id="fieldJoursApres">
+        {{ form.jours_apres.label_tag }}
+        {{ form.jours_apres }}
+        <div class="hint">{{ form.jours_apres.help_text }}</div>
+      </div>
+      <div class="form-group" id="fieldSeuil">
+        {{ form.seuil_occurrences.label_tag }}
+        {{ form.seuil_occurrences }}
+        <div class="hint">{{ form.seuil_occurrences.help_text }}</div>
+      </div>
+    </div>
+
+    <div class="form-group">
+      {{ form.intervalle_min_jours.label_tag }}
+      {{ form.intervalle_min_jours }}
+      <div class="hint">{{ form.intervalle_min_jours.help_text }}</div>
+    </div>
+
+    <div class="form-group">
+      {{ form.message_defaut.label_tag }}
+      {{ form.message_defaut }}
+      <div class="hint">{{ form.message_defaut.help_text }}</div>
+      {% if form.message_defaut.errors %}<div class="error">{{ form.message_defaut.errors.0 }}</div>{% endif %}
+    </div>
+
+    <div class="form-group" style="display:flex;align-items:center;gap:10px">
+      {{ form.actif }}
+      <label for="{{ form.actif.id_for_label }}" style="text-transform:none;font-size:.9rem;margin:0">Règle active</label>
+    </div>
+
+    <div class="form-actions">
+      <a href="{% url 'core:relance_rule_list' %}" class="az-btn">Annuler</a>
+      <button type="submit" class="az-btn az-btn-primary">
+        <i class="fa-solid fa-floppy-disk"></i> Enregistrer
+      </button>
+    </div>
+  </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const HINTS = {
+  IMPAYE: "J+N = nombre de jours après la date d'échéance. Exemple : 3 = relance 3 jours après le non-paiement.",
+  ABSENCE: "Le seuil d'occurrences déclenche l'alerte quand l'élève atteint N absences dans le mois.",
+  RETARD: "Le seuil d'occurrences déclenche l'alerte quand l'élève atteint N retards dans le mois.",
+  RENOUVELLEMENT: "J-N = nombre de jours AVANT la fin de l'année scolaire. Exemple : 30 = relance 30 jours avant la fin.",
+};
+
+const typeSelect = document.getElementById('{{ form.type.id_for_label }}');
+const hint = document.getElementById('typeHint');
+const fieldJours = document.getElementById('fieldJoursApres');
+const fieldSeuil = document.getElementById('fieldSeuil');
+
+function updateHint() {
+  const val = typeSelect.value;
+  hint.textContent = HINTS[val] || '';
+  hint.classList.toggle('visible', !!HINTS[val]);
+
+  const isAbsRet = val === 'ABSENCE' || val === 'RETARD';
+  fieldSeuil.style.opacity = isAbsRet ? '1' : '.4';
+  fieldJours.style.opacity = isAbsRet ? '.4' : '1';
+}
+
+typeSelect.addEventListener('change', updateHint);
+updateHint();
+</script>
+{% endblock %}

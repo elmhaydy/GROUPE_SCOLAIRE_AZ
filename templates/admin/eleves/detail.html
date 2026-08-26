@@ -28,13 +28,13 @@
       </a>
 
       <!-- ✅ data-confirm pour le JS -->
-      <a class="az-btn az-btn-delete"
-         href="{% url 'core:eleve_delete' eleve.id %}"
-         data-confirm="Êtes-vous sûr de vouloir supprimer cet élève ? Cette action est irréversible.">
+      <button type="button"
+              class="az-btn az-btn-danger"
+              data-delete-modal
+              data-modal-url="{% url 'core:eleve_delete_modal' eleve.id %}">
         <i class="fas fa-trash"></i>
         Supprimer
-      </a>
-
+      </button>
       <a class="az-btn az-btn-gradient" href="{% url 'core:inscription_create_for_eleve' eleve.id %}">
         <i class="fas fa-user-plus"></i>
         Inscrire

@@ -1,0 +1,325 @@
+{% extends "admin/base_admin.html" %}
+{% load static %}
+
+{% block title %}Tableau de bord Finance | Groupe Scolaire{% endblock %}
+{% block page_title %}Tableau de bord Finance{% endblock %}
+{% block current_page %}Finance / Tableau de bord{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'admin/css/dashboard/finance.css' %}?v=1">
+{% endblock %}
+
+{% block content %}
+{% if no_annee %}
+<div style="text-align:center;padding:80px 24px;color:#9ca3af">
+  <i class="fa-solid fa-circle-exclamation" style="font-size:3rem;margin-bottom:16px;display:block;color:#f59e0b"></i>
+  <p>Aucune année scolaire active. Activez une année pour afficher le tableau de bord.</p>
+  <a href="{% url 'core:annee_list' %}" class="az-btn az-btn-primary" style="margin-top:12px">Gérer les années</a>
+</div>
+{% else %}
+
+<div class="fd">
+
+  <!-- ══ HERO ══ -->
+  <header class="fd-hero">
+    <div class="fd-hero__main">
+      <div class="fd-pill"><i class="fa-solid fa-chart-line"></i> Finance</div>
+      <h1>Tableau de bord financier</h1>
+      <p>Encaissements, impayés, transport et prévisionnel — Année {{ annee_active.nom }}</p>
+      <div class="fd-chips">
+        <span class="fd-chip">
+          <i class="fa-solid fa-bullseye"></i>
+          Taux global : <strong>{{ taux_global }}%</strong>
+        </span>
+        <span class="fd-chip warn">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+          {{ nb_impayes_eleves }} élève{{ nb_impayes_eleves|pluralize }} avec impayés
+        </span>
+        <span class="fd-chip ok">
+          <i class="fa-solid fa-bus"></i>
+          {{ nb_transport }} élève{{ nb_transport|pluralize }} en transport
+        </span>
+      </div>
+    </div>
+    <div class="fd-hero__actions">
+      <a class="fd-btn ghost" href="{% url 'core:impayes_mensuels_list' %}">
+        <i class="fa-solid fa-triangle-exclamation"></i> Impayés
+      </a>
+      <a class="fd-btn ghost" href="{% url 'core:recouvrement_list' %}">
+        <i class="fa-solid fa-folder-open"></i> Recouvrement
+      </a>
+    </div>
+  </header>
+
+  <!-- ══ KPIs GLOBAUX ══ -->
+  <section class="fd-kpis">
+    <article class="fd-kpi fd-kpi--ok">
+      <div class="fd-kpi__ic"><i class="fa-solid fa-coins"></i></div>
+      <div class="fd-kpi__body">
+        <div class="fd-kpi__lbl">Total encaissé</div>
+        <div class="fd-kpi__val">{{ total_paye|floatformat:0 }} <span class="fd-kpi__cur">MAD</span></div>
+        <div class="fd-kpi__sub">sur {{ total_du|floatformat:0 }} MAD attendus</div>
+      </div>
+      <div class="fd-kpi__pct">{{ taux_global }}%</div>
+    </article>
+
+    <article class="fd-kpi fd-kpi--warn">
+      <div class="fd-kpi__ic"><i class="fa-solid fa-circle-exclamation"></i></div>
+      <div class="fd-kpi__body">
+        <div class="fd-kpi__lbl">Total impayés</div>
+        <div class="fd-kpi__val">{{ total_reste|floatformat:0 }} <span class="fd-kpi__cur">MAD</span></div>
+        <div class="fd-kpi__sub">{{ nb_impayes_eleves }} dossier{{ nb_impayes_eleves|pluralize }}</div>
+      </div>
+    </article>
+
+    <article class="fd-kpi fd-kpi--blue">
+      <div class="fd-kpi__ic"><i class="fa-solid fa-file-invoice"></i></div>
+      <div class="fd-kpi__body">
+        <div class="fd-kpi__lbl">Frais inscription</div>
+        <div class="fd-kpi__val">{{ insc_paye|floatformat:0 }} <span class="fd-kpi__cur">MAD</span></div>
+        <div class="fd-kpi__sub">Reste : {{ insc_reste|floatformat:0 }} MAD</div>
+      </div>
+    </article>
+
+    <article class="fd-kpi fd-kpi--purple">
+      <div class="fd-kpi__ic"><i class="fa-solid fa-bus"></i></div>
+      <div class="fd-kpi__body">
+        <div class="fd-kpi__lbl">Transport encaissé</div>
+        <div class="fd-kpi__val">{{ tr_total_paye|floatformat:0 }} <span class="fd-kpi__cur">MAD</span></div>
+        <div class="fd-kpi__sub">Reste : {{ tr_total_reste|floatformat:0 }} MAD • {{ tr_taux }}%</div>
+      </div>
+    </article>
+  </section>
+
+  <!-- ══ GRILLE PRINCIPALE ══ -->
+  <div class="fd-grid fd-grid--2">
+
+    <!-- Encaissé par mois (bar chart) -->
+    <article class="fd-card fd-card--chart">
+      <div class="fd-card__head">
+        <div>
+          <h2><i class="fa-solid fa-chart-bar"></i> Encaissé par mois</h2>
+          <p>Scolarité + Transport — {{ annee_active.nom }}</p>
+        </div>
+        <div class="fd-legend">
+          <span class="fd-legend__dot" style="--c:#6366f1"></span> Scolarité encaissée
+          <span class="fd-legend__dot" style="--c:#10b981;margin-left:10px"></span> Transport encaissé
+          <span class="fd-legend__dot" style="--c:#e2e8f0;margin-left:10px"></span> Dû
+        </div>
+      </div>
+      <div class="fd-card__body">
+        <canvas id="chartEncaisse" height="220"></canvas>
+      </div>
+    </article>
+
+    <!-- Prévisionnel -->
+    <article class="fd-card fd-card--chart">
+      <div class="fd-card__head">
+        <div>
+          <h2><i class="fa-solid fa-chart-line"></i> Prévisionnel</h2>
+          <p>Attendu vs encaissé · taux moyen {{ taux_moyen_hist }}% · projection fin d'année</p>
+        </div>
+      </div>
+      <div class="fd-card__body">
+        <div class="fd-prev-kpis">
+          <div class="fd-prev-kpi">
+            <span class="fd-prev-kpi__lbl">Attendu total</span>
+            <span class="fd-prev-kpi__val">{{ fin_annee_attendu|floatformat:0 }} MAD</span>
+          </div>
+          <div class="fd-prev-kpi">
+            <span class="fd-prev-kpi__lbl">Encaissé à ce jour</span>
+            <span class="fd-prev-kpi__val" style="color:#10b981">{{ fin_annee_encaisse|floatformat:0 }} MAD</span>
+          </div>
+          <div class="fd-prev-kpi">
+            <span class="fd-prev-kpi__lbl">Projection fin d'année</span>
+            <span class="fd-prev-kpi__val" style="color:#6366f1">{{ fin_annee_projete|floatformat:0 }} MAD</span>
+          </div>
+        </div>
+        <canvas id="chartPrevisionnel" height="180"></canvas>
+      </div>
+    </article>
+
+  </div>
+
+  <!-- ══ IMPAYÉS PAR GROUPE + TRANSPORT ══ -->
+  <div class="fd-grid fd-grid--2">
+
+    <!-- Impayés par groupe -->
+    <article class="fd-card">
+      <div class="fd-card__head">
+        <div>
+          <h2><i class="fa-solid fa-triangle-exclamation"></i> Impayés par groupe</h2>
+          <p>Scolarité + transport · classés par montant restant dû</p>
+        </div>
+      </div>
+      <div class="fd-card__body" style="padding-bottom:0">
+        <canvas id="chartImpayes" height="240" style="margin-bottom:12px"></canvas>
+        <div class="fd-table-wrap">
+          <table class="fd-table">
+            <thead>
+              <tr>
+                <th>Groupe</th>
+                <th>Élèves</th>
+                <th>Reste sco.</th>
+                <th>Reste transp.</th>
+                <th>Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for g in impayes_groupe %}
+              <tr>
+                <td>
+                  <strong>{{ g.groupe }}</strong>
+                  {% if g.niveau %}<div style="font-size:.75rem;color:#9ca3af">{{ g.niveau }}</div>{% endif %}
+                </td>
+                <td><span class="fd-badge">{{ g.nb }}</span></td>
+                <td style="color:#f59e0b">{{ g.reste_sco|floatformat:0 }}</td>
+                <td style="color:#8b5cf6">{{ g.reste_tr|floatformat:0 }}</td>
+                <td style="font-weight:700;color:#dc2626">{{ g.reste|floatformat:0 }} MAD</td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="5" style="text-align:center;color:#9ca3af;padding:24px">Aucun impayé</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </article>
+
+    <!-- Transport -->
+    <article class="fd-card">
+      <div class="fd-card__head">
+        <div>
+          <h2><i class="fa-solid fa-bus"></i> Transport scolaire</h2>
+          <p>{{ nb_transport }} élève{{ nb_transport|pluralize }} inscrit{{ nb_transport|pluralize }}</p>
+        </div>
+      </div>
+      <div class="fd-card__body">
+        <div class="fd-transport-grid">
+          <div class="fd-doughnut-wrap">
+            <canvas id="chartTransport" width="160" height="160"></canvas>
+            <div class="fd-doughnut-center">
+              <span class="fd-doughnut-val">{{ tr_taux }}%</span>
+              <span class="fd-doughnut-lbl">recouvré</span>
+            </div>
+          </div>
+          <div class="fd-transport-stats">
+            <div class="fd-stat">
+              <i class="fa-solid fa-users" style="color:#8b5cf6"></i>
+              <div>
+                <div class="fd-stat__val">{{ nb_transport }}</div>
+                <div class="fd-stat__lbl">Avec transport</div>
+              </div>
+            </div>
+            <div class="fd-stat">
+              <i class="fa-solid fa-check-circle" style="color:#10b981"></i>
+              <div>
+                <div class="fd-stat__val">{{ tr_total_paye|floatformat:0 }} MAD</div>
+                <div class="fd-stat__lbl">Encaissé</div>
+              </div>
+            </div>
+            <div class="fd-stat">
+              <i class="fa-solid fa-hourglass-half" style="color:#f59e0b"></i>
+              <div>
+                <div class="fd-stat__val">{{ tr_total_reste|floatformat:0 }} MAD</div>
+                <div class="fd-stat__lbl">Reste à encaisser</div>
+              </div>
+            </div>
+            <div class="fd-stat">
+              <i class="fa-solid fa-calendar-check" style="color:#6366f1"></i>
+              <div>
+                <div class="fd-stat__val">{{ tr_total_du|floatformat:0 }} MAD</div>
+                <div class="fd-stat__lbl">Total prévu année</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <canvas id="chartTransportMois" height="130" style="margin-top:16px"></canvas>
+      </div>
+    </article>
+
+  </div>
+
+  <!-- ══ TABLEAU MENSUEL ══ -->
+  <article class="fd-card" style="margin-top:0">
+    <div class="fd-card__head">
+      <div>
+        <h2><i class="fa-solid fa-table"></i> Récapitulatif mensuel</h2>
+        <p>Scolarité + Transport · {{ annee_active.nom }}</p>
+      </div>
+    </div>
+    <div class="fd-card__body" style="padding:0">
+      <div class="fd-table-wrap">
+        <table class="fd-table fd-table--monthly">
+          <thead>
+            <tr>
+              <th>Mois</th>
+              <th>Sco. dû</th>
+              <th>Sco. payé</th>
+              <th>Transp. dû</th>
+              <th>Transp. payé</th>
+              <th>Total dû</th>
+              <th>Encaissé</th>
+              <th>Reste</th>
+              <th>Taux</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for m in mois_recap %}
+            <tr class="{% if m.est_futur %}fd-tr--futur{% elif m.idx == mois_actuel_idx %}fd-tr--actuel{% endif %}">
+              <td>
+                <strong>{{ m.nom }}</strong>
+                {% if m.idx == mois_actuel_idx %}<span class="fd-badge fd-badge--now">maintenant</span>{% endif %}
+                {% if m.est_futur %}<span class="fd-badge fd-badge--futur">à venir</span>{% endif %}
+              </td>
+              <td>{{ m.sco_du|floatformat:0 }}</td>
+              <td style="color:#10b981;font-weight:600">{{ m.sco_paye|floatformat:0 }}</td>
+              <td>{{ m.tr_du|floatformat:0 }}</td>
+              <td style="color:#8b5cf6;font-weight:600">{{ m.tr_paye|floatformat:0 }}</td>
+              <td style="font-weight:600">{{ m.total_du|floatformat:0 }}</td>
+              <td style="font-weight:700;color:#059669">{{ m.total_paye|floatformat:0 }}</td>
+              <td style="color:{% if m.reste > 0 %}#dc2626{% else %}#9ca3af{% endif %}">{{ m.reste|floatformat:0 }}</td>
+              <td>
+                <div class="fd-taux-bar">
+                  <div class="fd-taux-bar__fill" style="width:{{ m.taux }}%;background:{% if m.taux >= 90 %}#10b981{% elif m.taux >= 60 %}#f59e0b{% else %}#ef4444{% endif %}"></div>
+                  <span>{{ m.taux|floatformat:0 }}%</span>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+          <tfoot>
+            <tr class="fd-tfoot-row" style="font-weight:700">
+              <td>TOTAL</td>
+              <td>—</td>
+              <td style="color:#10b981">{{ total_paye|floatformat:0 }}</td>
+              <td>—</td>
+              <td style="color:#8b5cf6">{{ tr_total_paye|floatformat:0 }}</td>
+              <td>{{ total_du|floatformat:0 }}</td>
+              <td style="color:#059669">{{ total_paye|floatformat:0 }}</td>
+              <td style="color:#dc2626">{{ total_reste|floatformat:0 }}</td>
+              <td><strong>{{ taux_global }}%</strong></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+  </article>
+
+</div><!-- .fd -->
+
+<!-- Données JSON pour Chart.js -->
+<script id="fd-encaisse-data" type="application/json">{{ chart_encaisse|safe }}</script>
+<script id="fd-impayes-data" type="application/json">{{ chart_impayes|safe }}</script>
+<script id="fd-transport-data" type="application/json">{{ chart_transport|safe }}</script>
+<script id="fd-prev-data" type="application/json">{{ chart_previsionnel|safe }}</script>
+
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+{% if not no_annee %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<script src="{% static 'admin/js/dashboard/finance.js' %}?v=1" defer></script>
+{% endif %}
+{% endblock %}

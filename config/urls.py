@@ -8,22 +8,15 @@ from django.conf.urls.static import static
 def forbidden(request, exception=None):
     return render(request, "admin/403.html", status=403)
 
-@login_required
-def dashboard(request):
-    return render(request, "admin/dashboard.html")
-
 def root_redirect(request):
     if request.user.is_authenticated:
-        return redirect("dashboard")  # ✅ maintenant ça marche
+        return redirect("core:dashboard")  # ✅ maintenant ça marche
     return redirect("accounts:login")
 
 handler403 = "config.urls.forbidden"
 
 urlpatterns = [
     path("", root_redirect, name="root"),
-
-    # ✅ dashboard direct (au lieu du include)
-    path("dashboard/", dashboard, name="dashboard"),
 
     path("accounts/", include("accounts.urls")),
 

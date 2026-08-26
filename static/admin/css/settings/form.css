@@ -224,3 +224,11 @@
 .btn-cancel:hover {
     background: rgba(0, 0, 0, 0.1);
 }
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    .modern-card { padding: 1.25rem; }
+    .form-actions { flex-direction: column-reverse; }
+    .btn-modern { width: 100%; justify-content: center; }
+    .perm-grid, [style*="grid-template-columns"] { grid-template-columns: 1fr !important; }
+}

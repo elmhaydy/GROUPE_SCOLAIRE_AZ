@@ -16,12 +16,14 @@
   const wrapNiveau = document.getElementById("wrap-niveau");
   const wrapGroupe = document.getElementById("wrap-groupe");
   const wrapEleve = document.getElementById("wrap-eleve");
+  const wrapParents = document.getElementById("wrap-parents");
 
   // Selects
   const degreSelect = document.getElementById("degre_select");
   const niveauSelect = document.getElementById("niveau_select");
   const groupeSelect = document.getElementById("groupe_select");
   const eleveSelect = document.getElementById("eleve_select");
+  const parentsSelect = document.getElementById("parents_select");
 
   // Counters + preview
   const smsCount = document.getElementById("smsCount");
@@ -37,12 +39,14 @@
 
   // TomSelect instance
   let tsEleve = null;
+  let tsParents = null;
 
   function hideAllTargets() {
     if (wrapDegre) wrapDegre.style.display = "none";
     if (wrapNiveau) wrapNiveau.style.display = "none";
     if (wrapGroupe) wrapGroupe.style.display = "none";
     if (wrapEleve) wrapEleve.style.display = "none";
+    if (wrapParents) wrapParents.style.display = "none";
   }
 
   function resetNativeSelect(sel, placeholder = "— Choisir —") {
@@ -104,6 +108,20 @@
     // ✅ sync UI état (si disabled => lock, sinon unlock)
     if (wasDisabled) tsEleve.lock();
     else tsEleve.unlock();
+  }
+
+  function initTomSelectParents() {
+    if (!window.TomSelect || !parentsSelect) return;
+    if (tsParents) return;
+
+    tsParents = new TomSelect(parentsSelect, {
+      plugins: ["remove_button", "clear_button"],
+      maxItems: null,
+      placeholder: "Sélectionne un ou plusieurs parents",
+      valueField: "value",
+      labelField: "text",
+      searchField: ["text"],
+    });
   }
 
 
@@ -271,6 +289,11 @@
 
     if (t === "TOUS" || t === "") return;
 
+    if (t === "PARENTS") {
+      if (wrapParents) wrapParents.style.display = "";
+      return;
+    }
+
     // Toujours Degré
     if (wrapDegre) wrapDegre.style.display = "";
 
@@ -364,6 +387,7 @@
   // INIT
   // -------------------------
   initTomSelectEleve();   // ✅ IMPORTANT: TomSelect toujours actif
+  initTomSelectParents();
   applyCiblageUI();
   updateSmsStats();
 })();

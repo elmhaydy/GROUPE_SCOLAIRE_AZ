@@ -9,10 +9,22 @@ from . import views_absences_profs as vabs
 from . import views_finance as vf
 from .views_profile import profile_view
 from . import views_depenses as dep
+from . import views_webhooks
+from . import views_relance
+from . import views_audit
+from . import views_notifications
+from . import views_info
+from . import views_salaires
+from . import views_budget
 
 app_name = "core"
 
 urlpatterns = [
+    # Pages d'information et Support
+    path("aide/", views_info.aide_view, name="aide"),
+    path("confidentialite/", views_info.confidentialite_view, name="confidentialite"),
+    path("conditions/", views_info.conditions_view, name="conditions"),
+    path("contact/", views_info.contact_view, name="contact"),
     # =========================================================
     # DASHBOARDS
     # =========================================================
@@ -61,8 +73,8 @@ urlpatterns = [
     path("eleves/<int:pk>/", views.eleve_detail, name="eleve_detail"),
     path("eleves/<int:pk>/modifier/", views.eleve_update, name="eleve_update"),
     path("eleves/<int:pk>/supprimer/", views.eleve_delete, name="eleve_delete"),
-    path("eleves/<int:pk>/reinscrire/", views.eleve_reinscrire, name="eleve_reinscrire"),
-
+    path("eleves/<int:pk>/reinscrire/modal/", views.eleve_reinscrire_modal, name="eleve_reinscrire_modal"),
+    
     # Inscriptions
     path("inscriptions/", views.inscription_list, name="inscription_list"),
     path("inscriptions/ajouter/", views.inscription_create, name="inscription_create"),
@@ -74,23 +86,15 @@ urlpatterns = [
     # API
     path("api/groupes/", views.groupes_par_annee, name="api_groupes_par_annee"),
 
+    # SETTINGS (superadmin)
+
+    # Webhook SMS (provider)
+    path("webhook/sms/", views_webhooks.sms_webhook, name="sms_webhook"),
+
     # =========================================================
     # D — FINANCE / PAIEMENTS (CLASSIQUE)
     # =========================================================
     path("paiements/", views.paiement_list, name="paiement_list"),
-    path("paiements/ajouter/", views.paiement_create, name="paiement_create"),
-    path("paiements/ajouter/inscription/<int:inscription_id>/", views.paiement_create_for_inscription, name="paiement_create_for_inscription"),
-    path("paiements/recu/<int:pk>/", views.paiement_recu, name="paiement_recu"),
-
-    # Reçus (PDF)
-    path("paiements/<int:pk>/pdf/", views.paiement_recu_pdf_auto, name="paiement_recu_pdf_auto"),
-
-    # Batch receipts (parents/fratrie)
-    path("paiements/recu/batch/<str:batch_token>/", views.paiement_recu_batch, name="paiement_recu_batch"),
-    path("paiements/recu/batch/<str:batch_token>/pdf/", views.paiement_recu_batch_pdf, name="paiement_recu_batch_pdf"),
-
-    # Paiements parents
-    path("paiements/parents/<slug:group_key>/", views.paiement_parent_detail, name="paiement_parent_detail"),
 
     # ✅ Remboursement PAR PAIEMENT (batch_token ou TX-<id>)
     path("paiements/<str:group_key>/rembourser/", views.transaction_remboursement_create, name="paiement_remboursement_create"),
@@ -103,9 +107,7 @@ urlpatterns = [
     # =========================================================
     # D2 — IMPAYÉS
     # =========================================================
-    path("impayes/", views.impayes_list, name="impayes_list"),
     path("impayes/mensuels/", views.impayes_mensuels_list, name="impayes_mensuels_list"),
-    path("impayes/pdf/", views.impayes_pdf_view, name="impayes_pdf"),
     path("finance/impayes-mensuels/excel/", views.impayes_mensuels_excel_export, name="impayes_mensuels_excel_export"),
 
     # =========================================================
@@ -185,12 +187,26 @@ urlpatterns = [
     # =========================================================
     # I — COMMUNICATION
     # =========================================================
+    # =========================================================
+    # I2 — RELANCES AUTOMATIQUES
+    # =========================================================
+    path("relances/", views_relance.relance_rule_list, name="relance_rule_list"),
+    path("relances/ajouter/", views_relance.relance_rule_create, name="relance_rule_create"),
+    path("relances/<int:pk>/modifier/", views_relance.relance_rule_update, name="relance_rule_update"),
+    path("relances/<int:pk>/supprimer/", views_relance.relance_rule_delete, name="relance_rule_delete"),
+    path("relances/<int:pk>/toggle/", views_relance.relance_rule_toggle, name="relance_rule_toggle"),
+    path("relances/logs/", views_relance.relance_log_list, name="relance_log_list"),
+    path("relances/trigger/", views_relance.relance_trigger, name="relance_trigger"),
+
+    # =========================================================
+    # I — COMMUNICATION
+    # =========================================================
     path("communication/avis/", views.avis_list, name="avis_list"),
     path("communication/avis/new/", views.avis_create, name="avis_create"),
     path("communication/avis/<int:pk>/", views.avis_detail, name="avis_detail"),
     path("communication/avis/<int:pk>/supprimer/", views.avis_delete, name="avis_delete"),
-    path("communication/sms/", views.sms_send, name="sms_send"),
-    path("communication/sms/historique/", views.sms_history, name="sms_history"),
+    path("communication/sms/send/", views.sms_send, name="sms_send"),
+    path("communication/sms/history/", views.sms_history, name="sms_history"),
 
     # =========================================================
     # J — USERS / SETTINGS
@@ -205,7 +221,23 @@ urlpatterns = [
     path("users/reset-export/", views.users_reset_passwords_export_csv, name="users_reset_passwords_export_csv"),
     path("users/<int:pk>/modal/", views.users_detail_modal, name="users_detail_modal"),
 
+    # =========================================================
+    # Q — JOURNAL D'AUDIT
+    # =========================================================
+    path("audit/", views_audit.audit_log_list, name="audit_log_list"),
+    path("audit/<int:pk>/", views_audit.audit_log_detail, name="audit_log_detail"),
+
+    # =========================================================
+    # R — NOTIFICATIONS MULTICANAL
+    # =========================================================
+    path("notifications/", views_notifications.notif_inbox, name="notif_inbox"),
+    path("notifications/compose/", views_notifications.notif_compose, name="notif_compose"),
+    path("notifications/<int:pk>/read/", views_notifications.notif_mark_read, name="notif_mark_read"),
+    path("notifications/read-all/", views_notifications.notif_mark_all_read, name="notif_mark_all_read"),
+    path("notifications/api/unread/", views_notifications.notif_api_unread, name="notif_api_unread"),
+
     path("settings/", views_settings.settings_home, name="settings_home"),
+    path("settings/sms/", views_settings.settings_sms, name="settings_sms"),
     path("settings/roles/", views_settings.role_list, name="role_list"),
     path("settings/roles/add/", views_settings.role_create, name="role_create"),
     path("settings/roles/<int:pk>/edit/", views_settings.role_update, name="role_update"),
@@ -232,6 +264,7 @@ urlpatterns = [
     # =========================================================
     # L — FINANCE (NOUVELLE LOGIQUE TRANSACTIONS)
     # =========================================================
+    path("finance/dashboard/", views_finance.dashboard_finance, name="dashboard_finance"),
     path("finance/paiements/eleve/<int:eleve_id>/", views_finance.paiements_eleve, name="paiements_eleve"),
 
     path("finance/transactions/wizard/", views_finance.transaction_wizard, name="transaction_wizard"),
@@ -315,7 +348,34 @@ urlpatterns = [
     path("recouvrements/<int:dossier_id>/relance/", views.relance_create, name="relance_create"),
 
 
+    # =========================================================
+    # SALAIRES & PAIE / BUDGET
+    # =========================================================
+    path("salaires/", views_salaires.salaire_list, name="salaire_list"),
+    path("salaires/ajouter/", views_salaires.salaire_create, name="salaire_create"),
+    path("salaires/<int:pk>/modifier/", views_salaires.salaire_edit, name="salaire_edit"),
+    path("salaires/<int:pk>/payer/", views_salaires.salaire_pay_toggle, name="salaire_pay_toggle"),
+    path("salaires/<int:pk>/supprimer/", views_salaires.salaire_delete, name="salaire_delete"),
+    path("salaires/<int:pk>/recu/", views_salaires.salaire_recu, name="salaire_recu"),
+
+    path("budget/", views_budget.budget_overview, name="budget_overview"),
+
     path("ajax/parents/search/", views_finance.ajax_parents_search, name="ajax_parents_search"),
     path("ajax/enfants-by-parent/", views_finance.ajax_enfants_by_parent, name="ajax_enfants_by_parent"),
 
+    path("finance/depenses/<int:pk>/delete/modal/", dep.depense_delete_modal, name="depense_delete_modal"),
+    path("parents/<int:pk>/delete/modal/", views.parent_delete_modal, name="parent_delete_modal"),
+    path("inscriptions/<int:pk>/delete/modal/", views.inscription_delete_modal, name="inscription_delete_modal"),
+    path("seances/<int:pk>/delete/modal/", views.seance_delete_modal, name="seance_delete_modal"),
+    path("groupes/<int:pk>/delete/modal/", views.groupe_delete_modal, name="groupe_delete_modal"),
+    path("enseignants/<int:pk>/delete/modal/", views.enseignant_delete_modal, name="enseignant_delete_modal"),
+    path("eleves/<int:pk>/delete/modal/", views.eleve_delete_modal, name="eleve_delete_modal"),
+    path("pedagogie/matieres/<int:pk>/delete/modal/", views.matiere_delete_modal, name="matiere_delete_modal"),
+    path("absences/<int:pk>/delete/modal/", views.absence_delete_modal, name="absence_delete_modal"),
+    path("niveaux/<int:pk>/delete/modal/", views.niveau_delete_modal, name="niveau_delete_modal"),
+    path("annees/<int:pk>/delete/modal/", views.annee_delete_modal, name="annee_delete_modal"),  
+    path("communication/avis/<int:pk>/delete/modal/", views.avis_delete_modal, name="avis_delete_modal"),
+    path("degres/<int:pk>/delete/modal/", views.degre_delete_modal, name="degre_delete_modal"),
+    path("settings/roles/<int:pk>/delete/modal/", views_settings.role_delete_modal, name="role_delete_modal"),
+    path("users/<int:user_id>/delete/modal/", views.users_delete_modal, name="users_delete_modal"),
 ]

@@ -1,0 +1,21 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}Supprimer règle{% endblock %}
+{% block current_page %}Relances / Supprimer{% endblock %}
+
+{% block content %}
+<div style="max-width:500px;margin:40px auto;background:var(--az-bg-primary, #fff);border:1px solid var(--az-border, #e2e8f0);border-radius:14px;padding:32px;box-shadow:var(--az-shadow-sm, 0 2px 16px rgba(0,0,0,.07));text-align:center">
+  <i class="fa-solid fa-trash" style="font-size:2.5rem;color:#dc2626;margin-bottom:16px"></i>
+  <h2 style="font-size:1.2rem;margin:0 0 8px;color:var(--az-text-primary, #1f2937)">Supprimer la règle ?</h2>
+  <p style="color:var(--az-text-tertiary, #6b7280);margin-bottom:24px">
+    « <strong>{{ rule.nom }}</strong> » ({{ rule.get_type_display }})<br>
+    <small>Les logs associés seront également supprimés.</small>
+  </p>
+  <form method="post" style="display:flex;gap:12px;justify-content:center">
+    {% csrf_token %}
+    <a href="{% url 'core:relance_rule_list' %}" class="az-btn">Annuler</a>
+    <button type="submit" class="az-btn az-btn-danger">
+      <i class="fa-solid fa-trash"></i> Confirmer la suppression
+    </button>
+  </form>
+</div>
+{% endblock %}

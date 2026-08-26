@@ -35,3 +35,10 @@
 .az-modal-body{ padding: 16px 18px; }
 .az-modal-title{ font-weight: 800; font-size: 18px; }
 .az-modal-sub{ opacity: .75; font-size: 12px; margin-top: 4px; }
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .az-modal { width: 96% !important; margin: 0 auto; max-height: 94vh; }
+  .az-modal-foot { flex-direction: column-reverse; }
+  .az-modal-foot button, .az-modal-foot a { width: 100%; text-align: center; }
+}

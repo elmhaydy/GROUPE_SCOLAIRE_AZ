@@ -1,12 +1,12 @@
 {% extends "admin/base_admin.html" %}
 {% load static %}
 
-{% block title %}Détails utilisateur | AZ{% endblock %}
+{% block title %}Détails utilisateur | Groupe Scolaire{% endblock %}
 {% block page_title %}Détails Utilisateur{% endblock %}
 {% block breadcrumb %}Administration / Utilisateurs / Détails{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'admin/css/users/detail.css' %}?v=1">
+<link rel="stylesheet" href="{% static 'admin/css/users/detail.css' %}?v=2">
 {% endblock %}
 
 {% block content %}
@@ -29,16 +29,23 @@
                 <a class="btn-modern btn-primary-modern" href="{% url 'core:users_update' u.id %}">
                     <i class="fas fa-user-pen"></i> Modifier
                 </a>
-                <a class="btn-modern btn-outline-modern" href="{% url 'core:users_password' u.id %}">
-                    <i class="fas fa-lock"></i> MDP
-                </a>
+<a class="btn-modern btn-outline-modern"
+   href="{% url 'core:users_password' user_id=u.id %}"
+   data-az-modal
+   data-modal-url="{% url 'core:users_password' user_id=u.id %}">
+    <i class="fas fa-lock"></i> MDP
+</a>
             </div>
         </div>
 
         <!-- Hero Section -->
         <div class="user-hero-modern">
-            <div class="avatar-xl">
-                {{ u.first_name|default:u.username|slice:":1"|upper }}
+            <div class="avatar-xl" style="overflow: hidden; display: flex; align-items: center; justify-content: center; background: rgba(99,102,241,0.1); border: 2px solid var(--primary);">
+                {% if avatar_url %}
+                    <img src="{{ avatar_url }}" alt="Photo de {{ u.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 18px;" data-zoomable>
+                {% else %}
+                    {{ u.first_name|default:u.username|slice:":1"|upper }}
+                {% endif %}
             </div>
 
             <div class="hero-info">
@@ -119,6 +126,33 @@
                     </div>
                 {% endif %}
             </div>
+
+            {% if enseignant or eleve or parent %}
+            <!-- Profils Liés -->
+            <div class="info-box-modern full-width">
+                <div class="box-label"><i class="fas fa-id-badge"></i> Profil Lié Métier</div>
+                <div style="display: flex; gap: 16px; flex-wrap: wrap; margin-top: 10px;">
+                    {% if enseignant %}
+                        <a class="btn-modern btn-outline-modern" href="{% url 'core:enseignant_detail' enseignant.pk %}" style="display: flex; align-items: center; gap: 8px;">
+                            <i class="fas fa-chalkboard-user" style="color: var(--primary);"></i>
+                            <span>Fiche Enseignant: <strong>{{ enseignant.nom }} {{ enseignant.prenom }}</strong> ({{ enseignant.matricule }})</span>
+                        </a>
+                    {% endif %}
+                    {% if eleve %}
+                        <a class="btn-modern btn-outline-modern" href="{% url 'core:eleve_detail' eleve.pk %}" style="display: flex; align-items: center; gap: 8px;">
+                            <i class="fas fa-user-graduate" style="color: var(--primary);"></i>
+                            <span>Fiche Élève: <strong>{{ eleve.nom }} {{ eleve.prenom }}</strong> ({{ eleve.matricule }})</span>
+                        </a>
+                    {% endif %}
+                    {% if parent %}
+                        <a class="btn-modern btn-outline-modern" href="{% url 'core:parent_detail' parent.pk %}" style="display: flex; align-items: center; gap: 8px;">
+                            <i class="fas fa-users" style="color: var(--primary);"></i>
+                            <span>Fiche Parent: <strong>{{ parent.nom }} {{ parent.prenom }}</strong></span>
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
         </div>
 
         <!-- Footer Actions -->

@@ -318,7 +318,7 @@ def _build_rows_and_portal_from_transactions(transactions):
 # =========================
 def _load_images():
     logo_img = None
-    logo_path = finders.find("img/logo_AZ.png")
+    logo_path = finders.find("img/logo-embw.png")
     if logo_path:
         try:
             logo_img = ImageReader(logo_path)
@@ -326,7 +326,7 @@ def _load_images():
             logo_img = None
 
     blur_img = None
-    blur_path = finders.find("img/logo_AZ_blur.png")
+    blur_path = finders.find("img/logo-embw.png")
     if blur_path:
         try:
             blur_img = ImageReader(blur_path)
@@ -356,7 +356,7 @@ def _draw_common_header(c, x, y_top, w_card, h_card, title, code, badge):
 
     c.setFont("Helvetica", 8.5)
     c.setFillColor(colors.HexColor("#475569"))
-    c.drawString(x + 24 * mm, y_top - 13.0 * mm, "Groupe Scolaire AZ • Finance")
+    c.drawString(x + 24 * mm, y_top - 13.0 * mm, "Groupe Scolaire • Finance")
 
     _pill(c, x + w_card - 92 * mm, y_top - 14.5 * mm, code, wmm=80, bg="#f5f3ff", fg=COLOR_ACCENT)
     _pill(c, x + w_card - 92 * mm, y_top - 24.5 * mm, badge, wmm=80, bg="#eef2ff", fg=COLOR_PRIMARY)
@@ -611,7 +611,7 @@ def _draw_half_receipt_batch(c, y_top, transactions, batch_token: str, rows_chun
     c.setFont("Helvetica", 8)
     c.setFillColor(colors.HexColor("#64748b"))
     c.drawString(left_x, footer_y, "Signature / Cachet : _________________________________")
-    c.drawRightString(margin_x + card_w - 12 * mm, footer_y, "Groupe Scolaire AZ")
+    c.drawRightString(margin_x + card_w - 12 * mm, footer_y, "Groupe Scolaire")
     c.setFillColor(colors.black)
 
     return drawn

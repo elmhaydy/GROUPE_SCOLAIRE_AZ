@@ -1,203 +1,156 @@
 {% extends "admin/base_admin.html" %}
 {% load static %}
 
-{% block title %}Direction • Dashboard | AZ{% endblock %}
-{% block current_page %}Direction • Dashboard{% endblock %}
+{% block title %}Staff • Espace Opérationnel | Groupe Scolaire AZ{% endblock %}
+{% block current_page %}Espace Secrétariat • Dashboard{% endblock %}
+{% block page_title %}{% endblock %}
+{% block page_actions %}{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'admin/css/dashboard/staff.css' %}?v=2">
+<link rel="stylesheet" href="{% static 'admin/css/dashboard/staff.css' %}?v=10">
 {% endblock %}
 
 {% block content %}
-<div class="azad azstaff">
+<div class="staff-container">
 
-  <!-- HERO -->
-  <div class="azad-hero">
-    <div class="azad-hero-left">
-      <div class="azad-pill">
-        <i class="fa-solid fa-shield-halved"></i>
-        <span>Direction</span>
-        <span class="azad-pill-sep">•</span>
-        <span>Vue rapide</span>
+  <!-- HERO BANNER -->
+  <header class="staff-hero">
+    <div class="staff-hero__left">
+      <div class="staff-pill-badge">
+        <span class="pulse-green"></span>
+        <i class="fa-solid fa-user-gear"></i> Secrétariat &amp; Pédagogie
       </div>
-
-      <h1 class="azad-title">
-        <i class="fa-solid fa-gauge-high"></i>
-        Dashboard
-      </h1>
-
-      <p class="azad-subtitle">
-        Indicateurs essentiels pour la direction : effectif, groupes, encaissements, présences du jour.
-      </p>
+      <h1 class="staff-hero__title">Espace Opérationnel AZ</h1>
+      <p class="staff-hero__sub">Consultation rapide des effectifs, gestion des présences et recherche d'élèves.</p>
     </div>
 
-    <div class="azad-hero-right">
-      <div class="azad-date">
-        <i class="fa-regular fa-calendar"></i>
+    <div class="staff-hero__right">
+      <div class="staff-date-card">
+        <i class="fa-regular fa-calendar-check"></i>
         <span>{{ current_date|date:"d F Y" }}</span>
       </div>
 
-      <div class="azad-actions">
-        <a class="azad-btn azad-btn-soft" href="{% url 'core:eleve_list' %}">
-          <i class="fa-solid fa-user-graduate"></i> Élèves
+      <div class="staff-quick-btns">
+        <a class="staff-btn staff-btn--primary" href="{% url 'core:absence_list' %}">
+          <i class="fa-solid fa-clipboard-check"></i> Saisir Présences
         </a>
-        <a class="azad-btn azad-btn-soft" href="{% url 'core:groupe_list' %}">
+        <a class="staff-btn staff-btn--secondary" href="{% url 'core:eleve_list' %}">
+          <i class="fa-solid fa-user-graduate"></i> Recherche Élèves
+        </a>
+        <a class="staff-btn staff-btn--secondary" href="{% url 'core:groupe_list' %}">
           <i class="fa-solid fa-layer-group"></i> Groupes
         </a>
-        <a class="azad-btn azad-btn-primary" href="{% url 'core:absence_list' %}">
-          <i class="fa-solid fa-clipboard-check"></i> Présences
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN OPERATIONAL GRID -->
+  <section class="staff-grid">
+    <!-- PRESENCE MONITORING CARD -->
+    <article class="staff-card">
+      <div class="staff-card-head">
+        <div>
+          <span class="staff-eyebrow"><i class="fa-solid fa-clipboard-user"></i> Quotidien</span>
+          <h3 class="staff-card-title">Présences aujourd'hui</h3>
+        </div>
+        <span class="staff-badge-date">{{ today|date:"d/m/Y" }}</span>
+      </div>
+
+      <div class="staff-pres-grid">
+        <div class="staff-pres-box ok-box">
+          <div class="p-icon"><i class="fa-solid fa-user-check"></i></div>
+          <div class="p-val">{{ presences.presents|default:0 }}</div>
+          <div class="p-lbl">Présents ({{ presences.taux_presence|default:0 }}%)</div>
+        </div>
+
+        <div class="staff-pres-box bad-box">
+          <div class="p-icon"><i class="fa-solid fa-user-xmark"></i></div>
+          <div class="p-val">{{ presences.absents|default:0 }}</div>
+          <div class="p-lbl">Absents ({{ presences.taux_absence|default:0 }}%)</div>
+        </div>
+
+        <div class="staff-pres-box warn-box">
+          <div class="p-icon"><i class="fa-solid fa-clock"></i></div>
+          <div class="p-val">{{ presences.retards|default:0 }}</div>
+          <div class="p-lbl">Retards ({{ presences.taux_retard|default:0 }}%)</div>
+        </div>
+
+        <div class="staff-pres-box total-box">
+          <div class="p-icon"><i class="fa-solid fa-users"></i></div>
+          <div class="p-val">{{ presences.total|default:0 }}</div>
+          <div class="p-lbl">Effectif Attendus</div>
+        </div>
+      </div>
+
+      <div class="staff-action-row">
+        <a class="staff-btn staff-btn--primary" href="{% url 'core:absence_list' %}">
+          <i class="fa-solid fa-clipboard-check"></i> Ouvrir la grille des présences
+        </a>
+        <a class="staff-btn staff-btn--secondary" href="{% url 'core:absences_jour' %}">
+          <i class="fa-solid fa-calendar-day"></i> Synthèse du jour
         </a>
       </div>
-    </div>
+    </article>
 
-    <div class="azad-hero-glow"></div>
-  </div>
-
-  <!-- KPIs (SIMPLE) -->
-  <div class="azad-kpi-grid azstaff-kpi">
-    <div class="azad-kpi">
-      <div class="azad-kpi-ic azad-ic-grad a"><i class="fa-solid fa-user-graduate"></i></div>
-      <div class="azad-kpi-meta">
-        <div class="azad-kpi-val">{{ nb_eleves|default:0 }}</div>
-        <div class="azad-kpi-label">Élèves</div>
-        <div class="azad-kpi-trend">
-          <span class="azad-tr flat"><i class="fa-solid fa-circle-info"></i> Effectif total</span>
-          <span class="azad-tr-sub">Année: {{ annee_active|default:"—" }}</span>
+    <!-- QUICK SECRETAIRE ACCES & SHORTCUTS -->
+    <article class="staff-card">
+      <div class="staff-card-head">
+        <div>
+          <span class="staff-eyebrow"><i class="fa-solid fa-bolt"></i> Raccourcis</span>
+          <h3 class="staff-card-title">Accès Pédagogiques</h3>
         </div>
-      </div>
-    </div>
-
-    <div class="azad-kpi">
-      <div class="azad-kpi-ic azad-ic-grad c"><i class="fa-solid fa-receipt"></i></div>
-      <div class="azad-kpi-meta">
-        <div class="azad-kpi-val">
-          {{ total_paye_annee|default:0 }} <span class="azad-kpi-unit">MAD</span>
-        </div>
-        <div class="azad-kpi-label">Encaissements (année)</div>
-        <div class="azad-kpi-trend">
-          <span class="azad-tr flat"><i class="fa-solid fa-shield-halved"></i> Total enregistré</span>
-          <span class="azad-tr-sub">Année: {{ annee_active|default:"—" }}</span>
-        </div>
-      </div>
-    </div>
-
-    <div class="azad-kpi">
-      <div class="azad-kpi-ic azad-ic-grad c"><i class="fa-solid fa-coins"></i></div>
-      <div class="azad-kpi-meta">
-        <div class="azad-kpi-val">
-          {{ total_paye_mois|default:0 }} <span class="azad-kpi-unit">MAD</span>
-        </div>
-        <div class="azad-kpi-label">Encaissements (ce mois)</div>
-        <div class="azad-kpi-trend">
-          <span class="azad-tr flat"><i class="fa-solid fa-calendar"></i> {{ mois_courant_nom|default:"—" }}</span>
-          <span class="azad-tr-sub">Tous modes</span>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- PANELS (SIMPLE) -->
-  <div class="azad-panels azstaff-panels">
-
-    <!-- Présences -->
-    <div class="azad-card">
-      <div class="azad-card-head">
-        <h3><i class="fa-solid fa-clipboard-check"></i> Présences (aujourd’hui)</h3>
-        <span class="azad-badge">{{ today|date:"d/m/Y" }}</span>
+        <span class="staff-security-tag"><i class="fa-solid fa-shield"></i> Vue Secrétariat</span>
       </div>
 
-      <div class="azad-pres-grid">
-        <div class="azad-pres">
-          <div class="azad-pres-top ok"><i class="fa-solid fa-user-check"></i> Présents</div>
-          <div class="azad-pres-val">{{ presences.presents|default:0 }}</div>
-          <div class="azad-pres-sub">{{ presences.taux_presence|default:0 }}%</div>
-        </div>
-        <div class="azad-pres">
-          <div class="azad-pres-top bad"><i class="fa-solid fa-user-xmark"></i> Absents</div>
-          <div class="azad-pres-val">{{ presences.absents|default:0 }}</div>
-          <div class="azad-pres-sub">{{ presences.taux_absence|default:0 }}%</div>
-        </div>
-        <div class="azad-pres">
-          <div class="azad-pres-top warn"><i class="fa-solid fa-clock"></i> Retards</div>
-          <div class="azad-pres-val">{{ presences.retards|default:0 }}</div>
-          <div class="azad-pres-sub">{{ presences.taux_retard|default:0 }}%</div>
-        </div>
-        <div class="azad-pres">
-          <div class="azad-pres-top soft"><i class="fa-solid fa-users"></i> Total</div>
-          <div class="azad-pres-val">{{ presences.total|default:0 }}</div>
-          <div class="azad-pres-sub">100%</div>
-        </div>
-      </div>
-
-      <div class="azad-pres-actions">
-        <a class="azad-btn azad-btn-primary" href="{% url 'core:absence_list' %}">
-          <i class="fa-solid fa-clipboard-check"></i> Ouvrir
+      <div class="staff-quick-list">
+        <a class="staff-quick-item" href="{% url 'core:absence_list' %}">
+          <div class="qi-icon qi-icon--emerald"><i class="fa-solid fa-clipboard-check"></i></div>
+          <div class="qi-info">
+            <b>Appel &amp; Assiduité</b>
+            <span>Marquer les absences et retards de la journée</span>
+          </div>
+          <i class="fa-solid fa-chevron-right qi-arrow"></i>
         </a>
-        <a class="azad-btn azad-btn-soft" href="{% url 'core:absences_jour' %}">
-          <i class="fa-solid fa-calendar-day"></i> Détail jour
+
+        <a class="staff-quick-item" href="{% url 'core:absences_jour' %}">
+          <div class="qi-icon qi-icon--amber"><i class="fa-solid fa-calendar-day"></i></div>
+          <div class="qi-info">
+            <b>Détail des Absences du Jour</b>
+            <span>Revisiter la liste des absents enregistrés</span>
+          </div>
+          <i class="fa-solid fa-chevron-right qi-arrow"></i>
+        </a>
+
+        <a class="staff-quick-item" href="{% url 'core:eleve_list' %}">
+          <div class="qi-icon qi-icon--indigo"><i class="fa-solid fa-user-graduate"></i></div>
+          <div class="qi-info">
+            <b>Base Élèves</b>
+            <span>Rechercher un élève ou contacter un parent</span>
+          </div>
+          <i class="fa-solid fa-chevron-right qi-arrow"></i>
+        </a>
+
+        <a class="staff-quick-item" href="{% url 'core:groupe_list' %}">
+          <div class="qi-icon qi-icon--cyan"><i class="fa-solid fa-layer-group"></i></div>
+          <div class="qi-info">
+            <b>Groupes &amp; Classes</b>
+            <span>Consulter les emplois du temps et niveaux</span>
+          </div>
+          <i class="fa-solid fa-chevron-right qi-arrow"></i>
         </a>
       </div>
-    </div>
 
-<!-- Alertes & actions -->
-<div class="azad-card azstaff-actions">
-  <div class="azad-card-head">
-    <h3><i class="fa-solid fa-bolt"></i> Alertes & actions</h3>
-    <span class="azad-badge">Aujourd’hui</span>
-  </div>
-
-  <div class="azstaff-actions-grid">
-    <a class="azstaff-act" href="{% url 'core:absence_list' %}">
-      <div class="ic"><i class="fa-solid fa-clipboard-check"></i></div>
-      <div class="txt">
-        <div class="t">Présences</div>
-        <div class="s">Gérer les absences/retards</div>
+      <div class="staff-footer-notice">
+        <i class="fa-solid fa-lock"></i>
+        <span>Accès restreint : les modules financiers et administratifs sont réservés à la Direction.</span>
       </div>
-      <i class="fa-solid fa-arrow-right go"></i>
-    </a>
-
-    <a class="azstaff-act" href="{% url 'core:absences_jour' %}">
-      <div class="ic"><i class="fa-solid fa-calendar-day"></i></div>
-      <div class="txt">
-        <div class="t">Détail du jour</div>
-        <div class="s">Liste des absences aujourd’hui</div>
-      </div>
-      <i class="fa-solid fa-arrow-right go"></i>
-    </a>
-
-    <a class="azstaff-act" href="{% url 'core:eleve_list' %}">
-      <div class="ic"><i class="fa-solid fa-user-graduate"></i></div>
-      <div class="txt">
-        <div class="t">Élèves</div>
-        <div class="s">Rechercher / consulter</div>
-      </div>
-      <i class="fa-solid fa-arrow-right go"></i>
-    </a>
-
-    <a class="azstaff-act" href="{% url 'core:groupe_list' %}">
-      <div class="ic"><i class="fa-solid fa-layer-group"></i></div>
-      <div class="txt">
-        <div class="t">Groupes</div>
-        <div class="s">Niveaux & classes</div>
-      </div>
-      <i class="fa-solid fa-arrow-right go"></i>
-    </a>
-  </div>
-
-  <div class="azstaff-note" id="staffNote">
-    <i class="fa-solid fa-circle-info"></i>
-    <span>Astuce : utilise “Présences” pour valider rapidement la journée.</span>
-  </div>
-</div>
-
-
-  </div>
+    </article>
+  </section>
 
 </div>
-
+{% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'admin/js/dashboard/staff.js' %}?v=2"></script>
+<script src="{% static 'admin/js/dashboard/staff.js' %}?v=10"></script>
 {% endblock %}
 
-{% endblock %}

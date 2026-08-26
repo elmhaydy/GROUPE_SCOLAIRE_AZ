@@ -1,12 +1,12 @@
 {% extends "admin/base_admin.html" %}
 {% load static %}
 
-{% block title %}Impayés mensuels | AZ{% endblock %}
+{% block title %}Impayés mensuels | Groupe Scolaire{% endblock %}
 {% block page_title %}Impayés mensuels{% endblock %}
 {% block current_page %}Finance / Impayés mensuels{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'admin/css/_core/impaye.css' %}?v=3">
+<link rel="stylesheet" href="{% static 'admin/css/_core/impaye.css' %}?v=10">
 {% endblock %}
 
 {% block content %}
@@ -52,6 +52,10 @@
   </div>
 
   <div class="az-page-head-right">
+    <div class="az-counter-pill" title="Nombre d'élèves en impayé">
+      <i class="fa-solid fa-user-xmark"></i>
+      <span><b>{{ nb_eleves_impayes }}</b> élèves impayés</span>
+    </div>
 
 
     <a class="az-btn az-btn-outline"
@@ -169,12 +173,54 @@
 
 <!-- TABLE -->
 <div class="az-card az-impaye-card">
-  <div class="az-card-head">
-    <h3 class="az-card-title">
-      <i class="fa-solid fa-calendar-xmark"></i>
-      Impayés (jusqu’au mois courant)
-    </h3>
-    <p class="az-sub">Affiche uniquement les éléments avec <b>reste &gt; 0</b> et <b>mois ≤ limite</b>.</p>
+  <div class="az-card-head" style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+    <div>
+      <h3 class="az-card-title">
+        <i class="fa-solid fa-calendar-xmark"></i>
+        Impayés (jusqu’au mois courant)
+      </h3>
+      <p class="az-sub">Affiche uniquement les éléments avec <b>reste &gt; 0</b> et <b>mois ≤ limite</b>.</p>
+    </div>
+
+    {% if page_obj.has_other_pages %}
+    <div class="az-gmail-pagination" style="display:flex; align-items:center; gap:12px;">
+      <span class="az-gmail-counter" style="font-size:0.85rem; font-weight:700; color:var(--az-text-secondary, #475569);">
+        <b>{{ page_obj.start_index }} - {{ page_obj.end_index }}</b> sur <b>{{ total_rows }}</b>
+      </span>
+
+      <div style="display:inline-flex; gap:4px;">
+        {% if page_obj.has_previous %}
+          <a class="az-btn az-btn-soft az-btn-sm" 
+             style="width:36px; height:36px; padding:0; display:inline-flex; align-items:center; justify-content:center; border-radius:10px;" 
+             href="?page={{ page_obj.previous_page_number }}{% if annee_selected %}&annee={{ annee_selected }}{% endif %}{% if type_selected %}&type={{ type_selected }}{% endif %}{% if mois_selected %}&mois={{ mois_selected }}{% endif %}{% if niveau_selected %}&niveau={{ niveau_selected }}{% endif %}{% if groupe_selected %}&groupe={{ groupe_selected }}{% endif %}{% if periode_selected %}&periode={{ periode_selected }}{% endif %}{% if q %}&q={{ q }}{% endif %}"
+             title="Page précédente">
+            <i class="fa-solid fa-chevron-left"></i>
+          </a>
+        {% else %}
+          <button class="az-btn az-btn-soft az-btn-sm" 
+                  style="width:36px; height:36px; padding:0; display:inline-flex; align-items:center; justify-content:center; border-radius:10px; opacity:0.4; cursor:not-allowed;" 
+                  disabled>
+            <i class="fa-solid fa-chevron-left"></i>
+          </button>
+        {% endif %}
+
+        {% if page_obj.has_next %}
+          <a class="az-btn az-btn-soft az-btn-sm" 
+             style="width:36px; height:36px; padding:0; display:inline-flex; align-items:center; justify-content:center; border-radius:10px;" 
+             href="?page={{ page_obj.next_page_number }}{% if annee_selected %}&annee={{ annee_selected }}{% endif %}{% if type_selected %}&type={{ type_selected }}{% endif %}{% if mois_selected %}&mois={{ mois_selected }}{% endif %}{% if niveau_selected %}&niveau={{ niveau_selected }}{% endif %}{% if groupe_selected %}&groupe={{ groupe_selected }}{% endif %}{% if periode_selected %}&periode={{ periode_selected }}{% endif %}{% if q %}&q={{ q }}{% endif %}"
+             title="Page suivante">
+            <i class="fa-solid fa-chevron-right"></i>
+          </a>
+        {% else %}
+          <button class="az-btn az-btn-soft az-btn-sm" 
+                  style="width:36px; height:36px; padding:0; display:inline-flex; align-items:center; justify-content:center; border-radius:10px; opacity:0.4; cursor:not-allowed;" 
+                  disabled>
+            <i class="fa-solid fa-chevron-right"></i>
+          </button>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
   </div>
 
   <div class="az-table">
@@ -253,6 +299,26 @@
         </div>
       {% endfor %}
     </div>
+
+    {% if page_obj.has_other_pages %}
+    <div class="az-pagination" style="display:flex; gap:12px; justify-content:center; align-items:center; padding:16px; border-top:1px solid var(--az-border, #e5e7eb);">
+      {% if page_obj.has_previous %}
+        <a class="az-btn az-btn-soft az-btn-sm" href="?page={{ page_obj.previous_page_number }}{% if annee_selected %}&annee={{ annee_selected }}{% endif %}{% if type_selected %}&type={{ type_selected }}{% endif %}{% if mois_selected %}&mois={{ mois_selected }}{% endif %}{% if niveau_selected %}&niveau={{ niveau_selected }}{% endif %}{% if groupe_selected %}&groupe={{ groupe_selected }}{% endif %}{% if periode_selected %}&periode={{ periode_selected }}{% endif %}{% if q %}&q={{ q }}{% endif %}">
+          <i class="fa-solid fa-chevron-left"></i> Précédent
+        </a>
+      {% endif %}
+
+      <span class="az-badge az-badge-muted" style="padding:8px 14px; font-weight:700;">
+        Page {{ page_obj.number }} sur {{ page_obj.paginator.num_pages }} ({{ total_rows }} impayés au total)
+      </span>
+
+      {% if page_obj.has_next %}
+        <a class="az-btn az-btn-soft az-btn-sm" href="?page={{ page_obj.next_page_number }}{% if annee_selected %}&annee={{ annee_selected }}{% endif %}{% if type_selected %}&type={{ type_selected }}{% endif %}{% if mois_selected %}&mois={{ mois_selected }}{% endif %}{% if niveau_selected %}&niveau={{ niveau_selected }}{% endif %}{% if groupe_selected %}&groupe={{ groupe_selected }}{% endif %}{% if periode_selected %}&periode={{ periode_selected }}{% endif %}{% if q %}&q={{ q }}{% endif %}">
+          Suivant <i class="fa-solid fa-chevron-right"></i>
+        </a>
+      {% endif %}
+    </div>
+    {% endif %}
   </div>
 </div>
 

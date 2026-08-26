@@ -1,39 +1,46 @@
-{% extends "admin/base_admin.html" %}
+<div class="az-card" style="max-width:100%;margin:0;">
+  <h2 style="margin:0 0 8px 0;">Confirmation</h2>
 
-{% block title %}Supprimer | AZ{% endblock %}
-{% block page_title %}Supprimer un niveau{% endblock %}
-{% block breadcrumb %}Structure / Niveaux{% endblock %}
-
-{% block content %}
-
-<div class="az-card" style="grid-column:span 12;max-width:640px;">
-  <h3>Confirmation</h3>
-  <p class="az-sub">
-    Tu es sûr de vouloir supprimer
+  <p class="az-sub" style="margin:0 0 12px 0;">
+    Tu es sûr de vouloir supprimer :
     <b>{{ niveau.degre.nom }} — {{ niveau.nom }}</b> ?
   </p>
 
-  <div class="az-pill" style="margin-top:10px;">
-    ⚠️ La suppression <b>forcée</b> peut supprimer aussi les groupes / inscriptions liés (et casser l’historique).
+  <div class="az-card"
+       style="padding:14px; margin-bottom:14px; border:1px solid rgba(255,80,80,.25); background:rgba(255,80,80,.04);">
+    <div style="font-weight:800;color:rgba(255,120,120,.95);">
+      Attention
+    </div>
+    <div class="az-sub" style="margin-top:6px;">
+      La suppression <b>forcée</b> peut supprimer aussi les groupes, inscriptions, transactions,
+      remboursements et frais liés à ce niveau.
+    </div>
   </div>
 
-  <form method="post" style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap;">
+  <form method="post"
+        action="{% url 'core:niveau_delete' niveau.id %}"
+        style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;">
     {% csrf_token %}
 
-    {# ✅ SUPPRESSION NORMALE #}
-    <button class="az-btn" type="submit" name="force" value="0"
-            style="border-color:rgba(255,80,80,.35);">
-      🗑️ Oui, supprimer (normal)
+    <button type="button" class="az-btn az-btn-outline" data-azm-close>
+      Annuler
     </button>
 
-    {# ✅ SUPPRESSION FORCÉE #}
-    <button class="az-btn az-btn-gradient" type="submit" name="force" value="1"
-            style="background:linear-gradient(135deg,#ef4444,#b91c1c);border:none;">
-      ⚠️ Forcer la suppression
+    <button class="az-btn az-btn-danger-soft"
+            type="submit"
+            name="force"
+            value="0">
+      <i class="fa-solid fa-trash"></i>
+      Supprimer
     </button>
 
-    <a class="az-btn" href="{% url 'core:niveau_list' %}">Annuler</a>
+    <button class="az-btn"
+            type="submit"
+            name="force"
+            value="1"
+            style="background:linear-gradient(135deg,#ef4444,#b91c1c);border:none;color:#fff;">
+      <i class="fa-solid fa-bomb"></i>
+      Forcer la suppression
+    </button>
   </form>
 </div>
-
-{% endblock %}

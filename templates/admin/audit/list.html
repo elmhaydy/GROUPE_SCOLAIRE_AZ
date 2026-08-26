@@ -1,0 +1,234 @@
+{% extends "admin/base_admin.html" %}
+{% load static %}
+
+{% block title %}Journal d'audit | Groupe Scolaire{% endblock %}
+{% block page_title %}Journal d'audit{% endblock %}
+{% block current_page %}Sécurité / Journal d'audit{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ── Hero ── */
+.audit-hero{background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 100%);border-radius:16px;padding:26px 32px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;color:#fff}
+.audit-hero h1{font-size:1.5rem;font-weight:700;margin:0 0 4px}
+.audit-hero p{margin:0;opacity:.7;font-size:.88rem}
+.kpi-row{display:flex;gap:10px;flex-wrap:wrap}
+.kpi{background:rgba(255,255,255,.1);border-radius:10px;padding:10px 18px;text-align:center;min-width:90px}
+.kpi .val{font-size:1.6rem;font-weight:800;display:block;line-height:1}
+.kpi .lbl{font-size:.68rem;text-transform:uppercase;letter-spacing:.06em;opacity:.65;margin-top:2px}
+.kpi.c{--c:#34d399}.kpi.u{--c:#fbbf24}.kpi.d{--c:#f87171}.kpi.t{--c:#818cf8}
+.kpi .val{color:var(--c,#fff)}
+
+/* ── Filtres ── */
+.audit-filter{background:#fff;border-radius:12px;box-shadow:0 1px 10px rgba(0,0,0,.06);padding:14px 20px;margin-bottom:18px;display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
+.audit-filter .az-field-label{font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:#9ca3af;margin-bottom:4px}
+
+/* ── Table ── */
+.audit-wrap{background:#fff;border-radius:14px;box-shadow:0 2px 16px rgba(0,0,0,.06);overflow:hidden}
+.audit-table{width:100%;border-collapse:collapse;font-size:.84rem}
+.audit-table th{background:#f4f6fb;font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:#6b7280;padding:11px 14px;border-bottom:1px solid #e5e7eb;white-space:nowrap}
+.audit-table td{padding:10px 14px;border-bottom:1px solid #f3f4f6;color:#374151;vertical-align:middle}
+.audit-table tr:last-child td{border-bottom:none}
+.audit-table tr:hover td{background:#f9fafb;cursor:pointer}
+
+/* ── Badges action ── */
+.badge-action{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+.ba-CREATE{background:#d1fae5;color:#065f46}
+.ba-UPDATE{background:#fef3c7;color:#92400e}
+.ba-DELETE{background:#fee2e2;color:#991b1b}
+
+/* ── Badges modèle ── */
+.badge-model{background:#ede9fe;color:#5b21b6;padding:2px 8px;border-radius:10px;font-size:.7rem;font-weight:600}
+
+/* ── Changes pill ── */
+.changes-pill{background:#f3f4f6;color:#4b5563;padding:2px 8px;border-radius:10px;font-size:.72rem;font-weight:600}
+
+/* ── Pagination ── */
+.pagination{display:flex;gap:6px;justify-content:center;padding:16px}
+.pagination a,.pagination span{padding:6px 13px;border-radius:8px;font-size:.85rem;text-decoration:none;border:1px solid #e5e7eb;color:#374151;transition:background .15s}
+.pagination a:hover{background:#f3f4f6}
+.pagination .active{background:#6366f1;color:#fff;border-color:#6366f1}
+
+/* ── Empty ── */
+.empty-audit{text-align:center;padding:60px 24px;color:#9ca3af}
+.empty-audit i{font-size:3rem;margin-bottom:16px;display:block;opacity:.4}
+
+/* ── Mode Sombre ── */
+html[data-theme="dark"] .audit-filter{background:#1e293b;border:1px solid #334155;box-shadow:0 4px 20px rgba(0,0,0,.35)}
+html[data-theme="dark"] .audit-filter .az-field-label{color:#94a3b8}
+html[data-theme="dark"] .audit-wrap{background:#1e293b;border:1px solid #334155;box-shadow:0 4px 20px rgba(0,0,0,.35)}
+html[data-theme="dark"] .audit-table th{background:#0f172a;color:#94a3b8;border-bottom-color:#334155}
+html[data-theme="dark"] .audit-table td{border-bottom-color:#334155;color:#f8fafc}
+html[data-theme="dark"] .audit-table tr:hover td{background:rgba(255,255,255,.04)}
+html[data-theme="dark"] .ba-CREATE{background:rgba(16,185,129,.2);color:#6ee7b7}
+html[data-theme="dark"] .ba-UPDATE{background:rgba(245,158,11,.2);color:#fde68a}
+html[data-theme="dark"] .ba-DELETE{background:rgba(239,68,68,.2);color:#fca5a5}
+html[data-theme="dark"] .badge-model{background:rgba(139,92,246,.2);color:#c084fc}
+html[data-theme="dark"] .changes-pill{background:rgba(255,255,255,.06);color:#cbd5e1}
+html[data-theme="dark"] .pagination a,html[data-theme="dark"] .pagination span{border-color:#334155;color:#cbd5e1}
+html[data-theme="dark"] .pagination a:hover{background:rgba(255,255,255,.05)}
+html[data-theme="dark"] .pagination .active{background:#6366f1;color:#fff;border-color:#6366f1}
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- HERO -->
+<div class="audit-hero">
+  <div>
+    <p style="font-size:.72rem;text-transform:uppercase;letter-spacing:.1em;opacity:.55;margin:0 0 6px">Traçabilité</p>
+    <h1><i class="fa-solid fa-shield-halved" style="margin-right:10px"></i>Journal d'audit</h1>
+    <p>Toutes les créations, modifications et suppressions — {{ f_period }} derniers jours</p>
+  </div>
+  <div class="kpi-row">
+    <div class="kpi t"><span class="val">{{ kpi_total }}</span><span class="lbl">Total</span></div>
+    <div class="kpi c"><span class="val">{{ kpi_create }}</span><span class="lbl">Créations</span></div>
+    <div class="kpi u"><span class="val">{{ kpi_update }}</span><span class="lbl">Modifs</span></div>
+    <div class="kpi d"><span class="val">{{ kpi_delete }}</span><span class="lbl">Suppres.</span></div>
+  </div>
+</div>
+
+{% if messages %}
+  {% for msg in messages %}<div class="az-alert az-alert-{{ msg.tags }}" style="margin-bottom:14px">{{ msg }}</div>{% endfor %}
+{% endif %}
+
+<!-- FILTRES -->
+<form method="get" class="audit-filter">
+  <div class="az-field">
+    <div class="az-field-label">Action</div>
+    <select name="action" class="az-select" onchange="this.form.submit()">
+      <option value="">Toutes</option>
+      {% for val, lbl in action_choices %}
+        <option value="{{ val }}" {% if f_action == val %}selected{% endif %}>{{ lbl }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="az-field">
+    <div class="az-field-label">Modèle</div>
+    <select name="model" class="az-select" onchange="this.form.submit()">
+      <option value="">Tous</option>
+      {% for model_name, label in model_choices %}
+        <option value="{{ model_name }}" {% if f_model == model_name %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="az-field">
+    <div class="az-field-label">Période</div>
+    <select name="period" class="az-select" onchange="this.form.submit()">
+      <option value="1"   {% if f_period == "1"   %}selected{% endif %}>Aujourd'hui</option>
+      <option value="7"   {% if f_period == "7"   %}selected{% endif %}>7 jours</option>
+      <option value="30"  {% if f_period == "30"  %}selected{% endif %}>30 jours</option>
+      <option value="90"  {% if f_period == "90"  %}selected{% endif %}>3 mois</option>
+      <option value="365" {% if f_period == "365" %}selected{% endif %}>1 an</option>
+    </select>
+  </div>
+  <div class="az-field">
+    <div class="az-field-label">Utilisateur</div>
+    <input type="text" name="user" value="{{ f_user }}" class="az-input" placeholder="Login..." style="width:130px">
+  </div>
+  <div class="az-field">
+    <div class="az-field-label">Objet</div>
+    <input type="text" name="q" value="{{ f_q }}" class="az-input" placeholder="Nom, matricule..." style="width:160px">
+  </div>
+  <button type="submit" class="az-btn az-btn-primary">Filtrer</button>
+  <a href="{% url 'core:audit_log_list' %}" class="az-btn">Reset</a>
+</form>
+
+<div style="margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+  <div style="font-size:.84rem; color:var(--az-text-secondary, #6b7280)">
+    <strong>{{ total }}</strong> entrée{{ total|pluralize }}
+  </div>
+  {% include "admin/includes/gmail_pagination.html" %}
+</div>
+
+<!-- TABLE -->
+<div class="audit-wrap">
+  {% if page_obj %}
+  <table class="audit-table">
+    <thead>
+      <tr>
+        <th>Date / Heure</th>
+        <th>Action</th>
+        <th>Modèle</th>
+        <th>Objet</th>
+        <th>Utilisateur</th>
+        <th>IP</th>
+        <th>Champs</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for log in page_obj %}
+      <tr onclick="window.location='{% url 'core:audit_log_detail' log.pk %}'">
+        <td style="white-space:nowrap;font-size:.8rem;color:#6b7280">
+          {{ log.timestamp|date:"d/m/Y" }}<br>
+          <span style="color:#9ca3af">{{ log.timestamp|date:"H:i:s" }}</span>
+        </td>
+        <td>
+          <span class="badge-action ba-{{ log.action }}">
+            <i class="fa-solid {{ log.action_icon }}"></i>
+            {{ log.get_action_display }}
+          </span>
+        </td>
+        <td><span class="badge-model">{{ log.model_label }}</span></td>
+        <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"
+            title="{{ log.object_repr }}">
+          {{ log.object_repr|truncatechars:45 }}
+        </td>
+        <td style="font-size:.82rem">
+          {% if log.user %}
+            <i class="fa-solid fa-user" style="color:#6b7280;margin-right:4px"></i>
+            {{ log.user.get_full_name|default:log.user.username }}
+          {% else %}
+            <span style="color:#d1d5db">—</span>
+          {% endif %}
+        </td>
+        <td style="font-size:.78rem;color:#9ca3af;font-family:monospace">
+          {{ log.ip_address|default:"—" }}
+        </td>
+        <td>
+          {% if log.action == "UPDATE" and log.changes %}
+            <span class="changes-pill">{{ log.changes_count }} champ{{ log.changes_count|pluralize }}</span>
+          {% else %}
+            <span style="color:#d1d5db">—</span>
+          {% endif %}
+        </td>
+        <td style="text-align:right">
+          <a href="{% url 'core:audit_log_detail' log.pk %}"
+             class="az-btn az-btn-xs"
+             onclick="event.stopPropagation()"
+             title="Voir le détail">
+            <i class="fa-solid fa-eye"></i>
+          </a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% if page_obj.has_other_pages %}
+  <div class="pagination">
+    {% if page_obj.has_previous %}
+      <a href="?{% querystring page=page_obj.previous_page_number %}">‹ Précédent</a>
+    {% endif %}
+    {% for num in page_obj.paginator.page_range %}
+      {% if num == page_obj.number %}
+        <span class="active">{{ num }}</span>
+      {% elif num >= page_obj.number|add:"-2" and num <= page_obj.number|add:"2" %}
+        <a href="?{% querystring page=num %}">{{ num }}</a>
+      {% endif %}
+    {% endfor %}
+    {% if page_obj.has_next %}
+      <a href="?{% querystring page=page_obj.next_page_number %}">Suivant ›</a>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% else %}
+  <div class="empty-audit">
+    <i class="fa-solid fa-clipboard-list"></i>
+    <p>Aucune activité pour ces filtres.</p>
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}

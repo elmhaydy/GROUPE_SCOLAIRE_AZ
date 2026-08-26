@@ -1,0 +1,227 @@
+{% extends "admin/base_admin.html" %}
+{% load static %}
+
+{% block title %}Détail audit #{{ log.pk }} | Groupe Scolaire{% endblock %}
+{% block current_page %}Sécurité / Journal d'audit / Détail{% endblock %}
+
+{% block extra_css %}
+<style>
+.audit-detail{display:grid;grid-template-columns:2fr 1fr;gap:20px;align-items:start}
+@media(max-width:900px){.audit-detail{grid-template-columns:1fr}}
+
+.card{background:#fff;border-radius:14px;box-shadow:0 2px 16px rgba(0,0,0,.06);overflow:hidden}
+.card-head{padding:18px 24px;border-bottom:1px solid #f3f4f6;display:flex;align-items:center;gap:10px}
+.card-head h2{font-size:1rem;font-weight:700;margin:0;color:#1f2937}
+.card-body{padding:20px 24px}
+
+.meta-row{display:flex;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid #f9fafb;font-size:.875rem}
+.meta-row:last-child{border-bottom:none}
+.meta-lbl{font-weight:600;color:#6b7280;min-width:120px;font-size:.8rem;text-transform:uppercase;letter-spacing:.03em}
+.meta-val{color:#374151}
+
+.badge-action{display:inline-flex;align-items:center;gap:5px;padding:4px 12px;border-radius:20px;font-size:.75rem;font-weight:700;text-transform:uppercase}
+.ba-CREATE{background:#d1fae5;color:#065f46}
+.ba-UPDATE{background:#fef3c7;color:#92400e}
+.ba-DELETE{background:#fee2e2;color:#991b1b}
+
+.diff-table{width:100%;border-collapse:collapse;font-size:.84rem;margin-top:4px}
+.diff-table th{background:#f4f6fb;font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:#6b7280;padding:8px 12px;border-bottom:1px solid #e5e7eb;text-align:left}
+.diff-table td{padding:9px 12px;border-bottom:1px solid #f3f4f6;vertical-align:top}
+.diff-table tr:last-child td{border-bottom:none}
+.diff-old{color:#dc2626;background:#fef2f2;border-radius:4px;padding:2px 6px;font-family:monospace;font-size:.82rem;display:inline-block;max-width:100%;word-break:break-all}
+.diff-new{color:#059669;background:#ecfdf5;border-radius:4px;padding:2px 6px;font-family:monospace;font-size:.82rem;display:inline-block;max-width:100%;word-break:break-all}
+.diff-null{color:#9ca3af;font-style:italic}
+
+.hist-item{padding:10px 0;border-bottom:1px solid #f3f4f6;display:flex;align-items:center;gap:10px;font-size:.82rem}
+.hist-item:last-child{border-bottom:none}
+.hist-date{color:#9ca3af;font-size:.75rem;white-space:nowrap}
+.hist-curr{background:#ede9fe;color:#5b21b6;padding:2px 8px;border-radius:10px;font-size:.7rem;font-weight:600}
+
+/* Mode Sombre - Detail */
+html[data-theme="dark"] .card{background:#1e293b;border:1px solid #334155;box-shadow:0 4px 20px rgba(0,0,0,.35)}
+html[data-theme="dark"] .card-head{border-bottom-color:#334155}
+html[data-theme="dark"] .card-head h2{color:#f8fafc}
+html[data-theme="dark"] .meta-row{border-bottom-color:#334155}
+html[data-theme="dark"] .meta-lbl{color:#94a3b8}
+html[data-theme="dark"] .meta-val{color:#f8fafc}
+html[data-theme="dark"] .ba-CREATE{background:rgba(16,185,129,.2);color:#6ee7b7}
+html[data-theme="dark"] .ba-UPDATE{background:rgba(245,158,11,.2);color:#fde68a}
+html[data-theme="dark"] .ba-DELETE{background:rgba(239,68,68,.2);color:#fca5a5}
+html[data-theme="dark"] .diff-table th{background:#0f172a;color:#94a3b8;border-bottom-color:#334155}
+html[data-theme="dark"] .diff-table td{border-bottom-color:#334155;color:#f8fafc}
+html[data-theme="dark"] .diff-old{color:#fca5a5;background:rgba(239,68,68,.15)}
+html[data-theme="dark"] .diff-new{color:#6ee7b7;background:rgba(16,185,129,.15)}
+html[data-theme="dark"] .hist-item{border-bottom-color:#334155;color:#f8fafc}
+html[data-theme="dark"] .hist-date{color:#94a3b8}
+html[data-theme="dark"] .hist-curr{background:rgba(139,92,246,.2);color:#c084fc}
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="margin-bottom:16px;display:flex;align-items:center;gap:10px">
+  <a href="{% url 'core:audit_log_list' %}" class="az-btn">
+    <i class="fa-solid fa-arrow-left"></i> Retour au journal
+  </a>
+  <span style="color:#9ca3af;font-size:.85rem">Entrée #{{ log.pk }}</span>
+</div>
+
+<div class="audit-detail">
+
+  <!-- Colonne principale -->
+  <div>
+    <!-- Métadonnées -->
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-head">
+        <span class="badge-action ba-{{ log.action }}">
+          <i class="fa-solid {{ log.action_icon }}"></i>
+          {{ log.get_action_display }}
+        </span>
+        <h2>{{ log.model_label }} — {{ log.object_repr|truncatechars:60 }}</h2>
+      </div>
+      <div class="card-body">
+        <div class="meta-row">
+          <span class="meta-lbl">Date / Heure</span>
+          <span class="meta-val">{{ log.timestamp|date:"d/m/Y à H:i:s" }}</span>
+        </div>
+        <div class="meta-row">
+          <span class="meta-lbl">Utilisateur</span>
+          <span class="meta-val">
+            {% if log.user %}
+              <i class="fa-solid fa-user" style="color:#6366f1;margin-right:4px"></i>
+              {{ log.user.get_full_name|default:log.user.username }}
+              <span style="color:#9ca3af;font-size:.8rem">({{ log.user.username }})</span>
+            {% else %}
+              <span style="color:#9ca3af">Système / anonyme</span>
+            {% endif %}
+          </span>
+        </div>
+        <div class="meta-row">
+          <span class="meta-lbl">Adresse IP</span>
+          <span class="meta-val" style="font-family:monospace">{{ log.ip_address|default:"—" }}</span>
+        </div>
+        <div class="meta-row">
+          <span class="meta-lbl">Modèle</span>
+          <span class="meta-val">{{ log.model_label }} <span style="color:#9ca3af;font-size:.8rem">({{ log.app_label }}.{{ log.model_name }})</span></span>
+        </div>
+        <div class="meta-row">
+          <span class="meta-lbl">ID objet</span>
+          <span class="meta-val" style="font-family:monospace">#{{ log.object_id }}</span>
+        </div>
+        <div class="meta-row">
+          <span class="meta-lbl">Représentation</span>
+          <span class="meta-val">{{ log.object_repr }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Diff champs -->
+    {% if log.action == "UPDATE" %}
+    <div class="card">
+      <div class="card-head">
+        <i class="fa-solid fa-code-compare" style="color:#f59e0b"></i>
+        <h2>Champs modifiés
+          {% if log.changes %}
+            <span style="background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:10px;font-size:.72rem;font-weight:700;margin-left:8px">
+              {{ log.changes|length }} champ{{ log.changes|length|pluralize }}
+            </span>
+          {% endif %}
+        </h2>
+      </div>
+      <div class="card-body" style="padding:0">
+        {% if log.changes %}
+        <table class="diff-table">
+          <thead>
+            <tr>
+              <th style="width:22%">Champ</th>
+              <th style="width:39%">Avant</th>
+              <th style="width:39%">Après</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for attname, diff in log.changes.items %}
+            <tr>
+              <td style="font-weight:600;color:#4b5563;font-size:.8rem">
+                {{ diff.label|default:attname }}
+                <div style="font-size:.7rem;color:#d1d5db;font-family:monospace">{{ attname }}</div>
+              </td>
+              <td>
+                {% if diff.old is not None %}
+                  <span class="diff-old">{{ diff.old }}</span>
+                {% else %}
+                  <span class="diff-null">vide</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if diff.new is not None %}
+                  <span class="diff-new">{{ diff.new }}</span>
+                {% else %}
+                  <span class="diff-null">vide</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <div style="padding:24px;text-align:center;color:#9ca3af;font-size:.85rem">
+          Aucun champ différent enregistré.
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    {% elif log.action == "DELETE" %}
+    <div class="card">
+      <div class="card-head">
+        <i class="fa-solid fa-trash" style="color:#dc2626"></i>
+        <h2>Objet supprimé</h2>
+      </div>
+      <div class="card-body" style="color:#6b7280;font-size:.875rem">
+        L'objet <strong>{{ log.object_repr }}</strong> ({{ log.model_label }} #{{ log.object_id }}) a été supprimé définitivement.
+      </div>
+    </div>
+    {% else %}
+    <div class="card">
+      <div class="card-head">
+        <i class="fa-solid fa-plus-circle" style="color:#10b981"></i>
+        <h2>Objet créé</h2>
+      </div>
+      <div class="card-body" style="color:#6b7280;font-size:.875rem">
+        L'objet <strong>{{ log.object_repr }}</strong> a été créé ({{ log.model_label }} #{{ log.object_id }}).
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Colonne latérale : historique de l'objet -->
+  <div class="card">
+    <div class="card-head">
+      <i class="fa-solid fa-clock-rotate-left" style="color:#6366f1"></i>
+      <h2>Historique de cet objet</h2>
+    </div>
+    <div class="card-body" style="padding:4px 20px">
+      {% for rel in related %}
+      <div class="hist-item">
+        <span class="badge-action ba-{{ rel.action }}" style="padding:2px 8px;font-size:.65rem">
+          {{ rel.get_action_display }}
+        </span>
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:{% if rel.pk == log.pk %}600{% else %}400{% endif %};color:{% if rel.pk == log.pk %}#6366f1{% else %}#374151{% endif %}">
+            {% if rel.pk == log.pk %}<span class="hist-curr">actuel</span>{% endif %}
+            {% if rel.user %}{{ rel.user.username }}{% else %}système{% endif %}
+          </div>
+          <div class="hist-date">{{ rel.timestamp|date:"d/m/Y H:i" }}</div>
+        </div>
+        {% if rel.pk != log.pk %}
+        <a href="{% url 'core:audit_log_detail' rel.pk %}" class="az-btn az-btn-xs">
+          <i class="fa-solid fa-eye"></i>
+        </a>
+        {% endif %}
+      </div>
+      {% empty %}
+      <p style="color:#9ca3af;font-size:.85rem;padding:8px 0">Aucun autre log.</p>
+      {% endfor %}
+    </div>
+  </div>
+
+</div>
+{% endblock %}

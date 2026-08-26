@@ -1,125 +1,223 @@
 {% extends "admin/base_admin.html" %}
 {% load static %}
 
-{% block title %}Avis | AZ{% endblock %}
+{% block title %}Avis | Groupe Scolaire{% endblock %}
 {% block page_title %}Avis{% endblock %}
 {% block current_page %}Communication / Avis{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'admin/css/avis/list.css' %}?v=99">
+<link rel="stylesheet" href="{% static 'admin/css/nebula/az-lists.css' %}?v=8">
+<link rel="stylesheet" href="{% static 'admin/css/avis/list.css' %}?v=116">
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'admin/js/avis/list.js' %}?v=1"></script>
+<script src="{% static 'admin/js/avis/list.js' %}?v=4"></script>
 {% endblock %}
 
 {% block content %}
 
-<div class="az-page-head">
-  <div class="az-page-head-left">
-    <div class="az-pill"><i class="fa-solid fa-bullhorn"></i><span>Communication</span><span class="az-pill-sep">•</span><span>Avis</span></div>
-  
-    <p class="az-subtitle">Crée des annonces ciblées (Tous / Degré / Niveau / Groupe / Élève).</p>
-  </div>
-  <div class="az-page-head-right">
-    <a class="az-btn az-btn-primary" href="{% url 'core:avis_create' %}">
-      <i class="fa-solid fa-plus"></i> Nouvel avis
-    </a>
-  </div>
-</div>
+<div class="az-list-page">
 
-<div class="az-card az-avis-toolbar">
-  <form method="get" class="az-avis-filters" id="avisFilters">
+  <div class="az-page-head">
+    <div class="az-page-head-left">
+      <div class="az-pill">
+        <i class="fa-solid fa-bullhorn"></i>
+        <span>Communication</span>
+        <span class="az-pill-sep">•</span>
+        <span>Avis</span>
+      </div>
 
-    <div class="az-filters-chip">
-      <i class="fa-solid fa-filter"></i>
-      <span>Filtres</span>
-    </div>
-
-    <div class="az-field">
-      <label>Recherche</label>
-      <div class="az-input-icon">
-        <i class="fa-solid fa-magnifying-glass"></i>
-        <input class="az-input" name="q" value="{{ q }}" placeholder="Titre ou contenu...">
+      <div class="az-counter-pill" title="Nombre d'avis">
+        <i class="fa-solid fa-bullhorn"></i>
+        <span>{{ total_items }}</span>
+        <small>avis</small>
       </div>
     </div>
 
-    <div class="az-field">
-      <label>Cible</label>
-      <select class="az-select" name="cible" id="id_cible">
-        <option value="">Toutes</option>
-
-        {% if cible_choices %}
-          {% for val,label in cible_choices %}
-            <option value="{{ val }}" {% if val == cible %}selected{% endif %}>{{ label }}</option>
-          {% endfor %}
-        {% else %}
-          {# fallback si tu n’as pas CIBLE_CHOICES exposé #}
-          <option value="ALL" {% if cible == "ALL" %}selected{% endif %}>Tous</option>
-          <option value="DEGRE" {% if cible == "DEGRE" %}selected{% endif %}>Degré</option>
-          <option value="NIVEAU" {% if cible == "NIVEAU" %}selected{% endif %}>Niveau</option>
-          <option value="GROUPE" {% if cible == "GROUPE" %}selected{% endif %}>Groupe</option>
-          <option value="ELEVE" {% if cible == "ELEVE" %}selected{% endif %}>Élève</option>
-        {% endif %}
-      </select>
-    </div>
-
-    <div class="az-field">
-      <label>Période</label>
-      <select class="az-select" name="period" id="id_period">
-        <option value="">Toutes</option>
-        <option value="7d" {% if period == "7d" %}selected{% endif %}>7 derniers jours</option>
-        <option value="30d" {% if period == "30d" %}selected{% endif %}>30 derniers jours</option>
-        <option value="ytd" {% if period == "ytd" %}selected{% endif %}>Cette année</option>
-      </select>
-    </div>
-
-    <div class="az-actions">
-      <button class="az-btn az-btn-soft" type="submit">
-        <i class="fa-solid fa-sliders"></i> Appliquer
-      </button>
-      <a class="az-btn az-btn-ghost" href="{% url 'core:avis_list' %}">
-        <i class="fa-solid fa-rotate-right"></i> Reset
+    <div class="az-page-head-right">
+      <a class="az-btn az-btn-primary" href="{% url 'core:avis_create' %}">
+        <i class="fa-solid fa-plus"></i>
+        Nouvel avis
       </a>
     </div>
+  </div>
 
-  </form>
-</div>
+  <div class="az-filter-bar">
+    <form method="get" class="az-filter-form" id="avisFilters">
 
-<div class="az-avis-grid">
-  {% for a in items %}
-    <article class="az-avis-item" data-title="{{ a.titre|escape }}" data-content="{{ a.contenu|escape }}">
-      <div class="az-avis-top">
-        <div class="az-avis-chip">{{ a.get_cible_type_display }}</div>
-        <div class="az-avis-date">
-          <i class="fa-regular fa-clock"></i> {{ a.date_publication|date:"d/m/Y H:i" }}
-        </div>
+      <div class="az-filter-label">
+        <i class="fa-solid fa-filter"></i>
+        <span>Filtres</span>
       </div>
 
-      <h3 class="az-avis-title">{{ a.titre }}</h3>
-      <p class="az-avis-snippet">{{ a.contenu|truncatechars:140 }}</p>
+      <div class="az-field az-field-search">
+        <div class="az-field-label">Recherche</div>
+        <input class="az-input"
+               type="text"
+               name="q"
+               value="{{ q }}"
+               placeholder="Titre ou contenu...">
+      </div>
 
-      <div class="az-avis-actions">
-        <button type="button" class="az-btn az-btn-outline az-btn-sm js-avis-preview">
-          <i class="fa-regular fa-eye"></i> Aperçu
+      <div class="az-field">
+        <div class="az-field-label">Cible</div>
+        <select class="az-select" name="cible" id="id_cible">
+          <option value="">Toutes</option>
+
+          {% if cible_choices %}
+            {% for val, label in cible_choices %}
+              <option value="{{ val }}" {% if val == cible %}selected{% endif %}>
+                {{ label }}
+              </option>
+            {% endfor %}
+          {% else %}
+            <option value="ALL" {% if cible == "ALL" %}selected{% endif %}>Tous</option>
+            <option value="DEGRE" {% if cible == "DEGRE" %}selected{% endif %}>Degré</option>
+            <option value="NIVEAU" {% if cible == "NIVEAU" %}selected{% endif %}>Niveau</option>
+            <option value="GROUPE" {% if cible == "GROUPE" %}selected{% endif %}>Groupe</option>
+            <option value="ELEVE" {% if cible == "ELEVE" %}selected{% endif %}>Élève</option>
+          {% endif %}
+        </select>
+      </div>
+
+      <div class="az-field">
+        <div class="az-field-label">Date début</div>
+        <input type="date" name="date_from" class="az-input" value="{{ date_from }}">
+      </div>
+
+      <div class="az-field">
+        <div class="az-field-label">Date fin</div>
+        <input type="date" name="date_to" class="az-input" value="{{ date_to }}">
+      </div>
+
+      <div class="az-field">
+        <div class="az-field-label">Période rapide</div>
+        <select class="az-select" name="period" id="id_period">
+          <option value="">Toutes</option>
+          <option value="7d" {% if period == "7d" %}selected{% endif %}>7 derniers jours</option>
+          <option value="30d" {% if period == "30d" %}selected{% endif %}>30 derniers jours</option>
+          <option value="ytd" {% if period == "ytd" %}selected{% endif %}>Cette année</option>
+        </select>
+      </div>
+
+      <div class="az-export">
+        <button class="az-btn az-btn-soft" type="submit">
+          <i class="fa-solid fa-sliders"></i>
+          Appliquer
         </button>
-        <a class="az-btn az-btn-danger-soft az-btn-sm" href="{% url 'core:avis_delete' a.pk %}">
-          <i class="fa-solid fa-trash"></i> Supprimer
+
+        <a class="az-btn az-btn-ghost" href="{% url 'core:avis_list' %}">
+          <i class="fa-solid fa-rotate-right"></i>
+          Reset
         </a>
       </div>
-    </article>
-  {% empty %}
-    <div class="az-empty">
-      <i class="fa-solid fa-circle-info"></i>
-      <div>
-        <b>Aucun avis</b>
-        <div class="az-empty-sub">Clique sur “Nouvel avis” pour commencer.</div>
+
+    </form>
+  </div>
+
+  <!-- =========================
+       LIST (EXACT INSCRIPTIONS FORMAT)
+  ========================== -->
+  <div class="az-card az-avis-card">
+    <div class="az-card-head" style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+      <h3 class="az-card-title">
+        <i class="fa-solid fa-bullhorn"></i>
+        Liste des avis
+      </h3>
+      {% include "admin/includes/gmail_pagination.html" %}
+    </div>
+
+    <div class="az-table az-cols-5">
+      <div class="az-thead">
+        <div>Titre</div>
+        <div>Cible</div>
+        <div>Contenu</div>
+        <div>Date</div>
+        <div class="az-th-actions">Actions</div>
+      </div>
+
+      <div class="az-tbody">
+        {% for a in items %}
+          <div class="az-row"
+               data-title="{{ a.titre|escape }}"
+               data-content="{{ a.contenu|escape }}"
+               data-cible="{{ a.get_cible_type_display|escape }}"
+               data-cible-detail="{% if a.cible_type == 'DEGRE' and a.degre %}{{ a.degre.nom|escape }}{% elif a.cible_type == 'NIVEAU' and a.niveau %}{{ a.niveau.nom|escape }}{% elif a.cible_type == 'GROUPE' and a.groupe %}{{ a.groupe.niveau.nom|escape }} / {{ a.groupe.nom|escape }}{% elif a.cible_type == 'ELEVE' and a.eleve %}{{ a.eleve.nom|escape }} {{ a.eleve.prenom|escape }} ({{ a.eleve.matricule|escape }}){% endif %}"
+               data-date="{{ a.date_publication|date:'d/m/Y à H:i' }}"
+               data-visible="{{ a.visible_parent|yesno:'True,False' }}">
+
+            <div class="az-cell" data-label="Titre">
+              <span class="az-strong">{{ a.titre }}</span>
+            </div>
+
+            <div class="az-cell" data-label="Cible">
+              <span class="az-badge az-badge-muted">
+                <i class="fa-solid fa-tag"></i> {{ a.get_cible_type_display }}
+              </span>
+            </div>
+
+            <div class="az-cell" data-label="Contenu">
+              <span class="az-muted">{{ a.contenu|truncatechars:100 }}</span>
+            </div>
+
+            <div class="az-cell" data-label="Date">
+              <span class="az-muted">
+                {{ a.date_publication|date:"d/m/Y H:i" }}
+              </span>
+            </div>
+
+            <div class="az-cell az-actions" data-label="Actions">
+              <div class="az-actions-menu" data-menu>
+
+                <button type="button"
+                        class="az-kebab"
+                        data-menu-btn
+                        aria-haspopup="menu"
+                        aria-expanded="false"
+                        title="Actions">
+                  <i class="fa-solid fa-ellipsis-vertical"></i>
+                </button>
+
+                <div class="az-menu" data-menu-panel role="menu">
+
+                  <button type="button"
+                          class="az-menu-item js-avis-preview"
+                          role="menuitem">
+                    <i class="fa-regular fa-eye"></i>
+                    <span>Aperçu</span>
+                  </button>
+
+                  <div class="az-menu-sep"></div>
+
+                  <button type="button"
+                          class="az-menu-item az-menu-item-danger"
+                          role="menuitem"
+                          data-delete-modal
+                          data-modal-url="{% url 'core:avis_delete_modal' a.pk %}">
+                    <i class="fa-solid fa-trash"></i>
+                    <span>Supprimer</span>
+                  </button>
+
+                </div>
+              </div>
+            </div>
+
+          </div>
+        {% empty %}
+          <div class="az-empty">
+            <i class="fa-solid fa-circle-info"></i>
+            <div>
+              <b>Aucun avis</b>
+              <div class="az-empty-sub">Aucun résultat avec les filtres actuels.</div>
+            </div>
+          </div>
+        {% endfor %}
       </div>
     </div>
-  {% endfor %}
+  </div>
+
 </div>
 
-<!-- MODAL PREVIEW -->
 <div class="az-modal" id="avisModal" aria-hidden="true">
   <div class="az-modal-backdrop" data-close></div>
   <div class="az-modal-panel" role="dialog" aria-modal="true">

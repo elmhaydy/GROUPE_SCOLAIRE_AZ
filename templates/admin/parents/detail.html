@@ -20,9 +20,13 @@
             <a class="az-btn az-btn-edit" href="{% url 'core:parent_update' p.id %}">
                 <i class="fas fa-edit"></i> Modifier
             </a>
-            <a class="az-btn az-btn-delete" href="{% url 'core:parent_delete' p.id %}">
-                <i class="fas fa-trash"></i> Supprimer
-            </a>
+<button type="button"
+        class="az-btn az-btn-danger"
+        data-delete-modal
+        data-modal-url="{% url 'core:parent_delete_modal' p.id %}">
+  <i class="fa-solid fa-trash"></i>
+  Supprimer
+</button>
         </div>
     </div>
 

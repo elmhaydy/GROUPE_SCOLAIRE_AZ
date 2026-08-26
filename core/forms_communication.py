@@ -1,6 +1,6 @@
 # core/forms_communication.py
 from django import forms
-from .models import Avis
+from .models import Avis, Parent
 
 class AvisForm(forms.ModelForm):
     class Meta:
@@ -50,9 +50,34 @@ class SmsSendForm(forms.Form):
     """
     message = forms.CharField(widget=forms.Textarea(attrs={"rows": 5}), max_length=700)
 
-    cible_type = forms.ChoiceField(choices=Avis.CIBLE_CHOICES, initial="TOUS")
+    CIBLE_CHOICES = list(Avis.CIBLE_CHOICES) + [("PARENTS", "Parents sélectionnés")]
+
+    cible_type = forms.ChoiceField(choices=CIBLE_CHOICES, initial="TOUS")
 
     degre = forms.IntegerField(required=False)   # Degre.id
     niveau = forms.IntegerField(required=False)  # Niveau.id
     groupe = forms.IntegerField(required=False)  # Groupe.id
     eleve = forms.IntegerField(required=False)   # Eleve.id
+    parents = forms.ModelMultipleChoiceField(
+        queryset=Parent.objects.filter(is_active=True),
+        required=False,
+        widget=forms.SelectMultiple,
+    )
+
+    def clean(self):
+        cleaned = super().clean()
+        t = cleaned.get("cible_type")
+
+        if t == "PARENTS":
+            if not cleaned.get("parents"):
+                self.add_error("parents", "Choisis au moins un parent.")
+            # ignorer les autres champs
+            cleaned["degre"] = None
+            cleaned["niveau"] = None
+            cleaned["groupe"] = None
+            cleaned["eleve"] = None
+            return cleaned
+
+        # logique existante: reset parents si autre cible
+        cleaned["parents"] = None
+        return cleaned

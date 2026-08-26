@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Code de vérification — Groupe Scolaire</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #f1f5f9;
+      font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      color: #1e293b;
+      -webkit-font-smoothing: antialiased;
+    }
+    .email-container {
+      max-width: 580px;
+      margin: 30px auto;
+      background: #ffffff;
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 15px 35px rgba(15, 23, 42, 0.08);
+      border: 1px solid #e2e8f0;
+    }
+    .email-header {
+      background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #312e81 100%);
+      padding: 36px 30px;
+      text-align: center;
+      color: #ffffff;
+    }
+    .school-badge {
+      display: inline-block;
+      width: 54px;
+      height: 54px;
+      line-height: 54px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      font-size: 26px;
+      margin-bottom: 12px;
+    }
+    .school-title {
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: 0.02em;
+      margin: 0 0 4px;
+      color: #ffffff;
+    }
+    .school-subtitle {
+      font-size: 13px;
+      color: #a5b4fc;
+      margin: 0;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-weight: 600;
+    }
+    .email-body {
+      padding: 36px 32px;
+    }
+    .greeting {
+      font-size: 17px;
+      font-weight: 700;
+      color: #0f172a;
+      margin-bottom: 14px;
+    }
+    .intro-text {
+      font-size: 14px;
+      color: #475569;
+      line-height: 1.6;
+      margin-bottom: 28px;
+    }
+    .otp-card {
+      background: linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%);
+      border: 2px dashed #6366f1;
+      border-radius: 16px;
+      padding: 24px 20px;
+      text-align: center;
+      margin-bottom: 28px;
+    }
+    .otp-label {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #4338ca;
+      margin-bottom: 8px;
+    }
+    .otp-code {
+      font-size: 34px;
+      font-weight: 900;
+      letter-spacing: 0.25em;
+      color: #1e1b4b;
+      font-family: 'Courier New', Courier, monospace;
+      margin: 4px 0 10px;
+    }
+    .otp-expiry {
+      display: inline-block;
+      background: #e0e7ff;
+      color: #3730a3;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 4px 12px;
+      border-radius: 20px;
+    }
+    .warning-box {
+      background: #f8fafc;
+      border-left: 4px solid #94a3b8;
+      padding: 14px 16px;
+      border-radius: 0 10px 10px 0;
+      font-size: 13px;
+      color: #64748b;
+      line-height: 1.5;
+      margin-bottom: 24px;
+    }
+    .email-footer {
+      background: #f8fafc;
+      padding: 20px 30px;
+      text-align: center;
+      border-top: 1px solid #e2e8f0;
+      font-size: 12px;
+      color: #94a3b8;
+    }
+    .footer-brand {
+      font-weight: 700;
+      color: #64748b;
+    }
+  </style>
+</head>
+<body>
+  <div class="email-container">
+    <!-- HEADER -->
+    <div class="email-header">
+      <div class="school-badge">🎓</div>
+      <h1 class="school-title">GROUPE SCOLAIRE</h1>
+      <p class="school-subtitle">Portail Administratif & Scolaire</p>
+    </div>
+
+    <!-- BODY -->
+    <div class="email-body">
+      <div class="greeting">Bonjour {{ user_name }},</div>
+      <p class="intro-text">
+        Vous avez demandé la réinitialisation de votre mot de passe pour accéder à votre espace scolaire. Voici votre code de sécurité unique à 6 chiffres :
+      </p>
+
+      <!-- OTP CODE CARD -->
+      <div class="otp-card">
+        <div class="otp-label">Code de vérification</div>
+        <div class="otp-code">{{ otp_code }}</div>
+        <div class="otp-expiry">⏱️ Valable pendant 15 minutes</div>
+      </div>
+
+      <!-- WARNING BOX -->
+      <div class="warning-box">
+        🔒 <b>Sécurité :</b> Ne communiquez jamais ce code à personne. Si vous n'êtes pas à l'origine de cette demande, vous pouvez ignorer cet email en toute sécurité.
+      </div>
+    </div>
+
+    <!-- FOOTER -->
+    <div class="email-footer">
+      <p style="margin: 0 0 6px;">
+        Cet email automatique a été envoyé par la plateforme <span class="footer-brand">Groupe Scolaire</span>.
+      </p>
+      <p style="margin: 0;">© 2026 Groupe Scolaire. Tous droits réservés.</p>
+    </div>
+  </div>
+</body>
+</html>

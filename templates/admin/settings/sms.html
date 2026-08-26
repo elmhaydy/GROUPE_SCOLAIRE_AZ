@@ -1,0 +1,180 @@
+{% extends "admin/base_admin.html" %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'admin/css/settings/sms.css' %}">
+{% endblock %}
+
+{% block current_page %}Paramètres SMS{% endblock %}
+
+{% block content %}
+<div class="az-section sms-page">
+  <header class="sms-hero">
+    <div>
+      <p class="pill">Centre notifications</p>
+      <h1>Paramètres SMS</h1>
+      <p class="az-sub">Réservé aux superadmins : provider, options, et modèles de messages.</p>
+    </div>
+  </header>
+
+  <form method="post" class="az-form sms-card">
+    {% csrf_token %}
+    <input type="hidden" name="submit_settings" value="1">
+    <div class="sms-grid">
+      <div class="sms-block">
+        <div class="block-head">Général</div>
+        <div class="form-row">
+          <label>Provider</label>
+          {{ form.provider_name }}
+        </div>
+        <div class="form-row">
+          <label>API Key</label>
+          {{ form.api_key }}
+        </div>
+        <div class="form-row">
+          <label>Nom expéditeur</label>
+          {{ form.sender_name }}
+        </div>
+      </div>
+
+      <div class="sms-block">
+        <div class="block-head">Options</div>
+        <div class="check-grid">
+          <label>{{ form.enable_absence }} Absences</label>
+          <label>{{ form.enable_paiement }} Paiements</label>
+          <label>{{ form.enable_impaye }} Impayés</label>
+          <label>{{ form.optin_default }} Opt-in par défaut</label>
+        </div>
+        <div class="time-grid">
+          <div class="form-row">
+            <label>Début silence</label>
+            {{ form.quiet_start }}
+          </div>
+          <div class="form-row">
+            <label>Fin silence</label>
+            {{ form.quiet_end }}
+          </div>
+        </div>
+      </div>
+    </div>
+    <button type="submit" class="az-btn az-btn-primary full">Enregistrer</button>
+  </form>
+
+  <!-- Test SMS -->
+  <form method="post" class="az-form sms-card">
+    {% csrf_token %}
+    <input type="hidden" name="submit_test" value="1">
+    <div class="flex-head">
+      <div>
+        <h2 class="az-title">SMS de test</h2>
+        <p class="az-sub">Envoie un SMS immédiat à un numéro pour valider la config.</p>
+      </div>
+      <div class="badge">Debug</div>
+    </div>
+    <div class="az-grid-2">
+      <div class="az-field">
+        <label>Numéro</label>
+        <input type="text" name="test_phone" class="az-input" placeholder="+2126… / 06…">
+      </div>
+      <div class="az-field">
+        <label>Message</label>
+        <input type="text" name="test_message" class="az-input" placeholder="SMS test Groupe Scolaire" value="SMS test Groupe Scolaire">
+      </div>
+    </div>
+    <button type="submit" class="az-btn az-btn-primary full">Envoyer le SMS test</button>
+  </form>
+
+  <div class="az-sep"></div>
+
+  <section class="sms-card">
+    <div class="flex-head">
+      <div>
+        <h2 class="az-title">Templates SMS</h2>
+        <p class="az-sub">Placeholders : {eleve}, {groupe}, {type}, {date}, {montant}, {ref}</p>
+      </div>
+      <div class="badge">1 template par événement</div>
+    </div>
+
+    <form method="post" class="az-form">
+      {% csrf_token %}
+      <input type="hidden" name="submit_template" value="1">
+      <div class="az-grid-3">
+        <div class="az-field">
+          <label>Type</label>
+          {{ tpl_form.type_template }}
+        </div>
+        <div class="az-field">
+          <label>Nom</label>
+          {{ tpl_form.nom }}
+        </div>
+        <div class="az-field">
+          <label>Code</label>
+          {{ tpl_form.code }}
+        </div>
+        <div class="az-field switch">
+          <label>Actif</label>
+          {{ tpl_form.is_active }}
+        </div>
+      </div>
+      <div class="az-field">
+        <label>Message</label>
+        {{ tpl_form.contenu }}
+      </div>
+      <button type="submit" class="az-btn az-btn-primary full">Enregistrer le template</button>
+    </form>
+
+    <div class="tpl-grid">
+      {% for tpl in templates %}
+        <div class="tpl-card">
+          <div class="tpl-head">
+            <div>
+              <div class="tpl-title">{{ tpl.nom }}</div>
+              <div class="tpl-sub">{{ tpl.code }} — {{ tpl.get_type_template_display }}</div>
+            </div>
+            <span class="az-badge {% if tpl.is_active %}az-badge-ok{% else %}az-badge-warn{% endif %}">
+              {% if tpl.is_active %}Actif{% else %}Inactif{% endif %}
+            </span>
+          </div>
+          <pre class="az-code">{{ tpl.contenu }}</pre>
+          <div class="az-muted">MAJ : {{ tpl.updated_at|date:"d/m/Y H:i" }}</div>
+        </div>
+      {% empty %}
+        <div class="az-muted">Aucun template pour le moment.</div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="sms-card">
+    <div class="flex-head">
+      <div>
+        <h2 class="az-title">Historique SMS (50 derniers)</h2>
+        <p class="az-sub">Statut, événement et destinataire.</p>
+      </div>
+    </div>
+    <div class="sms-table">
+      <div class="sms-row head">
+        <span>Date</span>
+        <span>Événement</span>
+        <span>Parent</span>
+        <span>Téléphone</span>
+        <span>Statut</span>
+        <span>Erreur</span>
+      </div>
+      {% for log in logs %}
+      <div class="sms-row">
+        <span>{{ log.created_at|date:"d/m H:i" }}</span>
+        <span>{{ log.get_event_display|default:"-" }}</span>
+        <span>{{ log.parent|default:"—" }}</span>
+        <span>{{ log.telephone }}</span>
+        <span class="badge {% if log.status == 'SENT' %}az-badge-ok{% elif log.status == 'FAILED' %}az-badge-warn{% else %}az-badge{% endif %}">
+          {{ log.get_status_display }}
+        </span>
+        <span class="error-cell">{{ log.error_message|default:"" }}</span>
+      </div>
+      {% empty %}
+      <div class="sms-row"><span>Aucun SMS enregistré.</span></div>
+      {% endfor %}
+    </div>
+  </section>
+</div>
+{% endblock %}

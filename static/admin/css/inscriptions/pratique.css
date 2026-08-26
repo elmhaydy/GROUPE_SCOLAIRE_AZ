@@ -384,3 +384,64 @@ body{
   border:1px solid rgba(148,163,184,.25);
   background:rgba(15,23,42,.06);
 }
+.az-dynamic-card{
+  background: var(--az-bg-section);
+  border: 1px solid var(--az-border);
+  border-radius: 18px;
+  padding: 1.2rem;
+  margin-bottom: 1rem;
+}
+
+.az-dynamic-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:1rem;
+  margin-bottom:1rem;
+}
+
+.az-dynamic-head h5{
+  margin:0;
+  color:var(--az-text-main);
+  font-size:1rem;
+  font-weight:800;
+}
+
+.az-remove-btn{
+  border:none;
+  background:rgba(239,68,68,.12);
+  color:#dc2626;
+  width:40px;
+  height:40px;
+  border-radius:12px;
+  cursor:pointer;
+}
+
+.az-remove-btn:hover{
+  transform:translateY(-1px);
+}
+
+.az-stack-actions{
+  display:flex;
+  justify-content:flex-start;
+  margin-top:1rem;
+}
+
+.az-check-row{
+  display:flex;
+  align-items:center;
+  gap:.65rem;
+  padding:.55rem .75rem;
+  border:1px solid var(--az-border);
+  border-radius:12px;
+  margin-bottom:.5rem;
+  background:var(--az-input-bg);
+}
+
+.az-mini-empty{
+  font-size:.85rem;
+  color:var(--az-text-sub);
+  padding:.75rem;
+  border:1px dashed var(--az-border);
+  border-radius:12px;
+}

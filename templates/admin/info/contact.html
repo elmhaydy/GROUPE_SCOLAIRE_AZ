@@ -1,0 +1,111 @@
+{% extends base_template|default:"admin/base_admin.html" %}
+{% load static %}
+
+{% block title %}Contact & Support | Groupe Scolaire{% endblock %}
+
+{% block content %}
+<div class="az-page">
+  <!-- HERO HEADER -->
+  <div style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #1e3a8a 100%); border-radius: 20px; padding: 36px 32px; color: #fff; margin-bottom: 28px; box-shadow: 0 10px 25px rgba(0,0,0,0.15);">
+    <div style="max-width: 750px;">
+      <span style="background: rgba(59,130,246,0.25); color: #93c5fd; padding: 4px 14px; border-radius: 20px; font-size: 0.82rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; display: inline-block; margin-bottom: 12px;">
+        <i class="fa-solid fa-envelope-open-text"></i> Assistance & Administration
+      </span>
+      <h1 style="font-size: 1.8rem; font-weight: 800; margin-bottom: 8px;">Contactez l'Administration du Groupe Scolaire</h1>
+      <p style="color: #cbd5e1; font-size: 0.95rem; line-height: 1.5;"> Notre équipe est à votre disposition pour toute question administrative, financière ou technique.</p>
+    </div>
+  </div>
+
+  <div style="display: grid; grid-template-columns: minmax(300px, 1fr) minmax(320px, 1.4fr); gap: 28px; align-items: start;">
+    <!-- CONTACT CARDS -->
+    <div style="display: flex; flex-direction: column; gap: 20px;">
+      <div class="az-card" style="padding: 24px; border-radius: 18px; display: flex; align-items: flex-start; gap: 16px;">
+        <div style="width: 48px; height: 48px; border-radius: 14px; background: #eff6ff; color: #2563eb; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; flex-shrink: 0;">
+          <i class="fa-solid fa-location-dot"></i>
+        </div>
+        <div>
+          <h3 style="font-size: 0.95rem; font-weight: 800; color: var(--az-text, #0f172a); margin-bottom: 4px;">Adresse de l'Établissement</h3>
+          <p style="font-size: 0.88rem; color: #64748b; margin: 0; line-height: 1.5;">
+            Groupe Scolaire AZ<br>
+            Avenue de l'Éducation, Quartier Administratif<br>
+            Maroc
+          </p>
+        </div>
+      </div>
+
+      <div class="az-card" style="padding: 24px; border-radius: 18px; display: flex; align-items: flex-start; gap: 16px;">
+        <div style="width: 48px; height: 48px; border-radius: 14px; background: #dcfce7; color: #16a34a; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; flex-shrink: 0;">
+          <i class="fa-solid fa-phone"></i>
+        </div>
+        <div>
+          <h3 style="font-size: 0.95rem; font-weight: 800; color: var(--az-text, #0f172a); margin-bottom: 4px;">Téléphone & WhatsApp</h3>
+          <p style="font-size: 0.88rem; color: #64748b; margin: 0; line-height: 1.5;">
+            Standard : <strong>+212 5 22 00 11 22</strong><br>
+            Support WhatsApp : <strong>+212 6 00 11 22 33</strong>
+          </p>
+        </div>
+      </div>
+
+      <div class="az-card" style="padding: 24px; border-radius: 18px; display: flex; align-items: flex-start; gap: 16px;">
+        <div style="width: 48px; height: 48px; border-radius: 14px; background: #f3e8ff; color: #9333ea; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; flex-shrink: 0;">
+          <i class="fa-solid fa-envelope"></i>
+        </div>
+        <div>
+          <h3 style="font-size: 0.95rem; font-weight: 800; color: var(--az-text, #0f172a); margin-bottom: 4px;">Adresse Email</h3>
+          <p style="font-size: 0.88rem; color: #64748b; margin: 0; line-height: 1.5;">
+            contact@groupescolaire-az.ma<br>
+            support@groupescolaire-az.ma
+          </p>
+        </div>
+      </div>
+
+      <div class="az-card" style="padding: 24px; border-radius: 18px; display: flex; align-items: flex-start; gap: 16px;">
+        <div style="width: 48px; height: 48px; border-radius: 14px; background: #fff7ed; color: #ea580c; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; flex-shrink: 0;">
+          <i class="fa-solid fa-clock"></i>
+        </div>
+        <div>
+          <h3 style="font-size: 0.95rem; font-weight: 800; color: var(--az-text, #0f172a); margin-bottom: 4px;">Horaires d'Ouverture</h3>
+          <p style="font-size: 0.88rem; color: #64748b; margin: 0; line-height: 1.5;">
+            Lundi – Vendredi : 08h00 – 17h30<br>
+            Samedi : 08h30 – 12h30
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- FORM CARD -->
+    <div class="az-card" style="padding: 32px; border-radius: 20px;">
+      <h2 style="font-size: 1.25rem; font-weight: 800; color: var(--az-text, #0f172a); margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
+        <i class="fa-solid fa-paper-plane" style="color: #2563eb;"></i> Formulaire de Contact
+      </h2>
+
+      <form method="post">
+        {% csrf_token %}
+        <div class="az-form-group" style="margin-bottom: 18px;">
+          <label style="display: block; font-size: 0.8rem; font-weight: 700; margin-bottom: 6px; text-transform: uppercase; color: #475569;">Nom complet *</label>
+          <input type="text" name="nom" class="az-input" placeholder="Votre nom et prénom" value="{{ user.get_full_name|default:'' }}" required style="width: 100%; padding: 12px 14px; border-radius: 12px; border: 1.5px solid var(--az-border, #cbd5e1); outline: none;">
+        </div>
+
+        <div class="az-form-group" style="margin-bottom: 18px;">
+          <label style="display: block; font-size: 0.8rem; font-weight: 700; margin-bottom: 6px; text-transform: uppercase; color: #475569;">Adresse Email *</label>
+          <input type="email" name="email" class="az-input" placeholder="exemple@domain.com" value="{{ user.email|default:'' }}" required style="width: 100%; padding: 12px 14px; border-radius: 12px; border: 1.5px solid var(--az-border, #cbd5e1); outline: none;">
+        </div>
+
+        <div class="az-form-group" style="margin-bottom: 18px;">
+          <label style="display: block; font-size: 0.8rem; font-weight: 700; margin-bottom: 6px; text-transform: uppercase; color: #475569;">Sujet de votre demande</label>
+          <input type="text" name="sujet" class="az-input" placeholder="Ex: Inscription, Paiement, Question technique..." style="width: 100%; padding: 12px 14px; border-radius: 12px; border: 1.5px solid var(--az-border, #cbd5e1); outline: none;">
+        </div>
+
+        <div class="az-form-group" style="margin-bottom: 24px;">
+          <label style="display: block; font-size: 0.8rem; font-weight: 700; margin-bottom: 6px; text-transform: uppercase; color: #475569;">Message *</label>
+          <textarea name="message" class="az-input" rows="5" placeholder="Décrivez votre demande en détail..." required style="width: 100%; padding: 12px 14px; border-radius: 12px; border: 1.5px solid var(--az-border, #cbd5e1); outline: none; font-family: inherit;"></textarea>
+        </div>
+
+        <button type="submit" class="az-btn az-btn-primary" style="width: 100%; padding: 14px; border-radius: 12px; font-weight: 700; background: #2563eb; color: #fff; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+          <i class="fa-solid fa-paper-plane"></i> Envoyer le message
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

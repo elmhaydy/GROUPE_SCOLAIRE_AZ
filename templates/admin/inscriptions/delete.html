@@ -1,22 +1,32 @@
-{% extends "admin/base_admin.html" %}
-{% block title %}Supprimer | AZ{% endblock %}
-{% block page_title %}Supprimer une inscription{% endblock %}
-{% block breadcrumb %}Scolaire / Inscriptions{% endblock %}
+{# templates/admin/inscriptions/delete_modal.html — FRAGMENT MODAL #}
 
-{% block content %}
+<div class="az-card" style="max-width:900px;">
+  <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap;">
+    <div>
+      <h2 style="margin:0 0 6px 0;">Confirmation</h2>
+      <p class="az-sub" style="margin:0;">
+        Supprimer l’inscription de
+        <b>{{ insc.eleve.matricule }} — {{ insc.eleve.nom }} {{ insc.eleve.prenom }}</b>
+        pour <b>{{ insc.annee.nom }}</b> ({{ insc.groupe.nom }}) ?
+      </p>
+      <p class="az-sub" style="margin-top:6px;">
+        Cette action est <b>irréversible</b>.
+      </p>
+    </div>
+  </div>
 
-<div class="az-card" style="grid-column:span 12;max-width:720px;">
-  <h3>Confirmation</h3>
-  <p class="az-sub">
-    Supprimer l’inscription de <b>{{ insc.eleve.matricule }} — {{ insc.eleve.nom }} {{ insc.eleve.prenom }}</b>
-    pour <b>{{ insc.annee.nom }}</b> ({{ insc.groupe.nom }}) ?
-  </p>
-
-  <form method="post" style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap;">
+  <form method="post"
+        action="{% url 'core:inscription_delete' insc.id %}"
+        style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;">
     {% csrf_token %}
-    <button class="az-btn" type="submit" style="border-color:rgba(255,80,80,.35);">🗑️ Oui, supprimer</button>
-    <a class="az-btn az-btn-gradient" href="{% url 'core:inscription_list' %}">Annuler</a>
+
+    <button type="button" class="az-btn az-btn-outline" data-azm-close>
+      Annuler
+    </button>
+
+    <button class="az-btn az-btn-danger" type="submit">
+      <i class="fa-solid fa-trash"></i>
+      Supprimer
+    </button>
   </form>
 </div>
-
-{% endblock %}

@@ -345,3 +345,16 @@ body{
     margin-bottom: 1rem;
     opacity: 0.5;
 }
+.az-btn-danger{
+  border: 1px solid rgba(255,80,80,.35);
+  background: rgba(255,80,80,.08);
+  color: rgba(255,120,120,.95);
+  font-weight: 800;
+}
+.az-btn-danger:hover{
+  background: rgba(255,80,80,.14);
+  border-color: rgba(255,80,80,.55);
+}
+.az-btn-danger i{
+  color: rgba(255,120,120,.95);
+}

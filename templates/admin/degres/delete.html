@@ -1,43 +1,33 @@
-{% extends "admin/base_admin.html" %}
-{% load static %}
+<div class="az-card" style="max-width:100%;margin:0;">
+  <h2 style="margin:0 0 8px 0;">Confirmation</h2>
 
-{% block title %}Supprimer | AZ{% endblock %}
-{% block page_title %}Supprimer un degré{% endblock %}
-{% block current_page %}Structure / Degrés / Supprimer{% endblock %}
-
-{% block content %}
-
-<div class="az-card" style="grid-column:span 12; max-width: 760px;">
-  <div class="az-card-head">
-    <h3 class="az-card-title">
-      <i class="fa-solid fa-triangle-exclamation"></i>
-      Confirmation de suppression
-    </h3>
-  </div>
-
-  <p class="az-sub" style="margin-top:6px;">
+  <p class="az-sub" style="margin:0 0 12px 0;">
     Tu es sûr de vouloir supprimer le degré :
     <b>{{ degre.nom }}</b> ?
   </p>
 
-  <div class="az-empty" style="justify-content:flex-start; margin-top:14px;">
-    <i class="fa-solid fa-circle-xmark"></i>
-    <div>
-      <b>Attention :</b> cette action est irréversible.
+  <div class="az-card"
+       style="padding:14px; margin-bottom:14px; border:1px solid rgba(255,80,80,.25); background:rgba(255,80,80,.04);">
+    <div style="font-weight:800;color:rgba(255,120,120,.95);">
+      Action irréversible
+    </div>
+    <div class="az-sub" style="margin-top:6px;">
+      Si ce degré contient encore des niveaux liés, la suppression sera bloquée automatiquement.
     </div>
   </div>
 
-  <form method="post" style="margin-top:14px; display:flex; gap:10px; flex-wrap:wrap;">
+  <form method="post"
+        action="{% url 'core:degre_delete' degre.id %}"
+        style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;">
     {% csrf_token %}
 
-    <button class="az-btn az-btn-danger-soft" type="submit">
-      <i class="fa-solid fa-trash"></i> Oui, supprimer
+    <button type="button" class="az-btn az-btn-outline" data-azm-close>
+      Annuler
     </button>
 
-    <a class="az-btn az-btn-outline" href="{% url 'core:degre_list' %}">
-      <i class="fa-solid fa-arrow-left"></i> Annuler
-    </a>
+    <button class="az-btn az-btn-danger-soft" type="submit">
+      <i class="fa-solid fa-trash"></i>
+      Oui, supprimer
+    </button>
   </form>
 </div>
-
-{% endblock %}

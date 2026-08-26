@@ -1,13 +1,15 @@
 
 # core/models.py
+import os
+import uuid
+from decimal import Decimal
+from datetime import datetime, date as date_cls, time
+
 from django.db import models
 from django.db.models import Q
 from django.conf import settings
 from accounts.threadlocal import get_current_user
 from django.contrib.auth.models import Group
-from datetime import datetime, date as date_cls
-from django.db import models
-from django.conf import settings
 from core.utils_dates import month_start, add_months
 import os
 import uuid
@@ -827,6 +829,7 @@ class Parent(AuditBase):
 
     telephone = models.CharField(max_length=30, blank=True)
     telephone_norm = models.CharField(max_length=20, blank=True, db_index=True)
+    sms_optin = models.BooleanField(default=True)
     email = models.EmailField(blank=True)
     adresse = models.CharField(max_length=255, blank=True)
 
@@ -1349,30 +1352,81 @@ class Avis(AuditBase):
 
         raise ValidationError("Type de cible invalide.")
 
+# =========================
+# Y — Paramètres SMS (singleton)
+# =========================
+class SmsSettings(models.Model):
+    """
+    Paramètres globaux SMS (modifiable par superadmin).
+    Singleton logique : une seule ligne.
+    """
+    provider_name = models.CharField(max_length=80, default="bulksms")
+    api_key = models.CharField(max_length=255, blank=True, default="")
+    sender_name = models.CharField(max_length=20, blank=True, default="AZ")
+
+    enable_absence = models.BooleanField(default=True)
+    enable_paiement = models.BooleanField(default=True)
+    enable_impaye = models.BooleanField(default=True)
+    optin_default = models.BooleanField(default=True)
+
+    quiet_start = models.TimeField(default=time(21, 0))
+    quiet_end = models.TimeField(default=time(7, 0))
+
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Paramètres SMS"
+
+    @classmethod
+    def load(cls):
+        obj, _ = cls.objects.get_or_create(pk=1, defaults={})
+        return obj
+
+    def clean(self):
+        return
+
 class SmsHistorique(AuditBase):
     """
     Historique SMS envoyés (réels).
     On enregistre chaque destinataire comme 1 ligne (simple & fiable).
     """
-    STATUS_CHOICES = [
-        ("PENDING", "Pending"),
-        ("SENT", "Sent"),
-        ("FAILED", "Failed"),
+    EVENT_CHOICES = [
+        ("absence", "Absence/Retard"),
+        ("paiement", "Paiement/Reçu"),
+        ("impaye", "Impayé/Relance"),
+        ("autre", "Autre"),
     ]
 
-    # Optionnel: si le SMS vient d'un avis
+    STATUS_CHOICES = [
+        ("QUEUED", "En file"),
+        ("SENT", "Envoyé"),
+        ("FAILED", "Échec"),
+    ]
+
+    TYPE_ENVOI_CHOICES = [
+        ("manuel", "Manuel"),
+        ("groupe", "Groupe"),
+        ("auto", "Automatique"),
+    ]
+
     avis = models.ForeignKey("Avis", on_delete=models.SET_NULL, null=True, blank=True, related_name="sms")
 
     parent = models.ForeignKey("Parent", on_delete=models.SET_NULL, null=True, blank=True, related_name="sms")
+    eleve = models.ForeignKey("Eleve", on_delete=models.SET_NULL, null=True, blank=True, related_name="sms")
+    inscription = models.ForeignKey("Inscription", on_delete=models.SET_NULL, null=True, blank=True, related_name="sms")
+
     telephone = models.CharField(max_length=30)  # numéro final utilisé
     message = models.TextField()
+    event = models.CharField(max_length=20, choices=EVENT_CHOICES, default="autre", db_index=True)
 
-    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default="PENDING")
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default="QUEUED")
+    type_envoi = models.CharField(max_length=10, choices=TYPE_ENVOI_CHOICES, default="manuel")
     provider = models.CharField(max_length=50, default="twilio")  # ou autre
     provider_message_id = models.CharField(max_length=120, blank=True)
     error_message = models.TextField(blank=True)
 
     sent_at = models.DateTimeField(null=True, blank=True)
+    envoye_par = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="sms_envoyes")
 
     class Meta:
         ordering = ["-created_at", "-id"]
@@ -2066,3 +2120,93 @@ class Tarification(models.Model):
 
     def __str__(self):
         return self.nom
+
+
+# Relances automatiques intelligentes
+from core.models_relance import RelanceRule, RelanceLog  # noqa: E402, F401
+
+# Journal d'audit
+from core.models_audit import AuditLog  # noqa: E402, F401
+
+# Centre de notifications multicanal
+from core.models_notifications import Notification, NotificationPreference  # noqa: E402, F401
+
+
+# =========================================================
+# SALAIRES & BUDGET
+# =========================================================
+class FichePaie(AuditBase):
+    """
+    Fiche de paie pour un enseignant ou membre du personnel (Staff).
+    """
+    PERSONNEL_CHOICES = [
+        ("ENSEIGNANT", "Enseignant"),
+        ("STAFF", "Personnel Administratif"),
+    ]
+    STATUT_CHOICES = [
+        ("A_PAYER", "À payer"),
+        ("PAYE", "Payé"),
+    ]
+    MODE_CHOICES = [
+        ("VIREMENT", "Virement bancaire"),
+        ("CHEQUE", "Chèque"),
+        ("ESPECES", "Espèces"),
+    ]
+
+    personnel_type = models.CharField(max_length=20, choices=PERSONNEL_CHOICES, default="ENSEIGNANT")
+    enseignant = models.ForeignKey("Enseignant", null=True, blank=True, on_delete=models.SET_NULL, related_name="fiches_paie")
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="fiches_paie")
+    annee = models.ForeignKey("AnneeScolaire", on_delete=models.CASCADE, related_name="fiches_paie")
+    mois_index = models.PositiveSmallIntegerField(default=1)  # 1..12
+
+    salaire_base = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
+    primes = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
+    deductions = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
+    net_a_payer = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
+
+    statut = models.CharField(max_length=20, choices=STATUT_CHOICES, default="A_PAYER")
+    date_paiement = models.DateField(null=True, blank=True)
+    mode_paiement = models.CharField(max_length=50, blank=True, choices=MODE_CHOICES, default="VIREMENT")
+    reference_virement = models.CharField(max_length=100, blank=True)
+    remarques = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ["-annee", "-mois_index", "-created_at"]
+        indexes = [
+            models.Index(fields=["annee", "mois_index"]),
+            models.Index(fields=["statut"]),
+        ]
+
+    def save(self, *args, **kwargs):
+        sb = self.salaire_base or Decimal("0.00")
+        pr = self.primes or Decimal("0.00")
+        de = self.deductions or Decimal("0.00")
+        self.net_a_payer = max(sb + pr - de, Decimal("0.00"))
+        super().save(*args, **kwargs)
+
+    def get_beneficiaire_nom(self):
+        if self.personnel_type == "ENSEIGNANT" and self.enseignant:
+            return f"{self.enseignant.prenom} {self.enseignant.nom}"
+        elif self.user:
+            return self.user.get_full_name() or self.user.username
+        return "Non spécifié"
+
+    def __str__(self):
+        return f"Paie {self.get_beneficiaire_nom()} — Mois {self.mois_index} ({self.net_a_payer} MAD)"
+
+
+class BudgetAnnuel(AuditBase):
+    """
+    Allocation budgétaire par catégorie de dépense pour une année scolaire.
+    """
+    annee = models.ForeignKey("AnneeScolaire", on_delete=models.CASCADE, related_name="budgets")
+    categorie = models.ForeignKey("CategorieDepense", on_delete=models.CASCADE, related_name="budgets")
+    montant_alloue = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
+
+    class Meta:
+        unique_together = ("annee", "categorie")
+        ordering = ["categorie__nom"]
+
+    def __str__(self):
+        return f"Budget {self.categorie.nom} ({self.annee.nom}) : {self.montant_alloue} MAD"
+

@@ -2,16 +2,18 @@
   const form = document.getElementById("smsFilters");
   const selStatus = document.getElementById("id_status");
   const selPeriod = document.getElementById("id_period");
+  const selEvent = document.getElementById("id_event");
 
-  // Auto apply when dropdown changes (modern UX)
+  // Auto apply when dropdown changes (quick filtering)
   function autoSubmit(el) {
     if (!form || !el) return;
     el.addEventListener("change", () => form.submit());
   }
   autoSubmit(selStatus);
   autoSubmit(selPeriod);
+  autoSubmit(selEvent);
 
-  // Modal
+  // Modal handling
   const modal = document.getElementById("smsModal");
   const meta = document.getElementById("smsModalMeta");
   const msg = document.getElementById("smsModalMessage");
@@ -41,13 +43,13 @@
     const phone = row.dataset.phone || "—";
     const status = row.dataset.status || "—";
     const date = row.dataset.date || "—";
+    const event = row.dataset.event || "—";
     const message = row.dataset.msg || "";
     const error = row.dataset.error || "";
 
-    meta.textContent = `📅 ${date}  •  👤 ${parent}  •  ☎ ${phone}  •  ✅ ${status}`;
+    meta.textContent = `📅 ${date}  •  👤 ${parent}  •  ☎ ${phone}  •  🗂 ${event}  •  ✅ ${status}`;
     msg.textContent = message.trim() ? message : "—";
-    err.textContent = error.trim() ? ("Erreur : " + error) : "";
-
+    err.textContent = error.trim() ? "Erreur : " + error : "";
     err.style.display = error.trim() ? "" : "none";
 
     openModal();
@@ -57,7 +59,6 @@
   document.addEventListener("click", (e) => {
     if (e.target.matches("[data-close]") || e.target.closest("[data-close]")) closeModal();
   });
-
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") closeModal();
   });

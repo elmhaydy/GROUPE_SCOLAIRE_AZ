@@ -1,0 +1,141 @@
+{% extends "admin/base_admin.html" %}
+{% load static %}
+
+{% block title %}{% if mode == 'create' %}Nouvelle Fiche de Paie{% else %}Modifier Fiche de Paie{% endif %} | Groupe Scolaire{% endblock %}
+{% block page_title %}{% if mode == 'create' %}Saisie d'une Fiche de Paie{% else %}Édition de la Fiche de Paie{% endif %}{% endblock %}
+{% block current_page %}Salaires{% endblock %}
+
+{% block content %}
+<div class="az-page" style="max-width: 900px; margin: 0 auto;">
+
+  <div class="az-card" style="padding: 28px; border-radius: 20px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; border-bottom: 1px solid var(--az-border, rgba(255,255,255,0.1)); padding-bottom: 16px;">
+      <div>
+        <h2 style="font-size: 1.4rem; font-weight: 800; margin: 0 0 4px 0;">
+          {% if mode == 'create' %}Créer une nouvelle Fiche de Paie{% else %}Modifier la Fiche de Paie{% endif %}
+        </h2>
+        <p style="opacity: 0.75; font-size: 0.88rem; margin: 0;">Saisissez les détails de rémunération du personnel.</p>
+      </div>
+
+      <a href="{% url 'core:salaire_list' %}" class="az-btn" style="background: var(--az-bg-secondary, rgba(255,255,255,0.1)); color: inherit; font-weight: 700;">
+        <i class="fa-solid fa-arrow-left"></i> Retour
+      </a>
+    </div>
+
+    <form method="post" class="az-form" novalidate>
+      {% csrf_token %}
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 20px;">
+        <div>
+          <label style="font-weight: 700; font-size: 0.88rem; margin-bottom: 6px; display: block;">Type de Personnel</label>
+          {{ form.personnel_type }}
+        </div>
+
+        <div>
+          <label style="font-weight: 700; font-size: 0.88rem; margin-bottom: 6px; display: block;">Année Scolaire</label>
+          {{ form.annee }}
+        </div>
+
+        <div>
+          <label style="font-weight: 700; font-size: 0.88rem; margin-bottom: 6px; display: block;">Mois Index (1 à 12)</label>
+          {{ form.mois_index }}
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 20px;">
+        <div id="wrap_enseignant">
+          <label style="font-weight: 700; font-size: 0.88rem; margin-bottom: 6px; display: block;">Sélectionner l'Enseignant</label>
+          {{ form.enseignant }}
+        </div>
+
+        <div id="wrap_user">
+          <label style="font-weight: 700; font-size: 0.88rem; margin-bottom: 6px; display: block;">Sélectionner l'Utilisateur Staff</label>
+          {{ form.user }}
+        </div>
+      </div>
+
+      <div style="background: var(--az-bg-secondary, rgba(255,255,255,0.04)); padding: 20px; border-radius: 16px; border: 1px solid var(--az-border, rgba(255,255,255,0.1)); margin-bottom: 24px;">
+        <h4 style="font-size: 0.95rem; font-weight: 800; margin: 0 0 16px 0;">Calcul de Rémunération (MAD)</h4>
+        
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+          <div>
+            <label style="font-weight: 700; font-size: 0.85rem; opacity: 0.85; margin-bottom: 6px; display: block;">Salaire de base</label>
+            {{ form.salaire_base }}
+          </div>
+
+          <div>
+            <label style="font-weight: 700; font-size: 0.85rem; color: #10b981; margin-bottom: 6px; display: block;">Primes / Bonus (+)</label>
+            {{ form.primes }}
+          </div>
+
+          <div>
+            <label style="font-weight: 700; font-size: 0.85rem; color: #ef4444; margin-bottom: 6px; display: block;">Déductions / Retenues (-)</label>
+            {{ form.deductions }}
+          </div>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-bottom: 20px;">
+        <div>
+          <label style="font-weight: 700; font-size: 0.88rem; margin-bottom: 6px; display: block;">Statut du Règlement</label>
+          {{ form.statut }}
+        </div>
+
+        <div>
+          <label style="font-weight: 700; font-size: 0.88rem; margin-bottom: 6px; display: block;">Date de Paiement</label>
+          {{ form.date_paiement }}
+        </div>
+
+        <div>
+          <label style="font-weight: 700; font-size: 0.88rem; margin-bottom: 6px; display: block;">Mode de Paiement</label>
+          {{ form.mode_paiement }}
+        </div>
+      </div>
+
+      <div style="margin-bottom: 20px;">
+        <label style="font-weight: 700; font-size: 0.88rem; margin-bottom: 6px; display: block;">Référence de Virement / Chèque</label>
+        {{ form.reference_virement }}
+      </div>
+
+      <div style="margin-bottom: 28px;">
+        <label style="font-weight: 700; font-size: 0.88rem; margin-bottom: 6px; display: block;">Remarques / Notes</label>
+        {{ form.remarques }}
+      </div>
+
+      <div style="display: flex; gap: 14px; justify-content: flex-end;">
+        <a href="{% url 'core:salaire_list' %}" class="az-btn" style="background: var(--az-bg-secondary, rgba(255,255,255,0.1)); color: inherit; font-weight: 700;">Annuler</a>
+        <button type="submit" class="az-btn" style="background: #4f46e5; color: #fff; font-weight: 700; padding: 12px 28px;">
+          <i class="fa-solid fa-floppy-disk"></i> Enregistrer la Fiche de Paie
+        </button>
+      </div>
+
+    </form>
+  </div>
+
+</div>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const pTypeSelect = document.getElementById("id_personnel_type");
+    const wrapEnseignant = document.getElementById("wrap_enseignant");
+    const wrapUser = document.getElementById("wrap_user");
+
+    function togglePersonnelFields() {
+      if (!pTypeSelect) return;
+      const val = pTypeSelect.value;
+      if (val === "STAFF") {
+        wrapEnseignant.style.display = "none";
+        wrapUser.style.display = "block";
+      } else {
+        wrapEnseignant.style.display = "block";
+        wrapUser.style.display = "none";
+      }
+    }
+
+    if (pTypeSelect) {
+      pTypeSelect.addEventListener("change", togglePersonnelFields);
+      togglePersonnelFields();
+    }
+  });
+</script>
+{% endblock %}

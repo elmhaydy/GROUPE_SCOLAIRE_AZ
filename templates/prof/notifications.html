@@ -1,0 +1,102 @@
+{% extends "prof/base_prof.html" %}
+{% load static %}
+
+{% block title %}Notifications | Espace Prof{% endblock %}
+{% block page_title %}Notifications{% endblock %}
+{% block current_page %}Notifications{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'admin/css/notifications/inbox.css' %}?v=1">
+{% endblock %}
+
+{% block content %}
+<div class="ni">
+
+  <header class="ni-hero">
+    <div>
+      <div class="ni-pill"><i class="fa-solid fa-bell"></i> Notifications</div>
+      <h1>Mes notifications</h1>
+      <p>{% if total_unread %}<strong>{{ total_unread }}</strong> non lue{{ total_unread|pluralize }}{% else %}Tout est lu{% endif %}</p>
+    </div>
+    {% if total_unread %}
+    <div class="ni-hero__actions">
+      <form method="post" action="{% url 'core:notif_mark_all_read' %}" style="margin:0">
+        {% csrf_token %}
+        <button type="submit" class="ni-btn primary">
+          <i class="fa-solid fa-check-double"></i> Tout marquer lu
+        </button>
+      </form>
+    </div>
+    {% endif %}
+  </header>
+
+  <div class="ni-filters">
+    <span class="ni-filter-label">Statut :</span>
+    <div class="ni-filter-group">
+      <a href="?show=all"    class="ni-filter-btn {% if show_filter == 'all' %}active{% endif %}">Toutes</a>
+      <a href="?show=unread" class="ni-filter-btn {% if show_filter == 'unread' %}active{% endif %}">Non lues</a>
+    </div>
+  </div>
+
+  {% if notifications %}
+  <div class="ni-list">
+    {% for n in notifications %}
+    <div class="ni-item {% if not n.read %}unread{% endif %}" id="notif-{{ n.pk }}">
+      <div class="ni-item__dot"></div>
+      <div class="ni-icon ni-icon--{{ n.category_css }}">
+        <i class="fa-solid {{ n.category_icon }}"></i>
+      </div>
+      <div class="ni-item__body">
+        <div class="ni-item__title">{{ n.title }}</div>
+        {% if n.body %}<div class="ni-item__body-text">{{ n.body }}</div>{% endif %}
+        <div class="ni-item__meta">
+          <span class="ni-badge ni-badge--{{ n.category_css }}">{{ n.get_category_display }}</span>
+          <span class="ni-time"><i class="fa-regular fa-clock"></i> {{ n.created_at|timesince }}</span>
+        </div>
+      </div>
+      <div class="ni-item__actions">
+        {% if not n.read %}
+        <button class="ni-mark-btn js-mark-read" data-id="{{ n.pk }}"
+                data-url="{% url 'core:notif_mark_read' n.pk %}">
+          <i class="fa-solid fa-check"></i> Lue
+        </button>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="ni-list">
+    <div class="ni-empty">
+      <i class="fa-solid fa-bell-slash"></i>
+      <p>Aucune notification{% if show_filter == 'unread' %} non lue{% endif %}.</p>
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.querySelectorAll(".js-mark-read").forEach(btn => {
+  btn.addEventListener("click", function () {
+    const id = this.dataset.id, url = this.dataset.url;
+    fetch(url, {
+      method: "POST",
+      headers: { "X-CSRFToken": document.cookie.match(/csrftoken=([^;]+)/)?.[1] || "", "X-Requested-With": "XMLHttpRequest" },
+    }).then(r => r.json()).then(data => {
+      if (data.ok) {
+        const item = document.getElementById("notif-" + id);
+        if (item) {
+          item.classList.remove("unread");
+          this.remove();
+          const badge = document.getElementById("az-notif-badge");
+          if (badge) { const c = parseInt(badge.textContent)||0; if(c<=1) badge.remove(); else badge.textContent = c-1; }
+        }
+      }
+    });
+  });
+});
+</script>
+{% endblock %}

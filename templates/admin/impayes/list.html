@@ -1,7 +1,7 @@
 {% extends "admin/base_admin.html" %}
 {% load static %}
 
-{% block title %}Impayés | AZ{% endblock %}
+{% block title %}Impayés | Groupe Scolaire{% endblock %}
 {% block page_title %}Impayés{% endblock %}
 {% block current_page %}Finance / Impayés{% endblock %}
 
@@ -184,7 +184,7 @@
           </div>
 
           <div class="az-cell az-actions">
-            <a class="az-btn az-btn-outline" href="{% url 'core:paiement_create_for_inscription' i.id %}?nature=INSCRIPTION">
+            <a class="az-btn az-btn-outline" href="{% url 'core:transaction_wizard' %}?inscription_id={{ i.id }}&type=INSCRIPTION">
               <i class="fa-solid fa-credit-card"></i> Payer
             </a>
 

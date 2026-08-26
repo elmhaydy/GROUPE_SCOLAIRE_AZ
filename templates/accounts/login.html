@@ -5,14 +5,16 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Portail Éducatif | Groupe Scolaire Excellence</title>
+  <title>Portail Éducatif | Groupe Scolaire</title>
 
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
-  <link rel="icon" type="image/png" sizes="32x32" href="{% static 'img/favicon.png' %}">
-  <link rel="icon" type="image/png" sizes="16x16" href="{% static 'img/favicon.png' %}">
-  <link rel="apple-touch-icon" href="{% static 'img/favicon.png' %}">
+  <link rel="icon" type="image/png" sizes="32x32" href="{% static 'img/logo-embf.png' %}" media="(prefers-color-scheme: light)">
+  <link rel="icon" type="image/png" sizes="32x32" href="{% static 'img/logo-embf.png' %}" media="(prefers-color-scheme: dark)">
+  <link rel="icon" type="image/png" sizes="16x16" href="{% static 'img/logo-embf.png' %}" media="(prefers-color-scheme: light)">
+  <link rel="icon" type="image/png" sizes="16x16" href="{% static 'img/logo-embf.png' %}" media="(prefers-color-scheme: dark)">
+  <link rel="apple-touch-icon" href="{% static 'img/logo-embf.png' %}">
 
   <style>
     :root {
@@ -71,19 +73,19 @@
 
     .slide-1 {
       background-image: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.5)),
-                        url('https://app.groupescolaireaz.ma/uploads/images/events/event_6/front_thumb.jpg?YsiG4LUX');
+                        url("{% static 'login/1.png' %}");
     }
     .slide-2 {
       background-image: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.5)),
-                        url('https://www.temaracity.com/fr/wp-content/uploads/2021/08/GROUPESCOLAIREazTEMARA-1-424x280.jpg');
+                        url("{% static 'login/2.png' %}");
     }
     .slide-3 {
       background-image: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.5)),
-                        url('https://www.groupescolaireaz.ma/Web/images/frontend/Home/index/slides/5.jpg?qr50GIWR');
+                        url("{% static 'login/3.png' %}");
     }
     .slide-4 {
       background-image: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.5)),
-                        url('https://www.groupescolaireaz.ma/Web/images/frontend/Home/index/slides/2.jpg');
+                        url("{% static 'login/4.png' %}");
     }
 
     .carousel-overlay {
@@ -122,23 +124,39 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      background: white;
-      padding: 15px;
-      border-radius: 20px;
-      box-shadow: 0 10px 20px rgba(0,0,0,0.05);
-      margin-bottom: 25px;
+      background: transparent !important;
+      padding: 0 !important;
+      border-radius: 0 !important;
+      border: none !important;
+      box-shadow: none !important;
+      margin-bottom: 20px;
     }
 
-    .logo-icon {
-      width: 55px;
-      height: 55px;
-      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-      border-radius: 14px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 26px;
-      color: white;
+    .logo-image {
+      width: 90px;
+      height: 90px;
+      object-fit: contain;
+      display: none;
+    }
+
+    .logo-image-light {
+      display: block;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      .logo-section {
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+      }
+
+      .logo-image-light {
+        display: none;
+      }
+
+      .logo-image-dark {
+        display: block;
+      }
     }
 
     .login-title {
@@ -341,15 +359,17 @@
   <div class="login-container" id="loginContainer">
     <div class="login-card">
       <div class="login-header">
+        {% if error %}
+          <div class="alert-error">{{ error }}</div>
+        {% endif %}
         <div class="logo-section">
-          <div class="logo-icon">
-            <i class="fas fa-graduation-cap"></i>
-          </div>
+          <img src="{% static 'img/logo-embf.png' %}" class="logo-image logo-image-light" alt="Logo Groupe Scolaire">
+          <img src="{% static 'img/logo-emb.png' %}" class="logo-image logo-image-dark" alt="Logo Groupe Scolaire">
         </div>
-        <h1 class="login-title">Groupe Scolaire AZ</h1>
+        <h1 class="login-title">Groupe Scolaire</h1>
         <p class="login-subtitle">Espace Scolaire</p>
       </div>
-
+  
       <!-- ✅ IMPORTANT: action + post + csrf -->
       <form id="loginForm" method="post" action="{% url 'accounts:login'%}">
         {% csrf_token %}
@@ -407,8 +427,7 @@
           <label class="remember-me">
             <input type="checkbox" name="remember"> Se souvenir de moi
           </label>
-          <!-- Mets ici ton URL reset si tu en as -->
-          <a href="#" class="forgot-password">Oublié ?</a>
+          <a href="{% url 'accounts:password_reset_request' %}" class="forgot-password">Mot de passe oublié ?</a>
         </div>
 
         <button type="submit" class="login-button" id="submitBtn">
@@ -424,10 +443,12 @@
 {% endif %}
 
       <div class="login-footer">
-        <p class="copyright">© 2026 Groupe Scolaire Excellence</p>
+        <p class="copyright">© 2026 Groupe Scolaire • Créé par <a href="https://www.linkedin.com/in/el-mehdi-bougrin" target="_blank" rel="noopener noreferrer" style="color: #2563eb; font-weight: 700; text-decoration: none;"><i class="fab fa-linkedin"></i> El_Mehdi_Bougrin</a></p>
         <div class="footer-links">
-          <a href="#" class="footer-link">Assistance</a>
-          <a href="#" class="footer-link">Confidentialité</a>
+          <a href="{% url 'core:aide' %}" class="footer-link">Aide</a>
+          <a href="{% url 'core:confidentialite' %}" class="footer-link">Confidentialité</a>
+          <a href="{% url 'core:conditions' %}" class="footer-link">Conditions</a>
+          <a href="{% url 'core:contact' %}" class="footer-link">Contact</a>
         </div>
       </div>
     </div>

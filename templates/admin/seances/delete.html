@@ -1,13 +1,7 @@
-{% extends "admin/base_admin.html" %}
-{% block title %}Supprimer séance{% endblock %}
-{% block page_title %}Supprimer une séance{% endblock %}
-{% block breadcrumb %}Pédagogie / Emploi du temps / Supprimer{% endblock %}
+<div class="az-card" style="max-width:100%;margin:0;">
+  <h2 style="margin:0 0 8px 0;">Confirmation</h2>
 
-{% block content %}
-<div class="az-card" style="grid-column:span 12;">
-
-  <h3>Confirmation</h3>
-  <p class="az-sub">
+  <p class="az-sub" style="margin:0 0 12px 0;">
     Supprimer la séance :
     <b>{{ s.annee.nom }}</b> —
     {{ s.groupe.niveau.degre.nom }}/{{ s.groupe.niveau.nom }}/{{ s.groupe.nom }} —
@@ -19,16 +13,13 @@
   </p>
 
   {% if absences_bloquantes %}
-    <div class="az-alert az-alert-danger" style="margin-top:14px;">
-      <b>⚠️ Attention</b><br>
-      Cette séance est liée à <b>{{ absences_bloquantes|length }}</b> absence(s).<br>
-      - Suppression normale : bloquée<br>
-      - <b>Forcer</b> : supprimera d’abord ces absences, puis la séance.
+    <div class="az-alert az-alert-danger" style="margin-bottom:14px;">
+      <b>❌ Suppression impossible</b><br>
+      Cette séance est liée à <b>{{ absences_bloquantes|length }}</b> absence(s).
     </div>
 
-    <div style="margin-top:14px;">
+    <div style="margin-bottom:14px;">
       <h4 style="margin:0 0 10px 0;">Absences liées</h4>
-
       <ul style="padding-left:18px;margin:0;">
         {% for a in absences_bloquantes %}
           <li style="margin-bottom:8px;">
@@ -37,47 +28,31 @@
             — <b>{{ a.get_type_display }}</b>
             {% if a.justifie %} ✅ Justifiée{% endif %}
             {% if a.motif %} — {{ a.motif }}{% endif %}
-
-            <div style="margin-top:6px;display:flex;gap:8px;flex-wrap:wrap;">
-              <a class="az-btn az-btn-soft" href="{% url 'core:absence_update' a.id %}">
-                Modifier l’absence
-              </a>
-              <a class="az-btn az-btn-soft" href="{% url 'core:absence_delete' a.id %}">
-                Supprimer l’absence
-              </a>
-            </div>
           </li>
         {% endfor %}
       </ul>
     </div>
   {% endif %}
 
-  <form method="post" style="margin-top:18px;display:flex;gap:10px;flex-wrap:wrap;">
+  <form method="post"
+        action="{% url 'core:seance_delete' s.id %}"
+        style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;">
     {% csrf_token %}
 
-    {% if absences_bloquantes %}
-      <!-- Normal delete (bloqué) -->
-      <button class="az-btn" type="submit" name="action" value="delete" disabled
-              style="opacity:.5;cursor:not-allowed;border-color:rgba(255,80,80,.35);">
-        🗑️ Suppression normale bloquée
-      </button>
+    <button type="button" class="az-btn az-btn-outline" data-azm-close>
+      Annuler
+    </button>
 
-      <!-- Force delete -->
-      <button class="az-btn" type="submit" name="action" value="force"
-              style="border-color:rgba(255,80,80,.35);">
-        ⚠️ 🗑️ Forcer la suppression
+    {% if absences_bloquantes %}
+      <button class="az-btn az-btn-danger" type="submit" name="action" value="force">
+        <i class="fa-solid fa-bomb"></i>
+        Forcer la suppression
       </button>
     {% else %}
-      <button class="az-btn" type="submit" name="action" value="delete"
-              style="border-color:rgba(255,80,80,.35);">
-        🗑️ Oui, supprimer
+      <button class="az-btn az-btn-danger" type="submit" name="action" value="delete">
+        <i class="fa-solid fa-trash"></i>
+        Supprimer
       </button>
     {% endif %}
-
-    <a class="az-btn az-btn-gradient" href="{% url 'core:seance_list' %}">
-      Annuler
-    </a>
   </form>
-
 </div>
-{% endblock %}

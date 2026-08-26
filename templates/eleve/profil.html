@@ -23,6 +23,8 @@
     <div class="p2-avatar">
       {% if eleve.photo %}
         <img src="{{ eleve.photo.url }}" alt="Photo">
+      {% elif user_avatar_url %}
+        <img src="{{ user_avatar_url }}" alt="Photo">
       {% else %}
         <div class="p2-fallback">{{ eleve.prenom|slice:":1" }}{{ eleve.nom|slice:":1" }}</div>
       {% endif %}

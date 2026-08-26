@@ -16,4 +16,6 @@ class CoreConfig(AppConfig):
     def ready(self):
         from . import signals  # charge signals.py
         import core.signals_tarifs  # charge signals_tarifs.py
+        from . import audit_signals
+        audit_signals.connect()  # connecte les signaux d'audit
         post_migrate.connect(_run_ensure_groups, sender=self)

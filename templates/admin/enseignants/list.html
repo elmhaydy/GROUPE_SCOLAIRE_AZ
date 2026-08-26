@@ -1,241 +1,273 @@
 {% extends "admin/base_admin.html" %}
 {% load static %}
 
-{% block title %}Enseignants | AZ{% endblock %}
+{% block title %}Enseignants | Groupe Scolaire{% endblock %}
 {% block page_title %}Enseignants{% endblock %}
-{% block breadcrumb %}Pédagogie / Enseignants{% endblock %}
+{% block current_page %}Pédagogie / Enseignants{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'admin/css/enseignants/list.css' %}?v=2">
+<link rel="stylesheet" href="{% static 'admin/css/nebula/az-lists.css' %}?v=3">
 {% endblock %}
 
 {% block content %}
+<div class="az-list-page">
 
-<!-- ===== Page Head ===== -->
-<div class="az-page-head">
-  <div class="az-page-head-left">
-    <div class="az-pill {% if not annee_active %}az-pill-warn{% endif %}">
-      {% if annee_active %}
-        <i class="fa-solid fa-circle-check"></i>
-        <span>Année active : <b>{{ annee_active.nom }}</b></span>
-      {% else %}
-        <i class="fa-solid fa-triangle-exclamation"></i>
-        <span>Aucune année active</span>
-      {% endif %}
+  <!-- ===============================
+       PAGE HEAD
+  =============================== -->
+  <div class="az-page-head">
+
+    <div class="az-page-head-left">
+      <div class="az-pill">
+        {% if annee_active %}
+          <i class="fa-solid fa-circle-check"></i>
+          <span>Année active : <b>{{ annee_active.nom }}</b></span>
+        {% else %}
+          <i class="fa-solid fa-triangle-exclamation"></i>
+          <span>Aucune année active</span>
+        {% endif %}
+      </div>
     </div>
+
+<div class="az-page-head-right">
+
+  <div class="az-counter-pill" title="Nombre d'enseignants">
+    <i class="fa-solid fa-chalkboard-user"></i>
+    <span>{{ enseignants|length }}</span>
+    <small>enseignants</small>
   </div>
 
-  <div class="az-page-head-right">
-    <a class="az-btn az-btn-primary" href="{% url 'core:enseignant_create' %}">
-      <i class="fa-solid fa-plus"></i>
-      Ajouter un enseignant
-    </a>
+  <a class="az-btn az-btn-primary" href="{% url 'core:enseignant_create' %}">
+    <i class="fa-solid fa-plus"></i>
+    Ajouter enseignant
+  </a>
+
+</div>
   </div>
-</div>
 
-<!-- ===== Filter Bar ===== -->
-<div class="az-filter-bar">
-  <form method="get" class="az-filter-form" id="ensFilterForm">
 
-    <div class="az-filter-label">
-      <i class="fa-solid fa-filter"></i>
-      Filtres
-    </div>
+  <!-- ===============================
+       FILTER BAR
+  =============================== -->
+  <div class="az-filter-bar">
+    <form method="get" class="az-filter-form">
 
-    <div class="az-field az-field-wide">
-      <div class="az-field-label">Recherche</div>
-      <input class="az-input" type="text" name="q" value="{{ q }}"
-             placeholder="Matricule, nom, téléphone...">
-    </div>
+      <div class="az-filter-label">
+        <i class="fa-solid fa-filter"></i>
+        <span>Filtres</span>
+      </div>
 
-    <div class="az-field">
-      <div class="az-field-label">Statut</div>
-      <select class="az-select" name="statut" id="id_statut">
-        <option value="" {% if not statut %}selected{% endif %}>Tous</option>
-        <option value="actifs" {% if statut == "actifs" %}selected{% endif %}>Actifs</option>
-        <option value="inactifs" {% if statut == "inactifs" %}selected{% endif %}>Inactifs</option>
-      </select>
-    </div>
+      <div class="az-field">
+        <div class="az-field-label">Recherche</div>
+        <input class="az-input" name="q" value="{{ q }}" placeholder="Matricule, nom, téléphone...">
+      </div>
 
-    <div class="az-field">
-      <div class="az-field-label">Année</div>
-      <select class="az-select" id="id_annee" name="annee">
-        <option value="">(Auto: année active)</option>
-        {% for a in annees %}
-          <option value="{{ a.id }}" {% if a.id|stringformat:"s" == annee_selected %}selected{% endif %}>
-            {{ a.nom }}
-          </option>
-        {% endfor %}
-      </select>
-    </div>
+      <div class="az-field">
+        <div class="az-field-label">Statut</div>
+        <select name="statut" class="az-select">
+          <option value="" {% if not statut %}selected{% endif %}>Tous</option>
+          <option value="actifs" {% if statut == "actifs" %}selected{% endif %}>Actifs</option>
+          <option value="inactifs" {% if statut == "inactifs" %}selected{% endif %}>Inactifs</option>
+        </select>
+      </div>
 
-    <div class="az-field">
-      <div class="az-field-label">Niveau</div>
-      <select class="az-select" id="id_niveau" name="niveau">
-        <option value="">Tous les niveaux</option>
-        {% for n in niveaux %}
-          <option value="{{ n.id }}" {% if n.id|stringformat:"s" == niveau_selected %}selected{% endif %}>
-            {{ n.degre.nom }} — {{ n.nom }}
-          </option>
-        {% endfor %}
-      </select>
-    </div>
+      <div class="az-field">
+        <div class="az-field-label">Année</div>
+        <select id="id_annee" name="annee" class="az-select">
+          <option value="">(Auto: année active)</option>
+          {% for a in annees %}
+            <option value="{{ a.id }}" {% if a.id|stringformat:"s" == annee_selected %}selected{% endif %}>
+              {{ a.nom }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
 
-    <div class="az-field">
-      <div class="az-field-label">Groupe</div>
-      <select class="az-select" id="id_groupe" name="groupe">
-        <option value="">Tous les groupes</option>
-        {% for g in groupes %}
-          <option value="{{ g.id }}" {% if g.id|stringformat:"s" == groupe_selected %}selected{% endif %}>
-            {{ g.nom }}
-          </option>
-        {% endfor %}
-      </select>
-    </div>
-<div class="az-field">
-  <div class="az-field-label">Matière</div>
-  <select class="az-select az-select-wide" name="matiere">
-    <option value="">— Toutes —</option>
-    {% for m in matieres %}
-      <option value="{{ m.id }}"
-        {% if matiere_selected == m.id|stringformat:"s" %}selected{% endif %}>
-        {{ m.nom }}
-      </option>
-    {% endfor %}
-  </select>
-</div>
-    <div class="az-field">
-      <div class="az-field-label">Période</div>
-      <select class="az-select" id="id_periode" name="periode">
-        <option value="">Toutes</option>
-        {% for p in periodes %}
-          <option value="{{ p.id }}" {% if p.id|stringformat:"s" == periode_selected %}selected{% endif %}>
-            {{ p.nom }}
-          </option>
-        {% endfor %}
-      </select>
-    </div>
+      <div class="az-field">
+        <div class="az-field-label">Niveau</div>
+        <select id="id_niveau" name="niveau" class="az-select">
+          <option value="">Tous</option>
+          {% for n in niveaux %}
+            <option value="{{ n.id }}" {% if n.id|stringformat:"s" == niveau_selected %}selected{% endif %}>
+              {{ n.degre.nom }} — {{ n.nom }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
 
-    <div class="az-filter-actions">
-      <button class="az-btn az-btn-primary" type="submit" title="Appliquer">
+      <div class="az-field">
+        <div class="az-field-label">Groupe</div>
+        <select id="id_groupe" name="groupe" class="az-select">
+          <option value="">Tous</option>
+          {% for g in groupes %}
+            <option value="{{ g.id }}" {% if g.id|stringformat:"s" == groupe_selected %}selected{% endif %}>
+              {{ g.nom }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="az-field">
+        <div class="az-field-label">Matière</div>
+        <select name="matiere" class="az-select az-select-wide">
+          <option value="">Toutes</option>
+          {% for m in matieres %}
+            <option value="{{ m.id }}" {% if matiere_selected == m.id|stringformat:"s" %}selected{% endif %}>
+              {{ m.nom }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="az-field">
+        <div class="az-field-label">Période</div>
+        <select id="id_periode" name="periode" class="az-select">
+          <option value="">Toutes</option>
+          {% for p in periodes %}
+            <option value="{{ p.id }}" {% if p.id|stringformat:"s" == periode_selected %}selected{% endif %}>
+              {{ p.nom }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <button class="az-btn az-btn-soft" type="submit">
         <i class="fa-solid fa-magnifying-glass"></i>
         Filtrer
       </button>
-      <a class="az-btn az-btn-ghost" href="{% url 'core:enseignant_list' %}" title="Réinitialiser">
+
+      <a class="az-btn az-btn-ghost" href="{% url 'core:enseignant_list' %}">
         <i class="fa-solid fa-rotate-right"></i>
+        Reset
       </a>
-    </div>
 
-  </form>
-</div>
-
-<!-- ===== Card ===== -->
-<div class="az-ens-card az-card">
-  <div class="az-card-head">
-    <div class="az-card-title">
-      <i class="fa-solid fa-chalkboard-user"></i>
-      <div>
-        <div class="az-card-title-main">Liste des enseignants</div>
-        <div class="az-card-title-sub">Gestion, statut, affectations</div>
-      </div>
-    </div>
+    </form>
   </div>
 
-  <!-- ===== Table Grid ===== -->
-  <div class="az-table">
-    <div class="az-thead">
-      <div>Matricule</div>
-      <div>Enseignant</div>
-      <div>Spécialité</div>
-      <div>Téléphone</div>
-      <div>Statut</div>
-      <div class="az-th-actions">Actions</div>
+
+  <!-- ===============================
+       CARD + TABLE
+  =============================== -->
+  <div class="az-card">
+
+    <div class="az-card-head" style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+      <h3 class="az-card-title">
+        <i class="fa-solid fa-chalkboard-user"></i>
+        Liste des enseignants
+      </h3>
+      {% include "admin/includes/gmail_pagination.html" %}
     </div>
 
-    <div class="az-tbody">
-      {% for e in enseignants %}
-      <div class="az-row">
-        <div class="az-cell">
-          <span class="az-strong az-code">{{ e.matricule }}</span>
-        </div>
+    <div class="az-table az-cols-6">
 
-        <!-- ✅ Avatar + Nom -->
-        <div class="az-cell">
-          <div class="az-ens-ident">
-            <div class="az-ens-avatar">
-              {% if e.photo %}
-                <img src="{{ e.photo.url }}" alt="Photo {{ e.nom }} {{ e.prenom }}">
-              {% else %}
-                <span class="az-ens-initials">
-                  {{ e.nom|default:""|slice:":1"|upper }}{{ e.prenom|default:""|slice:":1"|upper }}
-                </span>
-              {% endif %}
-            </div>
+      <div class="az-thead">
+        <div>Matricule</div>
+        <div>Nom</div>
+        <div>Spécialité</div>
+        <div>Téléphone</div>
+        <div>Statut</div>
+        <div class="az-th-actions">Actions</div>
+      </div>
 
-            <div class="az-ens-meta">
-              <div class="az-strong">{{ e.nom }} {{ e.prenom }}</div>
-              <div class="az-sub-mini">{{ e.email|default:"—" }}</div>
+      <div class="az-tbody">
+
+        {% for e in enseignants %}
+        <div class="az-row">
+
+          <div class="az-cell az-strong" data-label="Matricule">
+            {{ e.matricule }}
+          </div>
+
+          <div class="az-cell" data-label="Nom">
+            {{ e.nom }} {{ e.prenom }}
+          </div>
+
+          <div class="az-cell" data-label="Spécialité">
+            {{ e.specialite|default:"—" }}
+          </div>
+
+          <div class="az-cell" data-label="Téléphone">
+            {{ e.telephone|default:"—" }}
+          </div>
+
+          <div class="az-cell" data-label="Statut">
+            {% if e.is_active %}
+              <span class="az-badge az-badge-success">
+                <i class="fa-solid fa-check"></i> Actif
+              </span>
+            {% else %}
+              <span class="az-badge az-badge-muted">Inactif</span>
+            {% endif %}
+          </div>
+
+          <div class="az-cell az-actions" data-label="Actions">
+            <div class="az-actions-menu" data-menu>
+
+              <button type="button"
+                      class="az-kebab"
+                      data-menu-btn
+                      aria-haspopup="menu"
+                      aria-expanded="false">
+                <i class="fa-solid fa-ellipsis-vertical"></i>
+              </button>
+
+              <div class="az-menu" data-menu-panel role="menu">
+
+                <a class="az-menu-item" href="{% url 'core:enseignant_detail' e.id %}">
+                  <i class="fa-solid fa-eye"></i>
+                  <span>Voir</span>
+                </a>
+
+                <a class="az-menu-item" href="{% url 'core:enseignant_update' e.id %}">
+                  <i class="fa-solid fa-pen"></i>
+                  <span>Modifier</span>
+                </a>
+
+                <a class="az-menu-item" href="{% url 'core:enseignant_affectations' e.id %}">
+                  <i class="fa-solid fa-thumbtack"></i>
+                  <span>Affectations</span>
+                </a>
+
+                <div class="az-menu-sep"></div>
+
+                <button type="button"
+                        class="az-menu-item az-menu-item-danger"
+                        data-delete-modal
+                        data-modal-url="{% url 'core:enseignant_delete_modal' e.id %}">
+                  <i class="fa-solid fa-trash"></i>
+                  <span>Supprimer</span>
+                </button>
+
+              </div>
+
             </div>
           </div>
+
+        </div>
+        {% empty %}
+
+        <div class="az-empty">
+          <i class="fa-solid fa-inbox"></i>
+          <div>Aucun enseignant trouvé</div>
         </div>
 
-        <div class="az-cell">
-          {{ e.specialite|default:"—" }}
-        </div>
+        {% endfor %}
 
-        <div class="az-cell">
-          {{ e.telephone|default:"—" }}
-        </div>
-
-        <div class="az-cell">
-          {% if e.is_active %}
-            <span class="az-badge az-badge-success">
-              <i class="fa-solid fa-check"></i> Actif
-            </span>
-          {% else %}
-            <span class="az-badge az-badge-muted">
-              <i class="fa-solid fa-minus"></i> Inactif
-            </span>
-          {% endif %}
-        </div>
-
-        <div class="az-cell">
-          <div class="az-actions">
-            <a class="az-btn az-btn-soft" href="{% url 'core:enseignant_detail' e.id %}" title="Voir">
-              <i class="fa-solid fa-eye"></i>
-            </a>
-            <a class="az-btn az-btn-soft" href="{% url 'core:enseignant_update' e.id %}" title="Modifier">
-              <i class="fa-solid fa-pen"></i>
-            </a>
-            <a class="az-btn az-btn-primary" href="{% url 'core:enseignant_affectations' e.id %}" title="Affectations">
-              <i class="fa-solid fa-thumbtack"></i>
-              Affectations
-            </a>
-          </div>
-        </div>
       </div>
-      {% empty %}
-      <div class="az-empty">
-        <i class="fa-solid fa-inbox"></i>
-        <div class="az-empty-title">Aucun enseignant trouvé</div>
-        <div class="az-empty-sub">Modifie tes filtres pour voir plus de résultats.</div>
-      </div>
-      {% endfor %}
     </div>
+
   </div>
+
 </div>
 
-<!-- ✅ URLs AJAX pour le JS -->
 <script>
-  window.AZ_ENS = {
-    urlNiveaux: "{% url 'core:ajax_niveaux' %}",
-    urlGroupes: "{% url 'core:ajax_groupes' %}",
-    urlPeriodes: "{% url 'core:ajax_periodes' %}"
-  };
+window.AZ_ENS = {
+  urlNiveaux: "{% url 'core:ajax_niveaux' %}",
+  urlGroupes: "{% url 'core:ajax_groupes' %}",
+  urlPeriodes: "{% url 'core:ajax_periodes' %}"
+};
 </script>
 
-{% endblock %}
+<script src="{% static 'admin/js/enseignants/list.js' %}"></script>
 
-{% block extra_js %}
-<script src="{% static 'admin/js/enseignants/list.js' %}?v=1"></script>
 {% endblock %}

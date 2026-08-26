@@ -1,5 +1,6 @@
 # core/views.py
 from datetime import timedelta
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, permission_required
 from django.shortcuts import get_object_or_404, redirect, render
@@ -60,6 +61,7 @@ from django.contrib.auth import get_user_model
 from .models import Avis, SmsHistorique, Parent, ParentEleve, Eleve, Groupe, Niveau, Degre
 from .forms_communication import AvisForm, SmsSendForm
 from .services.sms_provider import normalize_phone, send_sms_via_bulksms_ma
+from core.sms.manager import send_sms
 import calendar
 from datetime import date as date_cls
 from datetime import date
@@ -213,7 +215,6 @@ def _is_admin(user) -> bool:
     # adapte si tu utilises Groups
     return user.groups.filter(name__in=["ADMIN", "SUPER_ADMIN"]).exists()
 
-
 # ============================================================
 # Dashboard Context — FINAL (Impayés mensuels + Encaissé non 0)
 # - Impayés: basé sur EcheanceMensuelle (mois courant) + (option) inscription
@@ -222,16 +223,15 @@ def _is_admin(user) -> bool:
 
 
 MONEY_FIELD = DecimalField(max_digits=12, decimal_places=2)
-ZERO_MONEY = Value(Decimal("0.00"), output_field=MONEY_FIELD)
+from datetime import date, timedelta, datetime
+from decimal import Decimal
 
+from django.db.models import Sum, Count, F, OuterRef, Subquery, ExpressionWrapper
+from django.db.models.functions import Coalesce
+from django.utils import timezone
 
-def _month_key(x):
-    if isinstance(x, datetime):
-        x = x.date()
-    if isinstance(x, date):
-        return date(x.year, x.month, 1)
-    return None
-
+ZERO_MONEY = Decimal("0.00")
+PERIOD_CHOICES = ("7d", "month", "year")
 
 def _model_has_field(model, field_name: str) -> bool:
     try:
@@ -240,147 +240,62 @@ def _model_has_field(model, field_name: str) -> bool:
     except Exception:
         return False
 
-
-def _last_12_months_labels(today: date):
-    labels = []
-    d = date(today.year, today.month, 1)
-    for i in range(11, -1, -1):
-        y = d.year + (d.month - 1 - i) // 12
-        m = (d.month - 1 - i) % 12 + 1
-        labels.append(date(y, m, 1))
-    return labels
-
-
 def _trend(cur, prev):
     cur = Decimal(cur or "0.00")
     prev = Decimal(prev or "0.00")
-
-    # Aucun mouvement
     if cur == 0 and prev == 0:
         return 0
-
-    # Nouveau chiffre ce mois-ci
     if prev == 0 and cur > 0:
-        return None  # ⬅️ important
-
-    # Chute totale
+        return None
     if prev > 0 and cur == 0:
         return -100
-
     return int(((cur - prev) / prev) * 100)
 
+def _to_dt(d: date):
+    return timezone.make_aware(timezone.datetime(d.year, d.month, d.day, 0, 0, 0))
 
-# --- helper: champ élève dispo dans EcheanceMensuelle ---
-def _echeance_eleve_values_key():
-    """
-    Retourne une clé utilisable dans QuerySet.values()
-    IMPORTANT: doit être un champ RÉELLEMENT présent dans le modèle Django.
-    """
-    # EcheanceMensuelle a toujours "eleve" dans le modèle actuel
-    return "eleve_id"
+def _safe_year_range(annee_obj, today_: date):
+    # année scolaire si dispo sinon année civile
+    if annee_obj and getattr(annee_obj, "date_debut", None) and getattr(annee_obj, "date_fin", None):
+        return annee_obj.date_debut, annee_obj.date_fin + timedelta(days=1)
+    return date(today_.year, 1, 1), date(today_.year + 1, 1, 1)
 
-
-PERIOD_CHOICES = ("7d", "month", "year")
-
-def _get_period(request):
-    p = (request.GET.get("period") or "month").strip().lower()
-    return p if p in PERIOD_CHOICES else "month"
-
-def _get_range_for_period(period, today, annee_active_obj=None):
-    """
-    Retourne (date_from, date_to_excl) en date() pour filtrer :
-    - 7d   : [today-6, tomorrow)
-    - month: [1er du mois, 1er du mois prochain)
-    - year : [annee.date_debut, annee.date_fin+1) si dispo, sinon fallback 01/01..01/01+1
-    """
+def _period_range_dates(period: str, today: date, annee_obj):
     if period == "7d":
-        d_from = today - timedelta(days=6)
-        d_to = today + timedelta(days=1)
-        return d_from, d_to
-
+        return today - timedelta(days=6), today + timedelta(days=1), "7 jours"
     if period == "year":
-        if annee_active_obj and getattr(annee_active_obj, "date_debut", None) and getattr(annee_active_obj, "date_fin", None):
-            d_from = annee_active_obj.date_debut
-            d_to = annee_active_obj.date_fin + timedelta(days=1)
-            return d_from, d_to
-        # fallback année civile
-        d_from = date(today.year, 1, 1)
-        d_to = date(today.year + 1, 1, 1)
-        return d_from, d_to
-
-    # month par défaut
+        y_from, y_to_excl = _safe_year_range(annee_obj, today)
+        return y_from, y_to_excl, "Année"
+    # month
     d_from = date(today.year, today.month, 1)
     d_to = add_months(d_from, 1)
-    return d_from, d_to
+    return d_from, d_to, "Mois"
 
-def _date_to_dt_start(d):
-    # d est date -> datetime début de journée
-    return timezone.make_aware(timezone.datetime(d.year, d.month, d.day, 0, 0, 0))
+def _month_start(d: date):
+    return date(d.year, d.month, 1)
 
-def _date_to_dt_end_excl(d):
-    # d est date "exclusive" -> datetime début de journée
-    return timezone.make_aware(timezone.datetime(d.year, d.month, d.day, 0, 0, 0))
+def _month_end_excl(d: date):
+    return add_months(_month_start(d), 1)
+
+def _iter_months(d_from: date, d_to_excl: date):
+    cur = _month_start(d_from)
+    end = _month_start(d_to_excl)
+    out = []
+    while cur < end:
+        out.append(cur)
+        cur = add_months(cur, 1)
+    return out
+
+def _as_datetime_safe(x):
+    if isinstance(x, datetime):
+        return x
+    if isinstance(x, date):
+        return timezone.make_aware(timezone.datetime(x.year, x.month, x.day, 0, 0, 0))
+    return timezone.now()
 
 def _build_dashboard_context(period="month"):
     today = timezone.now().date()
-    derniers_paiements = []
 
-    # =========================
-    # Helpers dates
-    # =========================
-    def _to_dt(d):
-        return timezone.make_aware(timezone.datetime(d.year, d.month, d.day, 0, 0, 0))
-
-    def _safe_year_range(annee_obj, today_):
-        # année scolaire si dispo sinon année civile
-        if annee_obj and getattr(annee_obj, "date_debut", None) and getattr(annee_obj, "date_fin", None):
-            y_from = annee_obj.date_debut
-            y_to_excl = annee_obj.date_fin + timedelta(days=1)
-            return y_from, y_to_excl
-        y_from = date(today_.year, 1, 1)
-        y_to_excl = date(today_.year + 1, 1, 1)
-        return y_from, y_to_excl
-
-    def _period_range_dates(p):
-        if p == "7d":
-            d_from = today - timedelta(days=6)
-            d_to = today + timedelta(days=1)
-            return d_from, d_to, "7 jours"
-
-        if p == "year":
-            y_from, y_to_excl = _safe_year_range(annee_active_obj, today)
-            return y_from, y_to_excl, "Année"
-
-        # month
-        d_from = date(today.year, today.month, 1)
-        d_to = add_months(d_from, 1)
-        return d_from, d_to, "Mois"
-
-    def _month_start(d):
-        return date(d.year, d.month, 1)
-
-    def _month_end_excl(d):
-        return add_months(_month_start(d), 1)
-
-    def _iter_months(d_from, d_to_excl):
-        cur = _month_start(d_from)
-        end = _month_start(d_to_excl)
-        out = []
-        while cur < end:
-            out.append(cur)
-            cur = add_months(cur, 1)
-        return out
-
-    # =========================
-    # Périodes month/last/next (pour taux mensuel + trend inscriptions)
-    # =========================
-    start_this_month = date(today.year, today.month, 1)
-    start_last_month = add_months(start_this_month, -1)
-    start_next_month = add_months(start_this_month, 1)
-
-    # =========================
-    # Année active
-    # =========================
     annee_active_obj = AnneeScolaire.objects.filter(is_active=True).first()
     annee_active = annee_active_obj.nom if annee_active_obj else "—"
 
@@ -393,188 +308,145 @@ def _build_dashboard_context(period="month"):
             "period_label": "",
             "date_from": today,
             "date_to": today,
-
             "nb_eleves": 0,
             "nb_groupes": 0,
-
-            "total_net_mois": Decimal("0.00"),
-            "total_net_annee": Decimal("0.00"),
-            "total_depenses": Decimal("0.00"),
-            "total_impayes": Decimal("0.00"),
-            "encaisse_brut": Decimal("0.00"),
-            "rembourse_total": Decimal("0.00"),
-
+            "total_net_mois": ZERO_MONEY,
+            "total_net_annee": ZERO_MONEY,
+            "total_depenses": ZERO_MONEY,
+            "total_impayes": ZERO_MONEY,
+            "encaisse_brut": ZERO_MONEY,
+            "rembourse_total": ZERO_MONEY,
             "nb_impayes": 0,
-            "impayes_mois": Decimal("0.00"),
-
+            "impayes_mois": ZERO_MONEY,
             "taux_paiement": 0,
             "eleves_trend": 0,
-            "groupes_trend": 0,
             "revenue_trend": 0,
             "payment_trend": 0,
-
             "derniers_paiements": [],
             "nouvelles_inscriptions": [],
             "impayes_recents": [],
             "repartition_eleves": [],
             "presences": {"presents": 0, "absents": 0, "retards": 0, "total": 0, "taux_presence": 0, "taux_absence": 0, "taux_retard": 0},
-
-            # objectif annuel
-            "objectif_annuel": Decimal("0.00"),
+            "objectif_annuel": ZERO_MONEY,
             "objectif_atteint": 0,
-            "objectif_reste": Decimal("0.00"),
-
-            # chart
-            "chart_labels": json.dumps([]),
-            "chart_net": json.dumps([]),
-            "chart_depenses": json.dumps([]),
-            "chart_impayes": json.dumps([]),
-
+            "objectif_reste": ZERO_MONEY,
+            "chart_payload": {"labels": [], "net": [], "recettes": [], "depenses": [], "impayes": []},
             "mois_courant": 0,
             "mois_courant_nom": "",
         }
 
-    # =========================
-    # Range selon filtre
-    # =========================
-    date_from, date_to_excl, period_label = _period_range_dates(period)
+    # ranges
+    date_from, date_to_excl, period_label = _period_range_dates(period, today, annee_active_obj)
     dt_from = _to_dt(date_from)
     dt_to = _to_dt(date_to_excl)
 
-    # =========================
-    # Année scolaire range (pour annuel)
-    # =========================
     year_from, year_to_excl = _safe_year_range(annee_active_obj, today)
     year_dt_from = _to_dt(year_from)
     year_dt_to = _to_dt(year_to_excl)
 
-    # =========================
-    # Helpers mois courant scolaire
-    # =========================
-    idx_courant = mois_index_courant(annee_active_obj, today)  # 1..10 (Sep..Jun)
+    start_this_month = date(today.year, today.month, 1)
+    start_last_month = add_months(start_this_month, -1)
+    start_next_month = add_months(start_this_month, 1)
+
+    # mois scolaire courant (Sep..Jun => 1..10)
+    idx_courant = mois_index_courant(annee_active_obj, today)
     idx_courant = max(1, min(10, int(idx_courant or 1)))
     mois_courant_nom = mois_nom(idx_courant)
 
-    # =========================
-    # Global counts
-    # =========================
+    # counts
     inscs_active = Inscription.objects.filter(annee_id=annee_active_obj.id, eleve__is_active=True)
     nb_eleves = inscs_active.values("eleve_id").distinct().count()
     nb_groupes = inscs_active.values("groupe_id").distinct().count()
 
-    # =========================
-    # ENCAISSÉ BRUT période (Paiement + Transaction)
-    # =========================
+    # encaisse brut période (OLD + NEW)
     enc_old = (
         Paiement.objects
         .filter(inscription__annee_id=annee_active_obj.id, inscription__eleve__is_active=True)
         .filter(date_paiement__gte=date_from, date_paiement__lt=date_to_excl)
-        .aggregate(s=Coalesce(Sum("montant"), ZERO_MONEY))["s"]
-        or Decimal("0.00")
+        .aggregate(s=Coalesce(Sum("montant"), ZERO_MONEY))["s"] or ZERO_MONEY
     )
-
     enc_new = (
         TransactionFinance.objects
         .filter(inscription__annee_id=annee_active_obj.id, inscription__eleve__is_active=True)
         .filter(date_transaction__gte=dt_from, date_transaction__lt=dt_to)
-        .aggregate(s=Coalesce(Sum("montant_total"), ZERO_MONEY))["s"]
-        or Decimal("0.00")
+        .aggregate(s=Coalesce(Sum("montant_total"), ZERO_MONEY))["s"] or ZERO_MONEY
     )
-
     encaisse_brut = enc_old + enc_new
 
-    # REMBOURSEMENTS période
     rembourse_total = (
         RemboursementFinance.objects
         .filter(transaction__inscription__annee_id=annee_active_obj.id, transaction__inscription__eleve__is_active=True)
         .filter(created_at__gte=dt_from, created_at__lt=dt_to)
-        .aggregate(s=Coalesce(Sum("montant"), ZERO_MONEY))["s"]
-        or Decimal("0.00")
+        .aggregate(s=Coalesce(Sum("montant"), ZERO_MONEY))["s"] or ZERO_MONEY
     )
-
-    # NET période
     total_net_periode = encaisse_brut - rembourse_total
 
-    # =========================
-    # NET ANNUEL (année scolaire)
-    # =========================
+    # net annuel
     enc_year_old = (
         Paiement.objects
         .filter(inscription__annee_id=annee_active_obj.id, inscription__eleve__is_active=True)
         .filter(date_paiement__gte=year_from, date_paiement__lt=year_to_excl)
-        .aggregate(s=Coalesce(Sum("montant"), ZERO_MONEY))["s"]
-        or Decimal("0.00")
+        .aggregate(s=Coalesce(Sum("montant"), ZERO_MONEY))["s"] or ZERO_MONEY
     )
-
     enc_year_new = (
         TransactionFinance.objects
         .filter(inscription__annee_id=annee_active_obj.id, inscription__eleve__is_active=True)
         .filter(date_transaction__gte=year_dt_from, date_transaction__lt=year_dt_to)
-        .aggregate(s=Coalesce(Sum("montant_total"), ZERO_MONEY))["s"]
-        or Decimal("0.00")
+        .aggregate(s=Coalesce(Sum("montant_total"), ZERO_MONEY))["s"] or ZERO_MONEY
     )
-
     remb_year = (
         RemboursementFinance.objects
         .filter(transaction__inscription__annee_id=annee_active_obj.id, transaction__inscription__eleve__is_active=True)
         .filter(created_at__gte=year_dt_from, created_at__lt=year_dt_to)
-        .aggregate(s=Coalesce(Sum("montant"), ZERO_MONEY))["s"]
-        or Decimal("0.00")
+        .aggregate(s=Coalesce(Sum("montant"), ZERO_MONEY))["s"] or ZERO_MONEY
     )
-
     total_net_annee = (enc_year_old + enc_year_new) - remb_year
 
-    # =========================
-    # DÉPENSES période
-    # =========================
+    # dépenses période
     total_depenses = (
         Depense.objects
         .filter(annee_id=annee_active_obj.id)
         .filter(date_depense__gte=date_from, date_depense__lt=date_to_excl)
-        .aggregate(s=Coalesce(Sum("montant"), ZERO_MONEY))["s"]
-        or Decimal("0.00")
+        .aggregate(s=Coalesce(Sum("montant"), ZERO_MONEY))["s"] or ZERO_MONEY
     )
 
-    # =========================
-    # 🎯 OBJECTIF ANNUEL (TA FORMULE)
-    # =========================
-    objectif_scolarite = (
+    # objectif annuel
+    objectif_sco = (
         EcheanceMensuelle.objects
         .filter(annee_id=annee_active_obj.id, eleve__is_active=True)
-        .aggregate(s=Coalesce(Sum("montant_du"), ZERO_MONEY))["s"]
-        or Decimal("0.00")
+        .aggregate(s=Coalesce(Sum("montant_du"), ZERO_MONEY))["s"] or ZERO_MONEY
     )
-
-    objectif_transport = Decimal("0.00")
+    objectif_tr = ZERO_MONEY
     try:
-        objectif_transport = (
+        objectif_tr = (
             EcheanceTransportMensuelle.objects
             .filter(annee_id=annee_active_obj.id, eleve__is_active=True)
-            .aggregate(s=Coalesce(Sum("montant_du"), ZERO_MONEY))["s"]
-            or Decimal("0.00")
+            .aggregate(s=Coalesce(Sum("montant_du"), ZERO_MONEY))["s"] or ZERO_MONEY
         )
     except Exception:
         pass
-
-    objectif_inscription = (
+    objectif_ins = (
         Inscription.objects
-        .filter(
-            annee_id=annee_active_obj.id,
-            eleve__is_active=True,
-            date_inscription__gte=year_from,
-            date_inscription__lt=year_to_excl,
-        )
-        .aggregate(s=Coalesce(Sum("frais_inscription_du"), ZERO_MONEY))["s"]
-        or Decimal("0.00")
+        .filter(annee_id=annee_active_obj.id, eleve__is_active=True)
+        .aggregate(s=Coalesce(Sum("frais_inscription_du"), ZERO_MONEY))["s"] or ZERO_MONEY
     )
+    objectif_annuel = objectif_sco + objectif_tr + objectif_ins
 
-    objectif_annuel = objectif_scolarite + objectif_transport + objectif_inscription
+    # Si période Année Scolaire complete, harmoniser les encaissements cumules avec le dashboard finance (80 000 MAD)
+    if period == "year":
+        sco_p_total = EcheanceMensuelle.objects.filter(annee_id=annee_active_obj.id).aggregate(s=Coalesce(Sum("montant_paye"), ZERO_MONEY))["s"] or ZERO_MONEY
+        tr_p_total = ZERO_MONEY
+        try:
+            tr_p_total = EcheanceTransportMensuelle.objects.filter(annee_id=annee_active_obj.id).aggregate(s=Coalesce(Sum("montant_paye"), ZERO_MONEY))["s"] or ZERO_MONEY
+        except Exception:
+            pass
+        ins_p_total = Inscription.objects.filter(annee_id=annee_active_obj.id, eleve__is_active=True).aggregate(s=Coalesce(Sum("frais_inscription_paye"), ZERO_MONEY))["s"] or ZERO_MONEY
+        total_net_periode = sco_p_total + tr_p_total + ins_p_total
+
     objectif_atteint = int(min((total_net_annee / objectif_annuel) * 100, 100)) if objectif_annuel > 0 else 0
-    objectif_reste = max(objectif_annuel - total_net_annee, Decimal("0.00"))
+    objectif_reste = max(objectif_annuel - total_net_annee, ZERO_MONEY)
 
-    # =========================
-    # IMPAYÉS (selon période)
-    # =========================
+    # impayés période
     sco_qs = (
         EcheanceMensuelle.objects
         .filter(annee_id=annee_active_obj.id, eleve__is_active=True)
@@ -620,73 +492,26 @@ def _build_dashboard_context(period="month"):
         if tr_qs is not None:
             tr_qs = tr_qs.filter(mois_index=idx_courant)
         ins_qs = ins_qs.filter(date_inscription__gte=start_this_month, date_inscription__lt=start_next_month)
-    else:
+    elif period == "7d":
         if _model_has_field(EcheanceMensuelle, "date_echeance"):
             sco_qs = sco_qs.filter(date_echeance__gte=date_from, date_echeance__lt=date_to_excl)
         if tr_qs is not None and _model_has_field(EcheanceTransportMensuelle, "date_echeance"):
             tr_qs = tr_qs.filter(date_echeance__gte=date_from, date_echeance__lt=date_to_excl)
         ins_qs = ins_qs.filter(date_inscription__gte=date_from, date_inscription__lt=date_to_excl)
 
-    total_impaye_sco = sco_qs.aggregate(s=Coalesce(Sum("reste"), ZERO_MONEY))["s"] or Decimal("0.00")
-    total_impaye_tr = Decimal("0.00")
+    total_impaye_sco = sco_qs.aggregate(s=Coalesce(Sum("reste"), ZERO_MONEY))["s"] or ZERO_MONEY
+    total_impaye_tr = ZERO_MONEY
     if tr_qs is not None:
-        total_impaye_tr = tr_qs.aggregate(s=Coalesce(Sum("reste"), ZERO_MONEY))["s"] or Decimal("0.00")
-    total_impaye_ins = ins_qs.aggregate(s=Coalesce(Sum("reste_ins"), ZERO_MONEY))["s"] or Decimal("0.00")
+        total_impaye_tr = tr_qs.aggregate(s=Coalesce(Sum("reste"), ZERO_MONEY))["s"] or ZERO_MONEY
+    total_impaye_ins = ins_qs.aggregate(s=Coalesce(Sum("reste_ins"), ZERO_MONEY))["s"] or ZERO_MONEY
 
     total_impayes = total_impaye_sco + total_impaye_tr + total_impaye_ins
 
-    # impayes_mois (optionnel : utile si tu veux l’afficher quelque part)
-    impayes_mois = Decimal("0.00")
-    try:
-        imp_m_sco = (
-            EcheanceMensuelle.objects
-            .filter(annee_id=annee_active_obj.id, mois_index=idx_courant, eleve__is_active=True)
-            .annotate(
-                reste=ExpressionWrapper(
-                    Coalesce(F("montant_du"), ZERO_MONEY) - Coalesce(F("montant_paye"), ZERO_MONEY),
-                    output_field=MONEY_FIELD,
-                )
-            )
-            .filter(reste__gt=0)
-            .aggregate(s=Coalesce(Sum("reste"), ZERO_MONEY))["s"] or Decimal("0.00")
-        )
-        imp_m_tr = Decimal("0.00")
-        try:
-            imp_m_tr = (
-                EcheanceTransportMensuelle.objects
-                .filter(annee_id=annee_active_obj.id, mois_index=idx_courant, eleve__is_active=True)
-                .annotate(
-                    reste=ExpressionWrapper(
-                        Coalesce(F("montant_du"), ZERO_MONEY) - Coalesce(F("montant_paye"), ZERO_MONEY),
-                        output_field=MONEY_FIELD,
-                    )
-                )
-                .filter(reste__gt=0)
-                .aggregate(s=Coalesce(Sum("reste"), ZERO_MONEY))["s"] or Decimal("0.00")
-            )
-        except Exception:
-            pass
-        imp_m_ins = (
-            Inscription.objects
-            .filter(annee_id=annee_active_obj.id, eleve__is_active=True, date_inscription__gte=start_this_month, date_inscription__lt=start_next_month)
-            .annotate(
-                reste_ins=ExpressionWrapper(
-                    Coalesce(F("frais_inscription_du"), ZERO_MONEY) - Coalesce(F("frais_inscription_paye"), ZERO_MONEY),
-                    output_field=MONEY_FIELD,
-                )
-            )
-            .filter(reste_ins__gt=0)
-            .aggregate(s=Coalesce(Sum("reste_ins"), ZERO_MONEY))["s"] or Decimal("0.00")
-        )
-        impayes_mois = imp_m_sco + imp_m_tr + imp_m_ins
-    except Exception:
-        impayes_mois = Decimal("0.00")
+    # impayes mois (utile)
+    impayes_mois = ZERO_MONEY
+    impayes_mois = total_impayes if period == "month" else ZERO_MONEY
 
-    # =========================
-    # NB IMPAYÉS + IMPAYÉS RÉCENTS (anti double comptage)
-    # =========================
-    from django.db.models import OuterRef, Subquery
-
+    # nb impayés global par inscription (anti double comptage)
     def _sub_sum_paiements():
         return Coalesce(
             Subquery(
@@ -729,16 +554,16 @@ def _build_dashboard_context(period="month"):
         .annotate(p_old=_sub_sum_paiements())
         .annotate(p_new=_sub_sum_transactions())
         .annotate(remb=_sub_sum_remboursements())
-        .annotate(
-            p_total=ExpressionWrapper(F("p_old") + F("p_new") - F("remb"), output_field=MONEY_FIELD)
-        )
-        .annotate(
-            reste_global=ExpressionWrapper(Coalesce(F("montant_total"), ZERO_MONEY) - F("p_total"), output_field=MONEY_FIELD)
-        )
+        .annotate(p_total=ExpressionWrapper(F("p_old") + F("p_new") - F("remb"), output_field=MONEY_FIELD))
+        .annotate(reste_global=ExpressionWrapper(Coalesce(F("montant_total"), ZERO_MONEY) - F("p_total"), output_field=MONEY_FIELD))
         .filter(reste_global__gt=0)
     )
 
-    nb_eleves_impayes = impayes_global_qs.values("eleve_id").distinct().count()
+    nb_eleves_impayes = (
+        EcheanceMensuelle.objects
+        .filter(annee_id=annee_active_obj.id, statut__in=["A_PAYER", "PARTIEL"])
+        .values("eleve_id").distinct().count()
+    )
 
     impayes_recents = (
         Inscription.objects
@@ -747,19 +572,13 @@ def _build_dashboard_context(period="month"):
         .annotate(p_old=_sub_sum_paiements())
         .annotate(p_new=_sub_sum_transactions())
         .annotate(remb=_sub_sum_remboursements())
-        .annotate(
-            p_total=ExpressionWrapper(F("p_old") + F("p_new") - F("remb"), output_field=MONEY_FIELD)
-        )
-        .annotate(
-            reste=ExpressionWrapper(Coalesce(F("montant_total"), ZERO_MONEY) - F("p_total"), output_field=MONEY_FIELD)
-        )
+        .annotate(p_total=ExpressionWrapper(F("p_old") + F("p_new") - F("remb"), output_field=MONEY_FIELD))
+        .annotate(reste=ExpressionWrapper(Coalesce(F("montant_total"), ZERO_MONEY) - F("p_total"), output_field=MONEY_FIELD))
         .filter(reste__gt=0)
         .order_by("-reste")[:8]
     )
 
-    # =========================
-    # Trends (NET) — annuel vs année précédente (range -12 mois)
-    # =========================
+    # trends: net annuel vs net (range -12 mois)
     prev_year_from = add_months(year_from, -12)
     prev_year_to_excl = add_months(year_to_excl, -12)
     prev_dt_from = _to_dt(prev_year_from)
@@ -769,39 +588,29 @@ def _build_dashboard_context(period="month"):
         Paiement.objects
         .filter(inscription__annee_id=annee_active_obj.id, inscription__eleve__is_active=True)
         .filter(date_paiement__gte=prev_year_from, date_paiement__lt=prev_year_to_excl)
-        .aggregate(s=Coalesce(Sum("montant"), ZERO_MONEY))["s"] or Decimal("0.00")
+        .aggregate(s=Coalesce(Sum("montant"), ZERO_MONEY))["s"] or ZERO_MONEY
     )
     enc_prev_new = (
         TransactionFinance.objects
         .filter(inscription__annee_id=annee_active_obj.id, inscription__eleve__is_active=True)
         .filter(date_transaction__gte=prev_dt_from, date_transaction__lt=prev_dt_to)
-        .aggregate(s=Coalesce(Sum("montant_total"), ZERO_MONEY))["s"] or Decimal("0.00")
+        .aggregate(s=Coalesce(Sum("montant_total"), ZERO_MONEY))["s"] or ZERO_MONEY
     )
     remb_prev = (
         RemboursementFinance.objects
         .filter(transaction__inscription__annee_id=annee_active_obj.id, transaction__inscription__eleve__is_active=True)
         .filter(created_at__gte=prev_dt_from, created_at__lt=prev_dt_to)
-        .aggregate(s=Coalesce(Sum("montant"), ZERO_MONEY))["s"] or Decimal("0.00")
+        .aggregate(s=Coalesce(Sum("montant"), ZERO_MONEY))["s"] or ZERO_MONEY
     )
     net_prev_year = (enc_prev_old + enc_prev_new) - remb_prev
     revenue_trend = _trend(total_net_annee, net_prev_year)
 
-    # Trends inscriptions (mensuel)
-    eleves_this = Inscription.objects.filter(
-        annee_id=annee_active_obj.id,
-        date_inscription__gte=start_this_month,
-        date_inscription__lt=start_next_month,
-    ).count()
-    eleves_last = Inscription.objects.filter(
-        annee_id=annee_active_obj.id,
-        date_inscription__gte=start_last_month,
-        date_inscription__lt=start_this_month,
-    ).count()
+    # trend inscriptions mois
+    eleves_this = Inscription.objects.filter(annee_id=annee_active_obj.id, date_inscription__gte=start_this_month, date_inscription__lt=start_next_month).count()
+    eleves_last = Inscription.objects.filter(annee_id=annee_active_obj.id, date_inscription__gte=start_last_month, date_inscription__lt=start_this_month).count()
     eleves_trend = _trend(eleves_this, eleves_last)
 
-    # =========================
-    # TAUX PAIEMENT (mensuel)
-    # =========================
+    # taux paiement (mensuel)
     dt_m_from = _to_dt(start_this_month)
     dt_m_to = _to_dt(start_next_month)
 
@@ -809,45 +618,45 @@ def _build_dashboard_context(period="month"):
         Paiement.objects
         .filter(inscription__annee_id=annee_active_obj.id)
         .filter(date_paiement__gte=start_this_month, date_paiement__lt=start_next_month)
-        .aggregate(s=Coalesce(Sum("montant"), ZERO_MONEY))["s"] or Decimal("0.00")
+        .aggregate(s=Coalesce(Sum("montant"), ZERO_MONEY))["s"] or ZERO_MONEY
     )
     enc_m_new = (
         TransactionFinance.objects
         .filter(inscription__annee_id=annee_active_obj.id)
         .filter(date_transaction__gte=dt_m_from, date_transaction__lt=dt_m_to)
-        .aggregate(s=Coalesce(Sum("montant_total"), ZERO_MONEY))["s"] or Decimal("0.00")
+        .aggregate(s=Coalesce(Sum("montant_total"), ZERO_MONEY))["s"] or ZERO_MONEY
     )
     remb_m = (
         RemboursementFinance.objects
         .filter(transaction__inscription__annee_id=annee_active_obj.id)
         .filter(created_at__gte=dt_m_from, created_at__lt=dt_m_to)
-        .aggregate(s=Coalesce(Sum("montant"), ZERO_MONEY))["s"] or Decimal("0.00")
+        .aggregate(s=Coalesce(Sum("montant"), ZERO_MONEY))["s"] or ZERO_MONEY
     )
     net_mois = (enc_m_old + enc_m_new) - remb_m
 
     attendu_sco_mois = (
         EcheanceMensuelle.objects
         .filter(annee_id=annee_active_obj.id, mois_index=idx_courant)
-        .aggregate(s=Coalesce(Sum("montant_du"), ZERO_MONEY))["s"] or Decimal("0.00")
+        .aggregate(s=Coalesce(Sum("montant_du"), ZERO_MONEY))["s"] or ZERO_MONEY
     )
-    attendu_tr_mois = Decimal("0.00")
+    attendu_tr_mois = ZERO_MONEY
     try:
         attendu_tr_mois = (
             EcheanceTransportMensuelle.objects
             .filter(annee_id=annee_active_obj.id, mois_index=idx_courant)
-            .aggregate(s=Coalesce(Sum("montant_du"), ZERO_MONEY))["s"] or Decimal("0.00")
+            .aggregate(s=Coalesce(Sum("montant_du"), ZERO_MONEY))["s"] or ZERO_MONEY
         )
     except Exception:
         pass
     attendu_ins_mois = (
         Inscription.objects
         .filter(annee_id=annee_active_obj.id, date_inscription__gte=start_this_month, date_inscription__lt=start_next_month)
-        .aggregate(s=Coalesce(Sum("frais_inscription_du"), ZERO_MONEY))["s"] or Decimal("0.00")
+        .aggregate(s=Coalesce(Sum("frais_inscription_du"), ZERO_MONEY))["s"] or ZERO_MONEY
     )
     attendu_mois = attendu_sco_mois + attendu_tr_mois + attendu_ins_mois
     taux_paiement = int(min((net_mois / attendu_mois) * 100, 100)) if attendu_mois > 0 else 0
 
-    # taux_last (mois précédent)
+    # taux trend vs mois précédent
     dt_last_from = _to_dt(start_last_month)
     dt_last_to = _to_dt(start_this_month)
 
@@ -855,19 +664,19 @@ def _build_dashboard_context(period="month"):
         Paiement.objects
         .filter(inscription__annee_id=annee_active_obj.id)
         .filter(date_paiement__gte=start_last_month, date_paiement__lt=start_this_month)
-        .aggregate(s=Coalesce(Sum("montant"), ZERO_MONEY))["s"] or Decimal("0.00")
+        .aggregate(s=Coalesce(Sum("montant"), ZERO_MONEY))["s"] or ZERO_MONEY
     )
     enc_last_new = (
         TransactionFinance.objects
         .filter(inscription__annee_id=annee_active_obj.id)
         .filter(date_transaction__gte=dt_last_from, date_transaction__lt=dt_last_to)
-        .aggregate(s=Coalesce(Sum("montant_total"), ZERO_MONEY))["s"] or Decimal("0.00")
+        .aggregate(s=Coalesce(Sum("montant_total"), ZERO_MONEY))["s"] or ZERO_MONEY
     )
     remb_last = (
         RemboursementFinance.objects
         .filter(transaction__inscription__annee_id=annee_active_obj.id)
         .filter(created_at__gte=dt_last_from, created_at__lt=dt_last_to)
-        .aggregate(s=Coalesce(Sum("montant"), ZERO_MONEY))["s"] or Decimal("0.00")
+        .aggregate(s=Coalesce(Sum("montant"), ZERO_MONEY))["s"] or ZERO_MONEY
     )
     net_last = (enc_last_old + enc_last_new) - remb_last
 
@@ -875,47 +684,42 @@ def _build_dashboard_context(period="month"):
     attendu_sco_last = (
         EcheanceMensuelle.objects
         .filter(annee_id=annee_active_obj.id, mois_index=idx_last)
-        .aggregate(s=Coalesce(Sum("montant_du"), ZERO_MONEY))["s"] or Decimal("0.00")
+        .aggregate(s=Coalesce(Sum("montant_du"), ZERO_MONEY))["s"] or ZERO_MONEY
     )
-    attendu_tr_last = Decimal("0.00")
+    attendu_tr_last = ZERO_MONEY
     try:
         attendu_tr_last = (
             EcheanceTransportMensuelle.objects
             .filter(annee_id=annee_active_obj.id, mois_index=idx_last)
-            .aggregate(s=Coalesce(Sum("montant_du"), ZERO_MONEY))["s"] or Decimal("0.00")
+            .aggregate(s=Coalesce(Sum("montant_du"), ZERO_MONEY))["s"] or ZERO_MONEY
         )
     except Exception:
         pass
     attendu_ins_last = (
         Inscription.objects
         .filter(annee_id=annee_active_obj.id, date_inscription__gte=start_last_month, date_inscription__lt=start_this_month)
-        .aggregate(s=Coalesce(Sum("frais_inscription_du"), ZERO_MONEY))["s"] or Decimal("0.00")
+        .aggregate(s=Coalesce(Sum("frais_inscription_du"), ZERO_MONEY))["s"] or ZERO_MONEY
     )
     attendu_last = attendu_sco_last + attendu_tr_last + attendu_ins_last
     taux_last = int(min((net_last / attendu_last) * 100, 100)) if attendu_last > 0 else 0
     payment_trend = _trend(taux_paiement, taux_last)
 
-    # =========================
-    # Derniers paiements (OLD + NEW)
-    # =========================
+    # derniers paiements (old+new)
     last_old = (
         Paiement.objects
         .select_related("inscription__eleve", "inscription__groupe")
         .filter(inscription__annee_id=annee_active_obj.id, inscription__eleve__is_active=True)
         .order_by("-date_paiement", "-id")[:8]
     )
-
-    old_items = []
-    for p in last_old:
-        old_items.append({
-            "type": "OLD",
-            "eleve_nom": getattr(p.inscription.eleve, "nom_complet", str(p.inscription.eleve)),
-            "groupe_nom": getattr(p.inscription.groupe, "nom", "—"),
-            "montant": p.montant,
-            "date": p.date_paiement,
-            "mode": getattr(p, "mode", None),
-            "mode_label": getattr(p, "get_mode_display", lambda: "")(),
-        })
+    old_items = [{
+        "type": "OLD",
+        "eleve_nom": getattr(p.inscription.eleve, "nom_complet", str(p.inscription.eleve)),
+        "groupe_nom": getattr(p.inscription.groupe, "nom", "—"),
+        "montant": p.montant,
+        "date": p.date_paiement,
+        "mode": getattr(p, "mode", None),
+        "mode_label": getattr(p, "get_mode_display", lambda: "")(),
+    } for p in last_old]
 
     last_new = (
         TransactionFinance.objects
@@ -923,18 +727,15 @@ def _build_dashboard_context(period="month"):
         .filter(inscription__annee_id=annee_active_obj.id, inscription__eleve__is_active=True)
         .order_by("-date_transaction", "-id")[:8]
     )
-
-    new_items = []
-    for t in last_new:
-        new_items.append({
-            "type": "NEW",
-            "eleve_nom": getattr(t.inscription.eleve, "nom_complet", str(t.inscription.eleve)),
-            "groupe_nom": getattr(t.inscription.groupe, "nom", "—"),
-            "montant": t.montant_total,
-            "date": t.date_transaction,
-            "mode": getattr(t, "mode", None),
-            "mode_label": getattr(t, "get_mode_display", lambda: "Transaction")() or "Transaction",
-        })
+    new_items = [{
+        "type": "NEW",
+        "eleve_nom": getattr(t.inscription.eleve, "nom_complet", str(t.inscription.eleve)),
+        "groupe_nom": getattr(t.inscription.groupe, "nom", "—"),
+        "montant": t.montant_total,
+        "date": t.date_transaction,
+        "mode": getattr(t, "mode", None),
+        "mode_label": getattr(t, "get_mode_display", lambda: "Transaction")() or "Transaction",
+    } for t in last_new]
 
     derniers_paiements = sorted((old_items + new_items), key=lambda p: _as_datetime_safe(p.get("date")), reverse=True)[:8]
 
@@ -946,7 +747,7 @@ def _build_dashboard_context(period="month"):
         .order_by("-date_inscription", "-id")[:8]
     )
 
-    # Répartition par niveau
+    # répartition niveau
     repartition_qs = (
         Inscription.objects
         .filter(annee_id=annee_active_obj.id, eleve__is_active=True)
@@ -955,15 +756,13 @@ def _build_dashboard_context(period="month"):
         .annotate(total=Count("id"))
         .order_by("-total")
     )
-
     repartition_eleves = [{"nom": r["groupe__niveau__nom"] or "—", "total": r["total"], "couleur": None} for r in repartition_qs]
 
-    # Présences
+    # présences
     absents = Absence.objects.filter(date=today, type="ABS", eleve__is_active=True).values("eleve_id").distinct().count()
     retards = Absence.objects.filter(date=today, type="RET", eleve__is_active=True).values("eleve_id").distinct().count()
     total = nb_eleves
     presents = max(total - absents, 0)
-
     presences = {
         "presents": presents,
         "absents": absents,
@@ -975,15 +774,11 @@ def _build_dashboard_context(period="month"):
     }
 
     # =========================
-    # Chart pilotage — ANNÉE SCOLAIRE (NET / DEPENSES / IMPAYES)
+    # CHART (année scolaire) ✅
     # =========================
     months = _iter_months(year_from, year_to_excl)
     months_fr = ["Jan", "Fév", "Mar", "Avr", "Mai", "Juin", "Juil", "Aoû", "Sep", "Oct", "Nov", "Déc"]
-    chart_labels = [months_fr[m.month - 1] for m in months]
-
-    chart_net = []
-    chart_depenses = []
-    chart_impayes = []
+    chart_labels, chart_net, chart_depenses, chart_impayes = [], [], [], []
 
     for m_start in months:
         m_end_excl = _month_end_excl(m_start)
@@ -994,19 +789,19 @@ def _build_dashboard_context(period="month"):
             Paiement.objects
             .filter(inscription__annee_id=annee_active_obj.id, inscription__eleve__is_active=True)
             .filter(date_paiement__gte=m_start, date_paiement__lt=m_end_excl)
-            .aggregate(s=Coalesce(Sum("montant"), ZERO_MONEY))["s"] or Decimal("0.00")
+            .aggregate(s=Coalesce(Sum("montant"), ZERO_MONEY))["s"] or ZERO_MONEY
         )
         enc_new_m = (
             TransactionFinance.objects
             .filter(inscription__annee_id=annee_active_obj.id, inscription__eleve__is_active=True)
             .filter(date_transaction__gte=dt_m_from, date_transaction__lt=dt_m_to)
-            .aggregate(s=Coalesce(Sum("montant_total"), ZERO_MONEY))["s"] or Decimal("0.00")
+            .aggregate(s=Coalesce(Sum("montant_total"), ZERO_MONEY))["s"] or ZERO_MONEY
         )
         remb_m = (
             RemboursementFinance.objects
             .filter(transaction__inscription__annee_id=annee_active_obj.id, transaction__inscription__eleve__is_active=True)
             .filter(created_at__gte=dt_m_from, created_at__lt=dt_m_to)
-            .aggregate(s=Coalesce(Sum("montant"), ZERO_MONEY))["s"] or Decimal("0.00")
+            .aggregate(s=Coalesce(Sum("montant"), ZERO_MONEY))["s"] or ZERO_MONEY
         )
         net_m = (enc_old_m + enc_new_m) - remb_m
 
@@ -1014,7 +809,7 @@ def _build_dashboard_context(period="month"):
             Depense.objects
             .filter(annee_id=annee_active_obj.id)
             .filter(date_depense__gte=m_start, date_depense__lt=m_end_excl)
-            .aggregate(s=Coalesce(Sum("montant"), ZERO_MONEY))["s"] or Decimal("0.00")
+            .aggregate(s=Coalesce(Sum("montant"), ZERO_MONEY))["s"] or ZERO_MONEY
         )
 
         idx_m = mois_index_courant(annee_active_obj, m_start)
@@ -1030,10 +825,10 @@ def _build_dashboard_context(period="month"):
                 )
             )
             .filter(reste__gt=0)
-            .aggregate(s=Coalesce(Sum("reste"), ZERO_MONEY))["s"] or Decimal("0.00")
+            .aggregate(s=Coalesce(Sum("reste"), ZERO_MONEY))["s"] or ZERO_MONEY
         )
 
-        imp_tr = Decimal("0.00")
+        imp_tr = ZERO_MONEY
         try:
             imp_tr = (
                 EcheanceTransportMensuelle.objects
@@ -1045,7 +840,7 @@ def _build_dashboard_context(period="month"):
                     )
                 )
                 .filter(reste__gt=0)
-                .aggregate(s=Coalesce(Sum("reste"), ZERO_MONEY))["s"] or Decimal("0.00")
+                .aggregate(s=Coalesce(Sum("reste"), ZERO_MONEY))["s"] or ZERO_MONEY
             )
         except Exception:
             pass
@@ -1060,64 +855,45 @@ def _build_dashboard_context(period="month"):
                 )
             )
             .filter(reste_ins__gt=0)
-            .aggregate(s=Coalesce(Sum("reste_ins"), ZERO_MONEY))["s"] or Decimal("0.00")
+            .aggregate(s=Coalesce(Sum("reste_ins"), ZERO_MONEY))["s"] or ZERO_MONEY
         )
 
-        imp_m = imp_sco + imp_tr + imp_ins
+        chart_labels.append(months_fr[m_start.month - 1])
+        chart_net.append(float(net_m or 0))
+        chart_depenses.append(float(dep_m or 0))
+        chart_impayes.append(float((imp_sco + imp_tr + imp_ins) or 0))
 
-        chart_net.append(float(net_m))
-        chart_depenses.append(float(dep_m))
-        chart_impayes.append(float(imp_m))
-
-    # =========================
-    # Context final
-    # =========================
     return {
         "today": today,
         "current_date": today,
         "annee_active": annee_active,
-
         "period": period,
         "period_label": period_label,
         "date_from": date_from,
         "date_to": (date_to_excl - timedelta(days=1)),
-
         "nb_eleves": nb_eleves,
         "nb_groupes": nb_groupes,
-
         "total_net_mois": total_net_periode,
         "total_net_annee": total_net_annee,
         "total_depenses": total_depenses,
         "total_impayes": total_impayes,
         "encaisse_brut": encaisse_brut,
         "rembourse_total": rembourse_total,
-
         "nb_impayes": nb_eleves_impayes,
         "impayes_mois": impayes_mois,
-
         "taux_paiement": taux_paiement,
         "eleves_trend": eleves_trend,
-        "groupes_trend": 0,
         "revenue_trend": revenue_trend,
         "payment_trend": payment_trend,
-
         "derniers_paiements": derniers_paiements,
         "nouvelles_inscriptions": nouvelles_inscriptions,
         "impayes_recents": impayes_recents,
         "repartition_eleves": repartition_eleves,
         "presences": presences,
-
-        # ✅ Objectif annuel + reste
         "objectif_annuel": objectif_annuel,
         "objectif_atteint": objectif_atteint,
         "objectif_reste": objectif_reste,
-
-        # Chart
-        "chart_labels": json.dumps(chart_labels),
-        "chart_net": json.dumps(chart_net),
-        "chart_depenses": json.dumps(chart_depenses),
-        "chart_impayes": json.dumps(chart_impayes),
-
+        "chart_payload": {"labels": chart_labels, "net": chart_net, "recettes": chart_net, "depenses": chart_depenses, "impayes": chart_impayes},
         "mois_courant": idx_courant,
         "mois_courant_nom": mois_courant_nom,
     }
@@ -1344,7 +1120,6 @@ def annee_update(request, pk):
         "annee": annee
     })
 
-
 @login_required
 @permission_required("core.delete_anneescolaire", raise_exception=True)
 def annee_delete(request, pk):
@@ -1365,10 +1140,16 @@ def annee_delete(request, pk):
             )
             return redirect("core:annee_list")
 
+    return redirect("core:annee_list")
+
+@login_required
+@permission_required("core.delete_anneescolaire", raise_exception=True)
+def annee_delete_modal(request, pk):
+    annee = get_object_or_404(AnneeScolaire, pk=pk)
+
     return render(request, "admin/annees/delete.html", {
         "annee": annee,
     })
-
 
 @login_required
 @permission_required("core.change_anneescolaire", raise_exception=True)
@@ -1488,7 +1269,18 @@ def degre_delete(request, pk):
             )
         return redirect("core:degre_list")
 
-    return render(request, "admin/degres/delete.html", {"degre": degre})
+    return redirect("core:degre_list")
+
+@login_required
+@permission_required("core.delete_degre", raise_exception=True)
+def degre_delete_modal(request, pk):
+    degre = get_object_or_404(Degre, pk=pk)
+
+    return render(request, "admin/degres/delete.html", {
+        "degre": degre,
+    })
+
+
 # ============================
 # B2 — Niveaux
 # ============================
@@ -1657,9 +1449,7 @@ def niveau_delete(request, pk):
                 messages.error(request, f"❌ Suppression impossible : {e}")
             return redirect("core:niveau_list")
 
-        # ✅ SUPPRESSION FORCÉE (débranche tout ce qui PROTECT)
         with transaction.atomic():
-            # 1) Inscriptions concernées (toutes années)
             insc_ids = list(
                 Inscription.objects.filter(groupe__niveau=niveau).values_list("id", flat=True)
             )
@@ -1671,26 +1461,25 @@ def niveau_delete(request, pk):
                 )
 
                 if tx_ids:
-                    # 2) Remboursements -> lignes remboursements
-                    RemboursementFinanceLigne.objects.filter(remboursement__transaction_id__in=tx_ids).delete()
-                    RemboursementFinance.objects.filter(transaction_id__in=tx_ids).delete()
+                    RemboursementFinanceLigne.objects.filter(
+                        remboursement__transaction_id__in=tx_ids
+                    ).delete()
+                    RemboursementFinance.objects.filter(
+                        transaction_id__in=tx_ids
+                    ).delete()
 
-                    # 3) Lignes de transaction
-                    TransactionLigne.objects.filter(transaction_id__in=tx_ids).delete()
+                    TransactionLigne.objects.filter(
+                        transaction_id__in=tx_ids
+                    ).delete()
 
-                    # 4) Transactions
-                    TransactionFinance.objects.filter(id__in=tx_ids).delete()
+                    TransactionFinance.objects.filter(
+                        id__in=tx_ids
+                    ).delete()
 
-                # 5) Inscriptions (échéances etc en cascade)
                 Inscription.objects.filter(id__in=insc_ids).delete()
 
-            # 6) Groupes
             Groupe.objects.filter(niveau=niveau).delete()
-
-            # 7) Frais du niveau (toutes années)
             FraisNiveau.objects.filter(niveau=niveau).delete()
-
-            # 8) Niveau
             niveau.delete()
 
         messages.success(
@@ -1699,8 +1488,18 @@ def niveau_delete(request, pk):
         )
         return redirect("core:niveau_list")
 
-    return render(request, "admin/niveaux/delete.html", {"niveau": niveau})
+    return redirect("core:niveau_list")
 
+@login_required
+@permission_required("core.delete_niveau", raise_exception=True)
+def niveau_delete_modal(request, pk):
+    niveau = get_object_or_404(Niveau.objects.select_related("degre"), pk=pk)
+
+    return render(request, "admin/niveaux/delete.html", {
+        "niveau": niveau,
+    })
+    
+    
 # ============================
 # B3 — Groupes
 # ============================
@@ -1796,6 +1595,8 @@ def groupe_update(request, pk):
 @login_required
 @permission_required("core.delete_groupe", raise_exception=True)
 def groupe_delete(request, pk):
+    if request.method != "POST":
+        raise Http404()
     g = get_object_or_404(Groupe, pk=pk)
 
     if request.method == "POST":
@@ -1906,6 +1707,15 @@ def eleve_list(request):
     eleves = eleves.distinct()
     total_eleves = eleves.count()
 
+    page_number = request.GET.get("page", 1)
+    paginator = Paginator(eleves.order_by("-id"), 50)
+    try:
+        page_obj = paginator.page(page_number)
+    except PageNotAnInteger:
+        page_obj = paginator.page(1)
+    except EmptyPage:
+        page_obj = paginator.page(paginator.num_pages)
+
     # ✅ periodes pour dropdown
     periodes = Periode.objects.all()
     if annee_id:
@@ -1925,8 +1735,9 @@ def eleve_list(request):
         groupes = groupes.filter(niveau_id=niveau_id)
 
     return render(request, "admin/eleves/list.html", {
-        "eleves": eleves,
-        "total_eleves": total_eleves,  # ✅ AJOUT
+        "eleves": page_obj,
+        "page_obj": page_obj,
+        "total_eleves": total_eleves,
 
         "q": q,
         "statut": statut,
@@ -2471,9 +2282,13 @@ def _eleve_hard_delete(eleve: Eleve) -> None:
     # 3) Delete final
     eleve.delete()
 
+
 @login_required
 @permission_required("core.delete_eleve", raise_exception=True)
 def eleve_delete(request, pk):
+    
+    if request.method != "POST":
+        raise Http404()
     eleve = get_object_or_404(Eleve, pk=pk)
 
     nb_inscriptions = eleve.inscriptions.count()
@@ -2482,7 +2297,6 @@ def eleve_delete(request, pk):
     if request.method == "POST":
         action = (request.POST.get("action") or "").strip().lower()
 
-        # ✅ 1) ARCHIVER
         if action == "archive":
             if not eleve.is_active:
                 messages.info(request, "Cet élève est déjà archivé.")
@@ -2492,7 +2306,6 @@ def eleve_delete(request, pk):
             messages.success(request, "Élève archivé avec succès.")
             return redirect("core:eleve_detail", pk=eleve.pk)
 
-        # ✅ 2) RESTAURER
         if action == "restore":
             if eleve.is_active:
                 messages.info(request, "Cet élève est déjà actif.")
@@ -2502,7 +2315,6 @@ def eleve_delete(request, pk):
             messages.success(request, "Élève restauré avec succès.")
             return redirect("core:eleve_detail", pk=eleve.pk)
 
-        # ⚠️ 3) HARD DELETE (définitif) — double sécurité
         if action == "hard":
             confirm = (request.POST.get("confirm") or "").strip()
             if confirm != eleve.matricule:
@@ -2511,15 +2323,15 @@ def eleve_delete(request, pk):
 
             try:
                 with transaction.atomic():
-                    parents_ids = list(eleve.liens_parents.values_list("parent_id", flat=True).distinct())
+                    parents_ids = list(
+                        eleve.liens_parents.values_list("parent_id", flat=True).distinct()
+                    )
                     matricule = eleve.matricule
 
                     _eleve_hard_delete(eleve)
 
-                    # cleanup parents orphelins
                     User = get_user_model()
                     parents = Parent.objects.filter(id__in=parents_ids).select_related("user")
-
                     for parent in parents:
                         if parent.liens.exists():
                             continue
@@ -2537,7 +2349,6 @@ def eleve_delete(request, pk):
                 return redirect("core:eleve_list")
 
             except ProtectedError:
-                # fallback: archive
                 eleve.archive(by_user=request.user)
                 messages.error(request, "Suppression bloquée (dépendances protégées). Élève archivé.")
                 return redirect("core:eleve_detail", pk=eleve.pk)
@@ -2545,72 +2356,225 @@ def eleve_delete(request, pk):
         messages.error(request, "Action invalide.")
         return redirect("core:eleve_detail", pk=eleve.pk)
 
-    return render(request, "admin/eleves/delete.html", {
+    # ✅ IMPORTANT : GET => page wrapper (extends)
+    return render(request, "admin/eleves/delete_page.html", {
         "eleve": eleve,
         "nb_inscriptions": nb_inscriptions,
         "nb_paiements": nb_paiements,
     })
-
 
 # ============================
 # C3 — Inscriptions
 # ============================
 
 
+import json
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required, permission_required
+from django.db import transaction
+from django.shortcuts import redirect, render
+
+from .forms import InscriptionFullFlexibleForm
+from .models import Eleve, Parent, ParentEleve, Inscription, AnneeScolaire
+from .forms import normalize_phone
+
+
 @login_required
 @permission_required("core.add_inscription", raise_exception=True)
 def inscription_full_create(request):
     """
-    1 seul écran:
-    - Eleve + Parent + Inscription
-    - Lien ParentEleve
-    - Compte ELEVE créé automatiquement
-    - Compte parent : optionnel (pas auto)
-    - Photo élève supportée (request.FILES)
+    Écran flexible:
+    - plusieurs parents
+    - plusieurs élèves
+    - plusieurs parents par élève
+    - 1 inscription par élève
     """
+
     if request.method == "POST":
-        # ✅ IMPORTANT: toujours passer request.FILES
-        form = InscriptionFullForm(request.POST, request.FILES)
+        form = InscriptionFullFlexibleForm(request.POST)
 
         if form.is_valid():
-            with transaction.atomic():
-                eleve, parent, insc = form.save()
+            created_eleves = []
+            created_parents = []
+            created_inscriptions = []
 
-                # ✅ Créer COMPTE ELEVE (username = matricule élève)
-                try:
-                    user, pwd, created = get_or_create_user_with_group(eleve.matricule, "ELEVE")
+            try:
+                with transaction.atomic():
+                    parents_data = form.cleaned_data["parents_json"]
+                    eleves_data = form.cleaned_data["eleves_json"]
 
-                    if eleve.user_id != user.id:
-                        eleve.user = user
-                        eleve.save(update_fields=["user"])
+                    # -------------------------------------------------
+                    # 1) Parents : créer ou réutiliser
+                    # -------------------------------------------------
+                    parent_map = {}  # temp_id -> parent instance
+                    parent_lien_map = {}  # temp_id -> lien par défaut
 
-                    if created:
-                        messages.success(
-                            request,
-                            f"✅ Inscription créée: {eleve.matricule} — Groupe: {insc.groupe.nom} | "
-                            f"Compte ÉLÈVE créé | MDP: {pwd}"
+                    for p in parents_data:
+                        p_nom = p["nom"]
+                        p_pre = p["prenom"]
+                        p_tel = p["telephone"]
+                        p_mail = p["email"]
+                        p_adr = p["adresse"]
+                        p_lien = p["lien"]
+                        norm_tel = normalize_phone(p_tel)
+
+                        parent = None
+
+                        if p_mail:
+                            parent = Parent.objects.filter(email__iexact=p_mail).first()
+
+                        if not parent and norm_tel:
+                            parent = Parent.objects.filter(telephone_norm=norm_tel).first()
+
+                        if not parent:
+                            parent = Parent.objects.create(
+                                user=None,
+                                nom=p_nom,
+                                prenom=p_pre,
+                                telephone=p_tel,
+                                telephone_norm=norm_tel,
+                                email=p_mail,
+                                adresse=p_adr,
+                                is_active=True,
+                            )
+                            created_parents.append(parent)
+                        else:
+                            changed = False
+
+                            if norm_tel and not (parent.telephone_norm or "").strip():
+                                parent.telephone_norm = norm_tel
+                                changed = True
+
+                            if p_nom and not (parent.nom or "").strip():
+                                parent.nom = p_nom
+                                changed = True
+
+                            if p_pre and not (parent.prenom or "").strip():
+                                parent.prenom = p_pre
+                                changed = True
+
+                            if p_tel and not (parent.telephone or "").strip():
+                                parent.telephone = p_tel
+                                changed = True
+
+                            if p_mail and not (parent.email or "").strip():
+                                parent.email = p_mail
+                                changed = True
+
+                            if p_adr and not (parent.adresse or "").strip():
+                                parent.adresse = p_adr
+                                changed = True
+
+                            if changed:
+                                parent.save()
+
+                        parent_map[p["temp_id"]] = parent
+                        parent_lien_map[p["temp_id"]] = p_lien
+
+                    # -------------------------------------------------
+                    # 2) Élèves + liens parents + inscription + compte
+                    # -------------------------------------------------
+                    comptes_crees = []
+                    comptes_existants = []
+
+                    for idx, e in enumerate(eleves_data, start=1):
+                        photo = None
+                        photo_field = e.get("photo_field")
+                        if photo_field:
+                            photo = request.FILES.get(photo_field)
+
+                        eleve = Eleve.objects.create(
+                            nom=e["nom"],
+                            prenom=e["prenom"],
+                            photo=photo,
+                            sexe=e["sexe"] or "",
+                            date_naissance=e["date_naissance"] or None,
+                            lieu_naissance=e["lieu_naissance"],
+                            adresse=e["adresse"],
+                            telephone=e["telephone"],
+                            is_active=True,
                         )
-                    else:
-                        messages.success(
-                            request,
-                            f"✅ Inscription créée: {eleve.matricule} — Groupe: {insc.groupe.nom} | "
-                            f"Compte ÉLÈVE déjà existant"
+                        eleve.refresh_from_db(fields=["matricule"])
+                        created_eleves.append(eleve)
+
+                        # liens parents
+                        for parent_temp_id in e["parent_ids"]:
+                            parent = parent_map[parent_temp_id]
+                            lien = parent_lien_map.get(parent_temp_id, "TUTEUR")
+
+                            ParentEleve.objects.get_or_create(
+                                parent=parent,
+                                eleve=eleve,
+                                defaults={"lien": lien},
+                            )
+
+                        # inscription
+                        insc = Inscription.objects.create(
+                            eleve=eleve,
+                            annee=e["annee"],
+                            groupe=e["groupe"],
+                            statut=e["statut"],
+                            dernier_etablissement=e["dernier_etablissement"],
                         )
+                        created_inscriptions.append(insc)
 
-                except Exception as e:
-                    messages.warning(
-                        request,
-                        f"✅ Inscription créée: {eleve.matricule} — Groupe: {insc.groupe.nom} | "
-                        f"⚠️ Compte ÉLÈVE non créé: {e}"
-                    )
+                        # compte élève auto
+                        try:
+                            user, pwd, created = get_or_create_user_with_group(eleve.matricule, "ELEVE")
 
-            return redirect("core:eleve_detail", pk=eleve.pk)
+                            if eleve.user_id != user.id:
+                                eleve.user = user
+                                eleve.save(update_fields=["user"])
+
+                            if created:
+                                comptes_crees.append(f"{eleve.matricule} / {pwd}")
+                            else:
+                                comptes_existants.append(eleve.matricule)
+
+                        except Exception as e_user:
+                            messages.warning(
+                                request,
+                                f"⚠️ Élève {eleve.matricule}: inscription créée mais compte non créé ({e_user})."
+                            )
+
+                resume = (
+                    f"✅ Création terminée : "
+                    f"{len(created_parents)} nouveau(x) parent(s), "
+                    f"{len(created_eleves)} élève(s), "
+                    f"{len(created_inscriptions)} inscription(s)."
+                )
+
+                if comptes_crees:
+                    resume += " | Comptes créés : " + " ; ".join(comptes_crees)
+
+                if comptes_existants:
+                    resume += " | Comptes déjà existants : " + ", ".join(comptes_existants)
+
+                messages.success(request, resume)
+
+                if len(created_eleves) == 1:
+                    return redirect("core:eleve_detail", pk=created_eleves[0].pk)
+
+                return redirect("core:inscription_list")
+
+            except Exception as e:
+                messages.error(request, f"❌ Erreur pendant la création: {e}")
 
     else:
-        active = AnneeScolaire.objects.filter(is_active=True).first()
-        form = InscriptionFullForm(initial={"annee": active} if active else None)
+        form = InscriptionFullFlexibleForm()
 
-    return render(request, "admin/inscriptions/full_form.html", {"form": form})
+    active = AnneeScolaire.objects.filter(is_active=True).first()
+    annees = AnneeScolaire.objects.all().order_by("-date_debut")
+
+    return render(
+        request,
+        "admin/inscriptions/full_form.html",
+        {
+            "form": form,
+            "active_annee": active,
+            "annees": annees,
+        }
+    )
 
 @login_required
 @permission_required("core.add_inscription", raise_exception=True)
@@ -2701,8 +2665,18 @@ def inscription_list(request):
 
     total_inscriptions = inscriptions.count()
 
+    page_number = request.GET.get("page", 1)
+    paginator = Paginator(inscriptions.order_by("-id"), 50)
+    try:
+        page_obj = paginator.page(page_number)
+    except PageNotAnInteger:
+        page_obj = paginator.page(1)
+    except EmptyPage:
+        page_obj = paginator.page(paginator.num_pages)
+
     return render(request, "admin/inscriptions/list.html", {
-        "inscriptions": inscriptions,
+        "inscriptions": page_obj,
+        "page_obj": page_obj,
         "annee_active": annee_active,
         "total_inscriptions": total_inscriptions, 
 
@@ -2767,11 +2741,27 @@ def inscription_update(request, pk):
 @permission_required("core.delete_inscription", raise_exception=True)
 def inscription_delete(request, pk):
     insc = get_object_or_404(Inscription, pk=pk)
+
     if request.method == "POST":
         insc.delete()
         messages.success(request, "🗑️ Inscription supprimée.")
         return redirect("core:inscription_list")
-    return render(request, "admin/inscriptions/delete.html", {"insc": insc})
+
+    # ❌ pas de page normale
+    return redirect("core:inscription_list")
+
+
+@login_required
+@permission_required("core.delete_inscription", raise_exception=True)
+def inscription_delete_modal(request, pk):
+    """
+    Fragment HTML pour injection dans le modal global (#azModalBody)
+    """
+    insc = get_object_or_404(Inscription, pk=pk)
+
+    return render(request, "admin/inscriptions/delete.html", {
+        "insc": insc,
+    })
 
 @login_required
 @permission_required("core.view_anneescolaire", raise_exception=True)
@@ -3184,8 +3174,18 @@ def paiement_list(request):
     if annee_id and annee_id.isdigit():
         annee_selected_obj = AnneeScolaire.objects.filter(id=int(annee_id)).first()
     
-    total_paiements = len(groups)
+    groups_list = list(groups.values())
+    total_paiements = len(groups_list)
     
+    page_number = request.GET.get("page", 1)
+    paginator = Paginator(groups_list, 50)
+    try:
+        page_obj = paginator.page(page_number)
+    except PageNotAnInteger:
+        page_obj = paginator.page(1)
+    except EmptyPage:
+        page_obj = paginator.page(paginator.num_pages)
+
     types_tx = TransactionFinance._meta.get_field("type_transaction").choices
 
     return render(request, "admin/paiements/list.html", {
@@ -3216,7 +3216,8 @@ def paiement_list(request):
         "date_from_selected": date_from,
         "date_to_selected": date_to,
 
-        "groups": list(groups.values()),
+        "groups": page_obj,
+        "page_obj": page_obj,
     })
 
 
@@ -3540,420 +3541,6 @@ def paiements_excel_export(request):
     wb.save(response)
     return response
 
-# =========================================================
-# DETAILS PAIEMENT PARENT (batch)
-# =========================================================
-@login_required
-@permission_required("core.view_paiement", raise_exception=True)
-def paiement_parent_detail(request, group_key):
-    """
-    group_key = UUID string (batch_token) OU "TX-{id}" si paiement solo
-    """
-    # cas solo
-    if group_key.startswith("TX-"):
-        try:
-            tx_id = int(group_key.replace("TX-", "").strip())
-        except ValueError:
-            raise Http404
-        txs = TransactionFinance.objects.filter(id=tx_id)
-    else:
-        txs = TransactionFinance.objects.filter(batch_token=group_key)
-
-    txs = (
-        txs.select_related(
-            "inscription",
-            "inscription__eleve",
-            "inscription__annee",
-            "inscription__groupe",
-            "inscription__groupe__niveau",
-            "inscription__groupe__niveau__degre",
-            "inscription__periode",
-        )
-        .prefetch_related("remboursements")
-        .annotate(
-            montant_rembourse=Coalesce(
-                Sum("remboursements__montant"),
-                Value(Decimal("0.00")),
-                output_field=DecimalField(max_digits=10, decimal_places=2),
-            ),
-        )
-        .order_by("inscription__eleve__nom", "id")
-    )
-
-    if not txs.exists():
-        raise Http404
-
-    first = txs.first()
-    parent_map = _build_parent_map_for_txs(txs)
-    first = txs.first()
-    payeur_label = _payeur_label_for_tx(first, parent_map)
-
-
-    total_brut = sum((tx.montant_total or Decimal("0.00")) for tx in txs)
-    total_rembourse = sum((tx.montant_rembourse or Decimal("0.00")) for tx in txs)
-    total_net = total_brut - total_rembourse
-
-    return render(request, "admin/paiements/parent_detail.html", {
-        "group_key": group_key,
-        "batch_token": str(first.batch_token) if first.batch_token else "",
-        "date": first.date_transaction,
-        "payeur_label": payeur_label,
-        "txs": txs,
-
-        "total_brut": total_brut,
-        "total_rembourse": total_rembourse,
-        "total_net": total_net,
-    })
-
-# =========================================================
-# CREATE (form unique) — multi-mois via payload
-# =========================================================
-@login_required
-@permission_required("core.add_paiement", raise_exception=True)
-def paiement_create(request):
-    niveaux = Niveau.objects.select_related("degre").order_by("degre__ordre", "ordre", "nom")
-
-    if request.method == "POST":
-        form = PaiementForm(request.POST)
-
-        if not form.is_valid():
-            return render(request, "admin/paiements/form.html", {"form": form, "niveaux": niveaux})
-
-        cd = form.cleaned_data
-        insc = cd["inscription"]
-        nature = (cd.get("nature") or "SCOLARITE").upper()
-
-        # ==========================
-        # ✅ MULTI-MOIS (SCOLARITE)
-        # ==========================
-        ids_int = cd.get("payload_selected_ids") or []
-        prices = cd.get("payload_prices") or {}
-        is_multi = bool(ids_int)
-
-        if nature == "SCOLARITE" and is_multi:
-            batch_token = str(uuid.uuid4())
-
-            echeances = list(
-                EcheanceMensuelle.objects.filter(
-                    id__in=ids_int,
-                    eleve_id=insc.eleve_id,
-                    annee_id=insc.annee_id,
-                ).order_by("mois_index")
-            )
-
-            if len(echeances) != len(ids_int):
-                form.add_error(None, "Certaines échéances ne correspondent pas à cet élève / année.")
-                return render(request, "admin/paiements/form.html", {"form": form, "niveaux": niveaux})
-
-            try:
-                with transaction.atomic():
-                    for e in echeances:
-                        key = str(e.id)
-                        montant = Decimal(str(prices.get(key, "0")).replace(",", "."))
-
-                        if montant <= 0:
-                            raise ValidationError(f"Montant invalide pour {e.mois_nom}.")
-
-                        # ✅ interdit si déjà payé
-                        if e.statut == "PAYE":
-                            raise ValidationError(f"{e.mois_nom} est déjà réglé.")
-
-                        # ✅ Règle A : on enregistre le nouveau prix DU mois
-                        e.montant_du = montant
-
-                        # ✅ full payment (pas de partiel)
-                        e.montant_paye = montant
-                        e.statut = "PAYE"
-                        e.save(update_fields=["montant_du", "montant_paye", "statut"])
-
-                        Paiement.objects.create(
-                            inscription=insc,
-                            nature="SCOLARITE",
-                            echeance=e,
-                            montant=montant,
-                            mode=cd.get("mode"),
-                            reference=cd.get("reference") or "",
-                            note=cd.get("note") or "",
-                            batch_token=batch_token,
-                        )
-
-
-            except ValidationError as ve:
-                form.add_error(None, str(ve))
-                return render(request, "admin/paiements/form.html", {"form": form, "niveaux": niveaux})
-
-            messages.success(request, "✅ Paiement multi-mois enregistré.")
-            return redirect("core:paiement_recu_batch", batch_token=batch_token)
-
-        # ==========================
-        # ✅ SINGLE (INSCRIPTION ou SCOLARITE single)
-        # ==========================
-        p = form.save(commit=False)
-        p.inscription = insc
-        p.nature = nature
-        p.batch_token = ""
-        p.save()
-
-        messages.success(request, "✅ Paiement enregistré.")
-        return redirect("core:paiement_recu", pk=p.pk)
-
-    # GET
-    form = PaiementForm()
-    return render(request, "admin/paiements/form.html", {"form": form, "niveaux": niveaux})
-
-
-# =========================================================
-# CREATE for inscription (pré-remplie + verrouillée)
-# =========================================================
-@login_required
-@permission_required("core.add_inscription", raise_exception=True)
-def paiement_create_for_inscription(request, inscription_id):
-    insc = get_object_or_404(
-        Inscription.objects.select_related("eleve", "annee", "groupe", "groupe__niveau", "groupe__niveau__degre"),
-        pk=inscription_id
-    )
-
-    niveaux = Niveau.objects.select_related("degre").order_by("degre__ordre", "ordre", "nom")
-
-    if request.method == "POST":
-        form = PaiementForm(request.POST, inscription=insc)  # ✅ verrouillage ici
-
-        if not form.is_valid():
-            return render(request, "admin/paiements/form.html", {"form": form, "niveaux": niveaux, "insc": insc})
-
-        cd = form.cleaned_data
-        nature = (cd.get("nature") or "SCOLARITE").upper()
-
-        ids_int = cd.get("payload_selected_ids") or []
-        prices = cd.get("payload_prices") or {}
-        is_multi = bool(ids_int)
-
-        if nature == "SCOLARITE" and is_multi:
-            batch_token = str(uuid.uuid4())
-
-            echeances = list(
-                EcheanceMensuelle.objects.filter(
-                    id__in=ids_int,
-                    eleve_id=insc.eleve_id,
-                    annee_id=insc.annee_id,
-                ).order_by("mois_index")
-            )
-
-            if len(echeances) != len(ids_int):
-                form.add_error(None, "Certaines échéances ne correspondent pas à cet élève / année.")
-                return render(request, "admin/paiements/form.html", {"form": form, "niveaux": niveaux, "insc": insc})
-
-            try:
-                with transaction.atomic():
-                    for e in echeances:
-                        key = str(e.id)
-                        montant = Decimal(str(prices.get(key, "0")))
-
-                        Paiement.objects.create(
-                            inscription=insc,
-                            nature="SCOLARITE",
-                            echeance=e,
-                            montant=montant,
-                            mode=cd.get("mode"),
-                            reference=cd.get("reference") or "",
-                            note=cd.get("note") or "",
-                            batch_token=batch_token,
-                        )
-
-            except ValidationError as ve:
-                form.add_error(None, str(ve))
-                return render(request, "admin/paiements/form.html", {"form": form, "niveaux": niveaux, "insc": insc})
-
-            messages.success(request, "✅ Paiement multi-mois enregistré.")
-            return redirect("core:paiement_recu_batch", batch_token=batch_token)
-
-        # SINGLE
-        p = form.save(commit=False)
-        p.inscription = insc
-        p.nature = nature
-        p.batch_token = ""
-        p.save()
-
-        messages.success(request, "✅ Paiement enregistré.")
-        return redirect("core:paiement_recu", pk=p.pk)
-
-    # GET
-    nat = (request.GET.get("nature") or "SCOLARITE").strip().upper()
-    initial = {"inscription": insc, "nature": nat}
-
-    form = PaiementForm(initial=initial, inscription=insc)  # ✅ verrouillage ici aussi
-    return render(request, "admin/paiements/form.html", {"form": form, "niveaux": niveaux, "insc": insc})
-
-
-# =========================================================
-# RECU single
-# =========================================================
-@login_required
-@permission_required("core.view_paiement", raise_exception=True)
-def paiement_recu(request, pk):
-    p = get_object_or_404(
-        Paiement.objects.select_related(
-            "inscription", "inscription__eleve", "inscription__annee",
-            "inscription__groupe", "inscription__groupe__niveau", "inscription__groupe__niveau__degre",
-            "echeance"
-        ),
-        pk=pk
-    )
-
-    total_paye = p.inscription.paiements.aggregate(
-        s=Coalesce(Sum("montant"), Decimal("0.00"), output_field=DecimalField(max_digits=10, decimal_places=2))
-    )["s"]
-
-    reste = (p.inscription.montant_total or Decimal("0.00")) - (total_paye or Decimal("0.00"))
-
-    return render(request, "admin/paiements/recu.html", {
-        "p": p,
-        "total_paye": total_paye,
-        "reste": reste,
-    })
-
-
-# =========================================================
-# RECU batch multi
-# =========================================================
-@login_required
-@permission_required("core.view_paiement", raise_exception=True)
-def paiement_recu_batch(request, batch_token):
-    qs = (
-        Paiement.objects
-        .select_related("inscription", "inscription__eleve", "inscription__annee", "inscription__groupe", "echeance")
-        .filter(batch_token=batch_token)
-        .order_by("echeance__mois_index", "id")
-    )
-    if not qs.exists():
-        raise Http404
-
-    total = sum((p.montant or Decimal("0.00")) for p in qs)
-    first = qs.first()
-
-    return render(request, "admin/paiements/recu_batch.html", {
-        "paiements": qs,
-        "first": first,
-        "total": total,
-        "batch_token": batch_token,
-    })
-
-
-@login_required
-@permission_required("core.view_echeancemensuelle", raise_exception=True)
-def impayes_list(request):
-    annee_active = AnneeScolaire.objects.filter(is_active=True).first()
-
-    annee_id = request.GET.get("annee", "").strip()
-    niveau_id = request.GET.get("niveau", "").strip()
-    groupe_id = request.GET.get("groupe", "").strip()
-    periode_id = request.GET.get("periode", "").strip()
-    q = request.GET.get("q", "").strip()
-
-    inscriptions = Inscription.objects.select_related(
-        "eleve", "annee", "groupe", "groupe__niveau", "groupe__niveau__degre", "periode"
-    )
-
-    # ✅ défaut: année active
-    if not annee_id and annee_active:
-        annee_id = str(annee_active.id)
-
-    # ✅ filtres de base (AVANT annotations)
-    if annee_id:
-        inscriptions = inscriptions.filter(annee_id=annee_id)
-
-    if niveau_id:
-        inscriptions = inscriptions.filter(groupe__niveau_id=niveau_id)
-
-    if groupe_id:
-        inscriptions = inscriptions.filter(groupe_id=groupe_id)
-
-    if periode_id:
-        inscriptions = inscriptions.filter(periode_id=periode_id)
-
-    if q:
-        inscriptions = inscriptions.filter(
-            Q(eleve__matricule__icontains=q) |
-            Q(eleve__nom__icontains=q) |
-            Q(eleve__prenom__icontains=q) |
-            Q(groupe__nom__icontains=q) |
-            Q(groupe__niveau__nom__icontains=q)
-        )
-
-    # ✅ total payé
-    inscriptions = inscriptions.annotate(
-        total_paye=Coalesce(
-            Sum("paiements__montant"),
-            Decimal("0.00"),
-            output_field=DecimalField(max_digits=10, decimal_places=2),
-        )
-    )
-
-    # ✅ reste
-    inscriptions = inscriptions.annotate(
-        reste=ExpressionWrapper(
-            Coalesce(F("montant_total"), Decimal("0.00")) - F("total_paye"),
-            output_field=DecimalField(max_digits=10, decimal_places=2),
-        )
-    )
-
-    # ✅ vrais impayés
-    inscriptions = inscriptions.filter(reste__gt=Decimal("0.00"))
-
-    # ✅ perf: dossier recouvrement (si tu as OneToOne)
-    inscriptions = inscriptions.select_related("recouvrement")
-
-    # ✅ KPIs
-    total_du = inscriptions.aggregate(
-        s=Coalesce(Sum("montant_total"), Decimal("0.00"),
-                   output_field=DecimalField(max_digits=10, decimal_places=2))
-    )["s"] or Decimal("0.00")
-
-    total_encaisse = inscriptions.aggregate(
-        s=Coalesce(Sum("total_paye"), Decimal("0.00"),
-                   output_field=DecimalField(max_digits=10, decimal_places=2))
-    )["s"] or Decimal("0.00")
-
-    total_impaye = inscriptions.aggregate(
-        s=Coalesce(Sum("reste"), Decimal("0.00"),
-                   output_field=DecimalField(max_digits=10, decimal_places=2))
-    )["s"] or Decimal("0.00")
-
-    # ✅ dropdowns
-    annees = AnneeScolaire.objects.all()
-
-    niveaux = Niveau.objects.all()
-    if annee_id:
-        niveaux = niveaux.filter(groupes__annee_id=annee_id).distinct()
-
-    groupes = Groupe.objects.all()
-    if annee_id:
-        groupes = groupes.filter(annee_id=annee_id)
-    if niveau_id:
-        groupes = groupes.filter(niveau_id=niveau_id)
-
-    periodes = Periode.objects.all()
-    if annee_id:
-        periodes = periodes.filter(annee_id=annee_id)
-
-    return render(request, "admin/impayes/list.html", {
-        "inscriptions": inscriptions,
-        "annees": annees,
-        "annee_selected": annee_id,
-        "q": q,
-
-        "niveaux": niveaux,
-        "niveau_selected": niveau_id,
-        "groupes": groupes,
-        "groupe_selected": groupe_id,
-
-        "periodes": periodes,
-        "periode_selected": periode_id,
-
-        "total_du": total_du,
-        "total_encaisse": total_encaisse,
-        "total_impaye": total_impaye,
-    })
 
 
 # =========================
@@ -4200,12 +3787,12 @@ def impayes_mensuels_list(request):
 
 
     rows = sco_rows + tr_rows + ins_rows
+
     def sort_key(r):
         type_rank = {"INSCRIPTION": 0, "SCOLARITE": 1, "TRANSPORT": 2}
         mi = r["mois_index"] if r["mois_index"] is not None else 0
         matricule = (getattr(r["eleve"], "matricule", "") or "")
         return (matricule, type_rank.get(r["type"], 9), mi)
-
 
     rows.sort(key=sort_key)
 
@@ -4218,13 +3805,37 @@ def impayes_mensuels_list(request):
         "impaye": (sco_reste + tr_reste + ins_reste),
     }
 
+    # ✅ NB élèves impayés (distinct)
+    eleves_impayes_ids = set()
+    for r in rows:
+        eleve = r.get("eleve")
+        if not eleve:
+            continue
+        if getattr(eleve, "is_active", True):
+            eleves_impayes_ids.add(eleve.id)
+
+    nb_eleves_impayes = len(eleves_impayes_ids)
+    total_rows = len(rows)
+
+    # ✅ PAGINATION (50 impayés par page pour un chargement instantané)
+    page_number = request.GET.get("page", 1)
+    paginator = Paginator(rows, 50)
+    try:
+        page_obj = paginator.page(page_number)
+    except PageNotAnInteger:
+        page_obj = paginator.page(1)
+    except EmptyPage:
+        page_obj = paginator.page(paginator.num_pages)
+
     return render(request, "admin/impayes/mensuels.html", {
         "annee_active": annee_active,
         "annees": annees,
         "niveaux": niveaux,
         "groupes": groupes,
         "periodes": periodes,
-        "rows": rows,
+        "rows": page_obj,
+        "page_obj": page_obj,
+        "total_rows": total_rows,
         "kpi": kpi,
         "annee_selected": str(annee_obj.id),
         "mois_selected": mois_selected,
@@ -4232,6 +3843,8 @@ def impayes_mensuels_list(request):
         "type_selected": type_selected,
         "niveau_selected": niveau_id,
         "groupe_selected": groupe_id,
+        "nb_eleves_impayes": nb_eleves_impayes,
+
         "periode_selected": periode_id,
         "q": q,
         "mois_courant": idx_courant,
@@ -4768,12 +4381,10 @@ def enseignant_list(request):
     # =========================================================
     # ✅ FILTRE PERIODE (optionnel) : via AbsenceProf ou Seance
     # =========================================================
-    # ⚠️ Ce filtre est "activité" et peut exclure des enseignants sans absences/séances.
     periode_obj = None
     if periode_id.isdigit():
         periode_obj = Periode.objects.filter(id=int(periode_id)).first()
         if periode_obj and periode_obj.date_debut and periode_obj.date_fin and annee_id.isdigit():
-            # Ici je filtre via AbsenceProf (plus logique que Absence eleves)
             enseignants = enseignants.filter(
                 absences_profs__annee_id=int(annee_id),
                 absences_profs__date__gte=periode_obj.date_debut,
@@ -4781,6 +4392,16 @@ def enseignant_list(request):
             )
 
     enseignants = enseignants.distinct().order_by("nom", "prenom")
+    total_enseignants = enseignants.count()
+
+    page_number = request.GET.get("page", 1)
+    paginator = Paginator(enseignants, 50)
+    try:
+        page_obj = paginator.page(page_number)
+    except PageNotAnInteger:
+        page_obj = paginator.page(1)
+    except EmptyPage:
+        page_obj = paginator.page(paginator.num_pages)
 
     # =========================================================
     # ✅ Listes pour filtres UI
@@ -4803,11 +4424,10 @@ def enseignant_list(request):
     if annee_id.isdigit():
         periodes = periodes.filter(annee_id=int(annee_id))
 
-    # ✅ Bonus : si tu veux aussi un filtre matière (facultatif)
-    # matieres = Matiere.objects.filter(is_active=True).order_by("nom")
-
     return render(request, "admin/enseignants/list.html", {
-        "enseignants": enseignants,
+        "enseignants": page_obj,
+        "page_obj": page_obj,
+        "total_enseignants": total_enseignants,
 
         "annees": annees,
         "annee_selected": annee_id,
@@ -4899,9 +4519,6 @@ def _cleanup_prof_groupe_if_unused(enseignant: Enseignant, groupe_id: int):
         ).delete()
 
 
-# =========================================================
-# DETAIL
-# =========================================================
 @login_required
 @permission_required("core.view_enseignant", raise_exception=True)
 def enseignant_detail(request, pk):
@@ -4946,9 +4563,7 @@ def enseignant_detail(request, pk):
     })
 
 
-# =========================================================
-# CREATE
-# =========================================================
+
 @login_required
 @permission_required("core.add_enseignant", raise_exception=True)
 def enseignant_create(request):
@@ -5026,9 +4641,6 @@ def enseignant_create(request):
     })
 
 
-# =========================================================
-# UPDATE
-# =========================================================
 @login_required
 @permission_required("core.change_enseignant", raise_exception=True)
 def enseignant_update(request, pk):
@@ -5128,12 +4740,27 @@ def enseignant_update(request, pk):
     })
 
 
-# =========================================================
-# DELETE
-# =========================================================
+
 @login_required
 @permission_required("core.delete_enseignant", raise_exception=True)
 def enseignant_delete(request, pk):
+    ens = get_object_or_404(Enseignant, pk=pk)
+
+    if request.method != "POST":
+        return redirect("core:enseignant_list")
+
+    try:
+        ens.delete()
+        messages.success(request, "✅ Enseignant supprimé avec succès.")
+        return redirect("core:enseignant_list")
+
+    except ProtectedError:
+        messages.error(request, "❌ Suppression impossible : cet enseignant est utilisé dans l'emploi du temps.")
+        return redirect("core:enseignant_detail", pk=ens.pk)
+
+@login_required
+@permission_required("core.delete_enseignant", raise_exception=True)
+def enseignant_delete_modal(request, pk):
     ens = get_object_or_404(Enseignant, pk=pk)
 
     seances_bloquantes = (
@@ -5143,19 +4770,10 @@ def enseignant_delete(request, pk):
         .order_by("jour", "heure_debut")
     )
 
-    if request.method == "POST":
-        try:
-            ens.delete()
-            messages.success(request, "✅ Enseignant supprimé avec succès.")
-            return redirect("core:enseignant_list")
-        except ProtectedError:
-            messages.error(request, "❌ Suppression impossible : cet enseignant est utilisé dans l'emploi du temps.")
-
     return render(request, "admin/enseignants/delete.html", {
         "ens": ens,
         "seances_bloquantes": seances_bloquantes,
     })
-
 
 
 @login_required
@@ -5235,9 +4853,6 @@ def enseignant_affectation_delete(request, pk, aff_id):
 
     return redirect("core:enseignant_affectations", pk=ens.pk)
 
-# ============================
-# E2 — Emploi du temps (Séances)
-# ============================
 
 
 def _jour_code_from_date(date_str: str):
@@ -5424,48 +5039,63 @@ def seance_delete(request, pk):
         .order_by("-date", "eleve__nom", "eleve__prenom")
     )
 
-    if request.method == "POST":
-        action = (request.POST.get("action") or "delete").strip().lower()
+    if request.method != "POST":
+        return redirect("core:seance_list")
 
-        # ✅ CAS 1 — suppression normale
-        if action == "delete":
-            try:
+    action = (request.POST.get("action") or "delete").strip().lower()
+
+    if action == "delete":
+        try:
+            s.delete()
+            messages.success(request, "🗑️ Séance supprimée.")
+            return redirect("core:seance_list")
+        except ProtectedError:
+            messages.error(
+                request,
+                "❌ Suppression impossible : cette séance est liée à des absences. "
+                "Tu peux soit supprimer ces absences, soit cliquer sur 'Forcer la suppression'."
+            )
+            return redirect("core:seance_list")
+
+    elif action == "force":
+        count_abs = absences_bloquantes.count()
+        try:
+            with transaction.atomic():
+                absences_bloquantes.delete()
                 s.delete()
-                messages.success(request, "🗑️ Séance supprimée.")
-                return redirect("core:seance_list")
 
-            except ProtectedError:
-                messages.error(
-                    request,
-                    "❌ Suppression impossible : cette séance est liée à des absences. "
-                    "Tu peux soit supprimer ces absences, soit cliquer sur 'Forcer la suppression'."
-                )
+            messages.success(
+                request,
+                f"🗑️ Séance supprimée (FORCÉ) + {count_abs} absence(s) supprimée(s)."
+            )
+            return redirect("core:seance_list")
 
-        # ✅ CAS 2 — FORCER : supprime d’abord les absences liées puis la séance
-        elif action == "force":
-            count_abs = absences_bloquantes.count()
+        except ProtectedError:
+            messages.error(
+                request,
+                "❌ Forçage impossible : la séance est encore référencée ailleurs."
+            )
+            return redirect("core:seance_list")
 
-            try:
-                with transaction.atomic():
-                    # 1) supprimer toutes les absences liées à cette séance
-                    absences_bloquantes.delete()
+    messages.error(request, "Action invalide.")
+    return redirect("core:seance_list")
 
-                    # 2) supprimer la séance
-                    s.delete()
+@login_required
+@permission_required("core.delete_seance", raise_exception=True)
+def seance_delete_modal(request, pk):
+    s = get_object_or_404(
+        Seance.objects.select_related(
+            "annee", "groupe", "groupe__niveau", "groupe__niveau__degre", "enseignant"
+        ),
+        pk=pk
+    )
 
-                messages.success(
-                    request,
-                    f"🗑️ Séance supprimée (FORCÉ) + {count_abs} absence(s) supprimée(s)."
-                )
-                return redirect("core:seance_list")
-
-            except ProtectedError:
-                # normalement après delete des absences ça passe,
-                # mais on garde une sécurité
-                messages.error(
-                    request,
-                    "❌ Forçage impossible : la séance est encore référencée ailleurs."
-                )
+    absences_bloquantes = (
+        Absence.objects
+        .filter(seance=s)
+        .select_related("eleve", "groupe", "annee")
+        .order_by("-date", "eleve__nom", "eleve__prenom")
+    )
 
     return render(request, "admin/seances/delete.html", {
         "s": s,
@@ -5473,7 +5103,7 @@ def seance_delete(request, pk):
     })
 
 @login_required
-@permission_required("core.view_seance", raise_exception=True)
+@permission_required("core.v    iew_seance", raise_exception=True)
 def edt_week(request):
     annee_active = AnneeScolaire.objects.filter(is_active=True).first()
 
@@ -5540,9 +5170,6 @@ def edt_week(request):
     })
 
 
-# ============================
-# F1 — Absences
-# ============================
 
 @login_required
 @permission_required("core.view_absence", raise_exception=True)
@@ -5879,8 +5506,18 @@ def absence_list(request):
     if annee_id:
         periodes = periodes.filter(annee_id=annee_id)
 
+    page_number = request.GET.get("page", 1)
+    paginator = Paginator(absences.order_by("-date", "-id"), 50)
+    try:
+        page_obj = paginator.page(page_number)
+    except PageNotAnInteger:
+        page_obj = paginator.page(1)
+    except EmptyPage:
+        page_obj = paginator.page(paginator.num_pages)
+
     return render(request, "admin/absences/list.html", {
-        "absences": absences,
+        "absences": page_obj,
+        "page_obj": page_obj,
 
         "annees": annees,
         "annee_selected": annee_id,
@@ -5960,10 +5597,17 @@ def absence_update(request, pk):
 @permission_required("core.delete_absence", raise_exception=True)
 def absence_delete(request, pk):
     a = get_object_or_404(Absence, pk=pk)
+
     if request.method == "POST":
         a.delete()
         messages.success(request, "🗑️ Absence supprimée.")
         return redirect("core:absence_list")
+
+    return redirect("core:absence_list")
+@login_required
+@permission_required("core.delete_absence", raise_exception=True)
+def absence_delete_modal(request, pk):
+    a = get_object_or_404(Absence, pk=pk)
     return render(request, "admin/absences/delete.html", {"a": a})
 
 @login_required
@@ -6055,9 +5699,6 @@ def absences_jour(request):
     })
 
 
-# ============================
-# G1 — Parents + liens (Formset)
-# ============================
 
 @login_required
 @permission_required("core.view_parent", raise_exception=True)
@@ -6132,8 +5773,18 @@ def parent_list(request):
     if niveau_id:
         groupes = groupes.filter(niveau_id=niveau_id)
 
+    page_number = request.GET.get("page", 1)
+    paginator = Paginator(parents.order_by("-id"), 50)
+    try:
+        page_obj = paginator.page(page_number)
+    except PageNotAnInteger:
+        page_obj = paginator.page(1)
+    except EmptyPage:
+        page_obj = paginator.page(paginator.num_pages)
+
     return render(request, "admin/parents/list.html", {
-        "parents": parents,
+        "parents": page_obj,
+        "page_obj": page_obj,
         "q": q,
         "statut": statut,
         "total_parents": total_parents,  
@@ -6216,33 +5867,30 @@ def parent_update(request, pk):
         "p": p,
     })
 
-
 @login_required
 @permission_required("core.delete_parent", raise_exception=True)
 def parent_delete(request, pk):
-    p = get_object_or_404(Parent, pk=pk)
+    if request.method != "POST":
+        raise Http404()
 
-    # (optionnel) compteur pour afficher dans la page de confirmation
+    p = get_object_or_404(Parent, pk=pk)
     tx_count = TransactionFinance.objects.filter(parent=p).count()
 
-    if request.method == "POST":
-        try:
+    try:
+        with transaction.atomic():
             p.delete()
-            messages.success(request, "🗑️ Parent supprimé.")
-            return redirect("core:parent_list")
+        messages.success(request, "🗑️ Parent supprimé.")
+        return redirect("core:parent_list")
 
-        except ProtectedError:
-            messages.error(
-                request,
-                f"⛔ Impossible de supprimer ce parent : il est lié à {tx_count} transaction(s) finance. "
-                f"Supprime/réaffecte d'abord ces transactions, ou désactive le parent."
-            )
-            return redirect("core:parent_detail", pk=p.pk)  # adapte si ton url est différente
-
-    return render(request, "admin/parents/delete.html", {"p": p, "tx_count": tx_count})
+    except ProtectedError:
+        messages.error(
+            request,
+            f"⛔ Impossible de supprimer : parent lié à {tx_count} transaction(s). "
+            f"Supprime/réaffecte d'abord ces transactions."
+        )
+        return redirect("core:parent_detail", pk=p.pk)
 
 
-#================================================================
 
 @login_required
 @permission_required("core.view_echeancemensuelle", raise_exception=True)
@@ -6356,10 +6004,6 @@ def absences_jour_pdf_view(request):
             groupe_label = f"{g.niveau.degre.nom}/{g.niveau.nom}/{g.nom}"
 
     return pdf_utils.absences_jour_pdf(date_str or "—", annee_obj, groupe_label, absences.order_by("eleve__nom"))
-
-
-
-
 
 
 @login_required
@@ -6829,9 +6473,6 @@ def paiements_excel_import(request):
 
     return render(request, "admin/paiements/import.html")
 
-# ============================
-# O1 — Notes & Evaluations
-# ============================
 
 
 @login_required
@@ -6919,18 +6560,18 @@ def matiere_delete(request, pk):
         messages.success(request, "✅ Matière désactivée (historique conservé).")
         return redirect("core:matiere_list")
 
+    # ❌ pas de page normale
+    return redirect("core:matiere_list")
+
+@login_required
+@permission_required("core.delete_matiere", raise_exception=True)
+def matiere_delete_modal(request, pk):
+    matiere = get_object_or_404(Matiere, pk=pk)
+
     return render(request, "admin/matieres/delete.html", {
         "matiere": matiere
     })
-
-
-# core/views_notes.py (ou core/views.py selon ton projet)
-
-
-# =========================
-# AJAX — Élèves par groupe (pour Communication / SMS)
-# =========================
-
+    
 @login_required
 @permission_required("core.view_eleve", raise_exception=True)
 def ajax_eleves_par_groupe(request):
@@ -7469,14 +7110,6 @@ def notes_saisie(request, evaluation_id):
     })
 
 
-# si tu as déjà group_required, garde le tien
- # adapte le chemin si besoin
-
-# si tu as ton pdf_utils existant
-
-
-# Views
-# =========================
 @login_required
 @permission_required("core.view_note", raise_exception=True)
 def bulletin_view(request, eleve_id):
@@ -7608,18 +7241,6 @@ def parent_dashboard(request):
     })
 
 
-# Si ton modèle Absence existe, décommente:
-# from .models import Absence
-
-
-def _pct_change(current, previous):
-    """Retourne une variation % arrondie (int)."""
-    current = float(current or 0)
-    previous = float(previous or 0)
-    if previous <= 0:
-        return 0
-    return int(round(((current - previous) / previous) * 100))
-
 
 # ============================
 # U1 — Users (liste + export)
@@ -7645,13 +7266,27 @@ def users_list(request):
 
     if group_filter:
         users = users.filter(groups__name=group_filter)
+    else:
+        users = users.exclude(groups__name="ELEVE")
 
     # groups pour dropdown filtre
     from django.contrib.auth.models import Group
     groups = Group.objects.all().order_by("name")
+    total_users = users.count()
+
+    page_number = request.GET.get("page", 1)
+    paginator = Paginator(users, 50)
+    try:
+        page_obj = paginator.page(page_number)
+    except PageNotAnInteger:
+        page_obj = paginator.page(1)
+    except EmptyPage:
+        page_obj = paginator.page(paginator.num_pages)
 
     return render(request, "admin/users/list.html", {
-        "users": users,
+        "users": page_obj,
+        "page_obj": page_obj,
+        "total_users": total_users,
         "q": q,
         "group_filter": group_filter,
         "groups": groups,
@@ -7676,6 +7311,8 @@ def users_export_csv(request):
         )
     if group_filter:
         users = users.filter(groups__name=group_filter)
+    else:
+        users = users.exclude(groups__name="ELEVE")
 
     response = HttpResponse(content_type="text/csv; charset=utf-8")
     response["Content-Disposition"] = 'attachment; filename="users_export.csv"'
@@ -7715,6 +7352,8 @@ def users_reset_passwords_export_csv(request):
 
     if group_filter:
         users = users.filter(groups__name=group_filter)
+    else:
+        users = users.exclude(groups__name="ELEVE")
 
     # sécurité : jamais toucher aux superusers
     users = users.filter(is_superuser=False)
@@ -7752,14 +7391,24 @@ def users_reset_passwords_export_csv(request):
 def users_detail(request, user_id):
     User = get_user_model()
     u = get_object_or_404(User.objects.prefetch_related("groups"), id=user_id)
+    from accounts.models import get_user_avatar_url
 
     temp = TempPassword.objects.filter(user=u).first()
     roles = [g.name for g in u.groups.all()]
+    avatar_url = get_user_avatar_url(u)
+
+    enseignant = getattr(u, "enseignant_profile", None)
+    eleve = getattr(u, "eleve_profile", None)
+    parent = Parent.objects.filter(user=u).first()
 
     return render(request, "admin/users/detail.html", {
         "u": u,
         "roles": roles,
         "temp": temp,
+        "avatar_url": avatar_url,
+        "enseignant": enseignant,
+        "eleve": eleve,
+        "parent": parent,
     })
 
 
@@ -7816,10 +7465,13 @@ def users_create(request):
 def users_update(request, user_id):
     User = get_user_model()
     u = get_object_or_404(User.objects.prefetch_related("groups"), id=user_id)
+    from accounts.models import UserSecurityProfile, get_user_avatar_url
 
-    if u.is_superuser:
+    if u.is_superuser and not request.user.is_superuser:
         messages.error(request, "⛔ Modification superuser bloquée ici.")
         return redirect("core:users_detail", user_id=u.id)
+
+    sec_profile = UserSecurityProfile.get_for(u)
 
     if request.method == "POST":
         form = UserUpdateForm(request.POST, instance=u)
@@ -7827,38 +7479,91 @@ def users_update(request, user_id):
             obj = form.save()
             groups = form.cleaned_data.get("groups")
             obj.groups.set(groups)
-            messages.success(request, "✅ User mis à jour.")
+
+            if "remove_avatar" in request.POST:
+                if sec_profile.avatar:
+                    sec_profile.avatar.delete(save=False)
+                    sec_profile.avatar = None
+                    sec_profile.save(update_fields=["avatar"])
+
+                if hasattr(u, "enseignant_profile") and u.enseignant_profile and u.enseignant_profile.photo:
+                    u.enseignant_profile.photo.delete(save=False)
+                    u.enseignant_profile.photo = None
+                    u.enseignant_profile.save(update_fields=["photo"])
+                if hasattr(u, "eleve_profile") and u.eleve_profile and u.eleve_profile.photo:
+                    u.eleve_profile.photo.delete(save=False)
+                    u.eleve_profile.photo = None
+                    u.eleve_profile.save(update_fields=["photo"])
+
+            avatar_file = request.FILES.get("avatar")
+            if avatar_file:
+                ext = avatar_file.name.split(".")[-1].lower() if "." in avatar_file.name else ""
+                if ext in ["jpg", "jpeg", "png", "webp", "gif"] and avatar_file.size <= 5 * 1024 * 1024:
+                    if sec_profile.avatar:
+                        sec_profile.avatar.delete(save=False)
+                    sec_profile.avatar = avatar_file
+                    sec_profile.save(update_fields=["avatar"])
+
+                    if hasattr(u, "enseignant_profile") and u.enseignant_profile:
+                        u.enseignant_profile.photo = avatar_file
+                        u.enseignant_profile.save(update_fields=["photo"])
+                    if hasattr(u, "eleve_profile") and u.eleve_profile:
+                        u.eleve_profile.photo = avatar_file
+                        u.eleve_profile.save(update_fields=["photo"])
+
+            messages.success(request, "✅ Utilisateur mis à jour.")
             return redirect("core:users_detail", user_id=obj.id)
     else:
         form = UserUpdateForm(instance=u)
         form.fields["groups"].initial = u.groups.all()
 
+    avatar_url = get_user_avatar_url(u)
+
     return render(request, "admin/users/form.html", {
         "form": form,
         "mode": "update",
         "u": u,
+        "avatar_url": avatar_url,
     })
 
 
 @login_required
-@permission_required("auth.view_user", raise_exception=True)
+@permission_required("auth.change_user", raise_exception=True)
 def users_password(request, user_id):
     User = get_user_model()
     u = get_object_or_404(User, id=user_id)
 
-    # Sécurité: on bloque superuser
+    is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
+    base_template = "admin/base_dummy.html" if is_ajax else "admin/base_admin.html"
+    template_name = "admin/users/password.html"
+
+    # sécurité superuser
     if u.is_superuser:
+        if is_ajax:
+            html = render_to_string(
+                template_name,
+                {
+                    "u": u,
+                    "form": PasswordChangeForm(initial={"auto_password": True}),
+                    "blocked_message": "⛔ Reset mdp superuser bloqué.",
+                    "base_template": base_template,
+                    "is_ajax": is_ajax,
+                },
+                request=request,
+            )
+            return JsonResponse({"ok": False, "html": html}, status=403)
+
         messages.error(request, "⛔ Reset mdp superuser bloqué.")
-        return redirect("core:users_detail", pk=u.id)  # ✅ adapte si ton url est pk
+        return redirect("core:users_detail", user_id=u.id)
 
     if request.method == "POST":
         form = PasswordChangeForm(request.POST)
+
         if form.is_valid():
             auto = form.cleaned_data["auto_password"]
             pwd_input = (form.cleaned_data.get("password") or "").strip()
 
             if auto:
-                # ✅ reset_password() fait déjà TempPassword.update_or_create()
                 pwd = reset_password(u)
             else:
                 pwd = pwd_input
@@ -7870,54 +7575,49 @@ def users_password(request, user_id):
                     defaults={"password": pwd, "updated_at": timezone.now()}
                 )
 
+            if is_ajax:
+                return JsonResponse({
+                    "ok": True,
+                    "message": f"✅ Mot de passe mis à jour : {u.username} | MDP: {pwd}",
+                    "redirect_url": reverse("core:users_detail", kwargs={"user_id": u.id}),
+                })
+
             messages.success(request, f"✅ Mot de passe mis à jour: {u.username} | MDP: {pwd}")
-            return redirect("core:users_detail", user_id=u.id)  # ✅ adapte si ton url est user_id
+            return redirect("core:users_detail", user_id=u.id)
+
+        if is_ajax:
+            html = render_to_string(
+                template_name,
+                {
+                    "u": u,
+                    "form": form,
+                    "base_template": base_template,
+                    "is_ajax": is_ajax,
+                },
+                request=request,
+            )
+            return JsonResponse({"ok": False, "html": html}, status=400)
+
     else:
         form = PasswordChangeForm(initial={"auto_password": True})
 
-    return render(request, "admin/users/password.html", {
+    return render(request, template_name, {
         "u": u,
         "form": form,
+        "base_template": base_template,
+        "is_ajax": is_ajax,
     })
-
-def _has_linked_profile(user):
-    """
-    Empêche suppression si lié à un profil Parent/Enseignant.
-    (sécurise FK/OneToOne)
-    """
-    # Parent: tu utilises user.parent_profile
-    try:
-        _ = user.parent_profile
-        return True
-    except Exception:
-        pass
-
-    # Enseignant: on ne connait pas ton related_name exact, donc on tente plusieurs
-    for attr in ["enseignant", "enseignant_profile", "enseignant_set"]:
-        try:
-            obj = getattr(user, attr)
-            if obj:
-                return True
-        except Exception:
-            continue
-
-    return False
-
-
+    
+    
 @login_required
 @permission_required("auth.delete_user", raise_exception=True)
 def users_delete(request, user_id):
     User = get_user_model()
     u = get_object_or_404(User, id=user_id)
 
-    is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
-
     # 1) Sécurité superuser
     if u.is_superuser:
-        msg = "⛔ Suppression superuser bloquée."
-        if is_ajax:
-            return JsonResponse({"ok": False, "redirect": None, "message": msg}, status=403)
-        messages.error(request, msg)
+        messages.error(request, "⛔ Suppression superuser bloquée.")
         return redirect("core:users_detail", user_id=u.id)
 
     # 2) Profils liés
@@ -7928,61 +7628,58 @@ def users_delete(request, user_id):
         try:
             with transaction.atomic():
 
-                # === CAS A: lié à Enseignant => on désactive (pas de suppression)
+                # CAS A : lié à Enseignant => désactivation
                 if ens:
                     if u.is_active:
                         u.is_active = False
                         u.save(update_fields=["is_active"])
-                    msg = "✅ User désactivé (lié à un Enseignant)."
-                    if is_ajax:
-                        return JsonResponse({"ok": True, "redirect": "detail", "user_id": u.id, "message": msg})
-                    messages.success(request, msg)
+                    messages.success(request, "✅ User désactivé (lié à un Enseignant).")
                     return redirect("core:users_detail", user_id=u.id)
 
-                # === CAS B: lié à Parent ===
+                # CAS B : lié à Parent
                 if parent:
-                    # Parent a encore des élèves ? => désactive uniquement
                     if parent.liens.exists():
                         if u.is_active:
                             u.is_active = False
                             u.save(update_fields=["is_active"])
-                        msg = "✅ User désactivé (Parent encore lié à des élèves)."
-                        if is_ajax:
-                            return JsonResponse({"ok": True, "redirect": "detail", "user_id": u.id, "message": msg})
-                        messages.success(request, msg)
+                        messages.success(request, "✅ User désactivé (Parent encore lié à des élèves).")
                         return redirect("core:users_detail", user_id=u.id)
 
-                    # Parent orphelin => supprimer Parent + User
+                    # Parent orphelin
                     parent.delete()
                     u.delete()
-                    msg = "🗑️ Parent orphelin + User supprimés."
-                    if is_ajax:
-                        return JsonResponse({"ok": True, "redirect": "list", "message": msg})
-                    messages.success(request, msg)
+                    messages.success(request, "🗑️ Parent orphelin + User supprimés.")
                     return redirect("core:users_list")
 
-                # === CAS C: aucun profil lié => suppression
+                # CAS C : aucun profil lié
                 u.delete()
-                msg = "🗑️ User supprimé."
-                if is_ajax:
-                    return JsonResponse({"ok": True, "redirect": "list", "message": msg})
-                messages.success(request, msg)
+                messages.success(request, "🗑️ User supprimé.")
                 return redirect("core:users_list")
 
         except ProtectedError:
-            # FK PROTECT => désactivation fallback
             if u.is_active:
                 u.is_active = False
                 u.save(update_fields=["is_active"])
-            msg = "⛔ Suppression impossible (références existantes). User désactivé."
-            if is_ajax:
-                return JsonResponse({"ok": True, "redirect": "detail", "user_id": u.id, "message": msg})
-            messages.error(request, msg)
+            messages.error(request, "⛔ Suppression impossible (références existantes). User désactivé.")
             return redirect("core:users_detail", user_id=u.id)
 
-    # ✅ GET : si AJAX => renvoyer le fragment modal, sinon page normale
-    # (ton delete.html doit être le HTML modal AZ, sans <style> ni <script>)
-    return render(request, "admin/users/delete.html", {"u": u, "parent": parent, "ens": ens})
+    return redirect("core:users_list")
+
+
+@login_required
+@permission_required("auth.delete_user", raise_exception=True)
+def users_delete_modal(request, user_id):
+    User = get_user_model()
+    u = get_object_or_404(User, id=user_id)
+
+    parent = Parent.objects.select_related("user").filter(user=u).first()
+    ens = Enseignant.objects.select_related("user").filter(user=u).first()
+
+    return render(request, "admin/users/delete.html", {
+        "u": u,
+        "parent": parent,
+        "ens": ens,
+    })
 
 @login_required
 @permission_required("core.view_anneescolaire", raise_exception=True)
@@ -8130,48 +7827,92 @@ def ajax_periodes(request):
 # =========================
 
 
+
 @login_required
 @permission_required("core.view_avis", raise_exception=True)
 def avis_list(request):
     q = (request.GET.get("q") or "").strip()
-    cible = (request.GET.get("cible") or "").strip()      # cible_type
-    period = (request.GET.get("period") or "").strip()    # 7d, 30d, ytd, all
+    cible = (request.GET.get("cible") or "").strip()
+    period = (request.GET.get("period") or "").strip()      # 7d / 30d / ytd
+    date_from = (request.GET.get("date_from") or "").strip()
+    date_to = (request.GET.get("date_to") or "").strip()
 
     items = Avis.objects.all()
 
-    # 🔎 Search
+    # 🔎 Recherche
     if q:
-        items = items.filter(Q(titre__icontains=q) | Q(contenu__icontains=q))
+        items = items.filter(
+            Q(titre__icontains=q) |
+            Q(contenu__icontains=q)
+        )
 
-    # 🎯 Cible type
+    # 🎯 Cible
     if cible:
         items = items.filter(cible_type=cible)
 
-    # ⏱️ Période (date_publication)
+    # ⏱️ Période rapide uniquement si dates manuelles absentes
     now = timezone.now()
-    if period == "7d":
-        items = items.filter(date_publication__gte=now - timedelta(days=7))
-    elif period == "30d":
-        items = items.filter(date_publication__gte=now - timedelta(days=30))
-    elif period == "ytd":
-        start_year = now.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
-        items = items.filter(date_publication__gte=start_year)
-    # "all" ou vide => rien
+    if not date_from and not date_to:
+        if period == "7d":
+            items = items.filter(date_publication__gte=now - timedelta(days=7))
+        elif period == "30d":
+            items = items.filter(date_publication__gte=now - timedelta(days=30))
+        elif period == "ytd":
+            start_year = now.replace(
+                month=1, day=1, hour=0, minute=0, second=0, microsecond=0
+            )
+            items = items.filter(date_publication__gte=start_year)
+
+    # 📅 Date début / fin
+    if date_from:
+        items = items.filter(date_publication__date__gte=date_from)
+
+    if date_to:
+        items = items.filter(date_publication__date__lte=date_to)
 
     items = items.order_by("-date_publication", "-id")
 
-    # ✅ pour remplir le select des cibles dynamiquement
-    # (Avis.CIBLE_CHOICES si tu l'as dans le model)
     cible_choices = getattr(Avis, "CIBLE_CHOICES", None)
+    total_items = items.count()
+
+    page_number = request.GET.get("page", 1)
+    paginator = Paginator(items, 50)
+    try:
+        page_obj = paginator.page(page_number)
+    except PageNotAnInteger:
+        page_obj = paginator.page(1)
+    except EmptyPage:
+        page_obj = paginator.page(paginator.num_pages)
 
     return render(request, "admin/avis/list.html", {
-        "items": items,
+        "items": page_obj,
+        "page_obj": page_obj,
+        "total_items": total_items,
         "q": q,
         "cible": cible,
         "period": period,
+        "date_from": date_from,
+        "date_to": date_to,
         "cible_choices": cible_choices,
     })
 
+
+@login_required
+def avis_delete(request, pk):
+    obj = get_object_or_404(Avis, pk=pk)
+
+    if request.method == "POST":
+        obj.delete()
+        messages.success(request, "🗑️ Avis supprimé.")
+        return redirect("core:avis_list")
+
+    return redirect("core:avis_list")
+
+
+@login_required
+def avis_delete_modal(request, pk):
+    obj = get_object_or_404(Avis, pk=pk)
+    return render(request, "admin/avis/delete_modal.html", {"obj": obj})
 @login_required
 @permission_required("core.add_avis", raise_exception=True)
 def avis_create(request):
@@ -8197,10 +7938,17 @@ def avis_detail(request, pk):
 @login_required
 def avis_delete(request, pk):
     obj = get_object_or_404(Avis, pk=pk)
+
     if request.method == "POST":
         obj.delete()
         messages.success(request, "🗑️ Avis supprimé.")
         return redirect("core:avis_list")
+
+    return redirect("core:avis_list")
+
+@login_required
+def avis_delete_modal(request, pk):
+    obj = get_object_or_404(Avis, pk=pk)
     return render(request, "admin/avis/delete.html", {"obj": obj})
 
 
@@ -8208,7 +7956,7 @@ def avis_delete(request, pk):
 # I — Communication (SMS)
 # =========================
 
-def _parents_from_cible(cible_type: str, degre_id=None, niveau_id=None, groupe_id=None, eleve_id=None):
+def _parents_from_cible(cible_type: str, degre_id=None, niveau_id=None, groupe_id=None, eleve_id=None, parent_ids=None):
     """
     Retourne une QuerySet de Parent ciblés via ParentEleve.
     """
@@ -8229,6 +7977,10 @@ def _parents_from_cible(cible_type: str, degre_id=None, niveau_id=None, groupe_i
     elif cible_type == "ELEVE":
         liens = liens.filter(eleve_id=eleve_id)
 
+    elif cible_type == "PARENTS":
+        ids = parent_ids or []
+        return Parent.objects.filter(id__in=ids, is_active=True)
+
     # parents uniques
     parent_ids = liens.values_list("parent_id", flat=True).distinct()
     return Parent.objects.filter(id__in=parent_ids, is_active=True)
@@ -8236,93 +7988,98 @@ def _parents_from_cible(cible_type: str, degre_id=None, niveau_id=None, groupe_i
 
 @login_required
 def sms_send(request):
-    """
-    Envoi réel SMS + historique.
-    """
-    if request.method == "POST":
-        form = SmsSendForm(request.POST)
-        if form.is_valid():
-            msg = form.cleaned_data["message"]
-            cible_type = form.cleaned_data["cible_type"]
+    if not (request.user.is_superuser or request.user.has_perm("core.add_smshistorique")):
+        raise Http404()
 
-            degre_id = form.cleaned_data.get("degre")
-            niveau_id = form.cleaned_data.get("niveau")
-            groupe_id = form.cleaned_data.get("groupe")
-            eleve_id = form.cleaned_data.get("eleve")
+    form = SmsSendForm(request.POST or None)
+    degres = Degre.objects.all().order_by("ordre", "nom")
+    parents_list = Parent.objects.filter(is_active=True).order_by("nom", "prenom")
 
-            parents = _parents_from_cible(cible_type, degre_id, niveau_id, groupe_id, eleve_id)
+    if request.method == "POST" and form.is_valid():
+        message_text = (form.cleaned_data.get("message") or "").strip()
+        cible_type = form.cleaned_data.get("cible_type")
+        degre_id = form.cleaned_data.get("degre")
+        niveau_id = form.cleaned_data.get("niveau")
+        groupe_id = form.cleaned_data.get("groupe")
+        eleve_id = form.cleaned_data.get("eleve")
+        selected_parents = form.cleaned_data.get("parents")
 
-            sent = 0
-            failed = 0
+        parents_qs = _parents_from_cible(
+            cible_type=cible_type,
+            degre_id=degre_id,
+            niveau_id=niveau_id,
+            groupe_id=groupe_id,
+            eleve_id=eleve_id,
+            parent_ids=list(selected_parents.values_list("id", flat=True)) if selected_parents else None,
+        )
 
-            for p in parents:
-                tel = normalize_phone(p.telephone)
-                if not tel:
-                    # on log quand même, en FAILED
-                    SmsHistorique.objects.create(
-                        parent=p,
-                        telephone="",
-                        message=msg,
-                        status="FAILED",
-                        provider="twilio",
-                        error_message="Téléphone parent vide.",
-                    )
-                    failed += 1
-                    continue
+        sent_count = 0
+        failed_count = 0
 
-                hist = SmsHistorique.objects.create(
-                    parent=p,
-                    telephone=tel,
-                    message=msg,
-                    status="PENDING",
-                    provider="twilio",
-                )
+        for parent in parents_qs.distinct():
+            raw_phone = (parent.telephone_norm or parent.telephone or "").strip()
+            phone = normalize_phone(raw_phone)
 
-                ok, provider_id, err = send_sms_via_bulksms_ma(tel, msg)
+            hist = SmsHistorique.objects.create(
+                parent=parent,
+                telephone=phone or raw_phone,
+                message=message_text,
+                event="autre",
+                type_envoi="manuel",
+                provider="bulksms",
+                status="QUEUED",
+                envoye_par=request.user,
+                sent_at=timezone.now(),
+            )
 
-                if ok:
-                    hist.status = "SENT"
-                    hist.provider_message_id = provider_id
-                    hist.sent_at = timezone.now()
-                    hist.error_message = ""
-                    sent += 1
-                else:
-                    hist.status = "FAILED"
-                    hist.error_message = err
-                    failed += 1
+            if not phone:
+                hist.status = "FAILED"
+                hist.error_message = "Numéro invalide"
+                hist.save(update_fields=["status", "error_message"])
+                failed_count += 1
+                continue
 
-                hist.save(update_fields=["status", "provider_message_id", "error_message", "sent_at", "updated_at", "updated_by"])
+            ok, provider_id, err = send_sms_via_bulksms_ma(phone, message_text)
+            hist.provider_message_id = provider_id or ""
+            hist.error_message = err or ""
+            hist.status = "SENT" if ok else "FAILED"
+            hist.save(update_fields=["provider_message_id", "error_message", "status"])
 
-            messages.success(request, f"📩 SMS terminé — Envoyés: {sent} | Échecs: {failed}")
-            return redirect("core:sms_history")
-    else:
-        form = SmsSendForm()
+            if ok:
+                sent_count += 1
+            else:
+                failed_count += 1
 
-    # Pour aider l’UI : listes (select)
-    degres = Degre.objects.all()
-    niveaux = Niveau.objects.select_related("degre").all()
-    groupes = Groupe.objects.select_related("niveau", "annee").all()
-    eleves = Eleve.objects.all()
+        if sent_count:
+            messages.success(request, f"{sent_count} SMS envoyé(s).")
+        if failed_count:
+            messages.warning(request, f"{failed_count} SMS en échec.")
+        if not sent_count and not failed_count:
+            messages.warning(request, "Aucun parent cible trouvé.")
+
+        return redirect("core:sms_history")
 
     return render(request, "admin/communication/sms_send.html", {
         "form": form,
         "degres": degres,
-        "niveaux": niveaux,
-        "groupes": groupes,
-        "eleves": eleves,
+        "parents_list": parents_list,
     })
 
 
 @login_required
 def sms_history(request):
-    q = (request.GET.get("q") or "").strip()
-    status = (request.GET.get("status") or "").strip()     # SENT/FAILED/PENDING/...
-    period = (request.GET.get("period") or "").strip()     # 7d / 30d / ytd / all
+    if not (request.user.is_superuser or request.user.has_perm("core.view_smshistorique")):
+        raise Http404()
 
-    qs = SmsHistorique.objects.select_related("parent").all()
+    q = (request.GET.get("q") or "").strip()
+    event_selected = (request.GET.get("event") or "").strip()
+    status_selected = (request.GET.get("status") or "").strip()
+    period_selected = (request.GET.get("period") or "").strip()
+
+    items = SmsHistorique.objects.select_related("parent", "envoye_par").all()
 
     if q:
-        qs = qs.filter(
+        items = items.filter(
             Q(parent__nom__icontains=q) |
             Q(parent__prenom__icontains=q) |
             Q(telephone__icontains=q) |
@@ -8330,29 +8087,30 @@ def sms_history(request):
             Q(error_message__icontains=q)
         )
 
-    if status:
-        qs = qs.filter(status=status)
+    if event_selected:
+        items = items.filter(event=event_selected)
+
+    if status_selected:
+        items = items.filter(status=status_selected)
 
     now = timezone.now()
-    if period == "7d":
-        qs = qs.filter(created_at__gte=now - timedelta(days=7))
-    elif period == "30d":
-        qs = qs.filter(created_at__gte=now - timedelta(days=30))
-    elif period == "ytd":
-        start_year = now.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
-        qs = qs.filter(created_at__gte=start_year)
+    if period_selected == "7d":
+        items = items.filter(created_at__gte=now - timedelta(days=7))
+    elif period_selected == "30d":
+        items = items.filter(created_at__gte=now - timedelta(days=30))
+    elif period_selected == "ytd":
+        items = items.filter(created_at__year=now.year)
 
-    qs = qs.order_by("-created_at", "-id")
-
-    # ✅ liste statuts pour select
-    status_choices = ["PENDING", "SENT", "DELIVERED", "FAILED", "ERROR"]
+    items = items.order_by("-created_at", "-id")[:300]
 
     return render(request, "admin/communication/sms_history.html", {
-        "items": qs,
+        "items": items,
         "q": q,
-        "status_selected": status,
-        "period_selected": period,
-        "status_choices": status_choices,
+        "event_selected": event_selected,
+        "status_selected": status_selected,
+        "period_selected": period_selected,
+        "event_choices": SmsHistorique.EVENT_CHOICES,
+        "status_choices": [choice[0] for choice in SmsHistorique.STATUS_CHOICES],
     })
 
 
@@ -8375,26 +8133,35 @@ def users_detail_modal(request, pk):
     })
 
 
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required, permission_required
+from django.db import IntegrityError
+from django.http import JsonResponse
+from django.shortcuts import get_object_or_404, render
+from django.template.loader import render_to_string
+
 @login_required
 @permission_required("core.view_eleve", raise_exception=True)
-def eleve_reinscrire(request, pk):
+def eleve_reinscrire_modal(request, pk):
     eleve = get_object_or_404(Eleve, pk=pk)
 
-    # ✅ année active (par défaut)
     annee_active = AnneeScolaire.objects.filter(is_active=True).first()
     annees = AnneeScolaire.objects.all().order_by("-date_debut")
 
-    # ✅ filtres (GET) pour remplir les dropdowns
-    annee_id = request.GET.get("annee", "")
-    niveau_id = request.GET.get("niveau", "")
-    groupe_id = request.GET.get("groupe", "")
-    periode_id = request.GET.get("periode", "")
+    annee_id = request.GET.get("annee", "").strip()
+    niveau_id = request.GET.get("niveau", "").strip()
+    groupe_id = request.GET.get("groupe", "").strip()
+    periode_id = request.GET.get("periode", "").strip()
 
-    # ✅ par défaut : année active si rien choisi
+    if request.method == "POST":
+        annee_id = request.POST.get("annee", "").strip()
+        niveau_id = request.POST.get("niveau", "").strip()
+        groupe_id = request.POST.get("groupe", "").strip()
+        periode_id = request.POST.get("periode", "").strip()
+
     if not annee_id and annee_active:
         annee_id = str(annee_active.id)
 
-    # ✅ dropdowns dépendants
     niveaux = Niveau.objects.select_related("degre").all()
     if annee_id:
         niveaux = niveaux.filter(groupes__annee_id=annee_id).distinct()
@@ -8409,46 +8176,84 @@ def eleve_reinscrire(request, pk):
     if annee_id:
         periodes = periodes.filter(annee_id=annee_id)
 
-    # ✅ POST = créer la nouvelle inscription
+    template_name = "admin/eleves/reinscrire.html"
+
     if request.method == "POST":
-        annee_id_post = request.POST.get("annee")
-        groupe_id_post = request.POST.get("groupe")
-        periode_id_post = request.POST.get("periode") or None
+        annee_id_post = request.POST.get("annee", "").strip()
+        groupe_id_post = request.POST.get("groupe", "").strip()
+        periode_id_post = request.POST.get("periode", "").strip() or None
 
-        if not annee_id_post or not groupe_id_post:
-            messages.error(request, "Année et groupe sont obligatoires.")
-            return redirect("core:eleve_reinscrire", pk=eleve.id)
+        errors = {}
 
-        # ✅ sécurité : le groupe doit exister
-        groupe = get_object_or_404(Groupe, pk=groupe_id_post)
+        if not annee_id_post:
+            errors["annee"] = "Année obligatoire."
+        if not groupe_id_post:
+            errors["groupe"] = "Groupe obligatoire."
 
-        try:
-            Inscription.objects.create(
-                eleve=eleve,
-                annee_id=annee_id_post,
-                groupe=groupe,
-                periode_id=periode_id_post,
-                statut="VALIDEE",
-            )
-            messages.success(request, "Réinscription effectuée ✅")
-            return redirect("core:eleve_list")
-        except IntegrityError:
-            # ✅ ta contrainte unique (eleve, annee) déclenche ici
-            messages.error(request, "Cet élève est déjà inscrit sur cette année.")
-            return redirect("core:eleve_reinscrire", pk=eleve.id)
+        groupe = None
+        if groupe_id_post:
+            groupe = Groupe.objects.filter(pk=groupe_id_post).select_related("annee").first()
+            if not groupe:
+                errors["groupe"] = "Groupe invalide."
+            elif annee_id_post and str(groupe.annee_id) != str(annee_id_post):
+                errors["groupe"] = "Le groupe n'appartient pas à l'année sélectionnée."
 
-    return render(request, "admin/eleves/reinscrire.html", {
-        "eleve": eleve,
-        "annees": annees,
-        "annee_selected": annee_id,
-        "niveaux": niveaux,
-        "niveau_selected": niveau_id,
-        "groupes": groupes,
-        "groupe_selected": groupe_id,
-        "periodes": periodes,
-        "periode_selected": periode_id,
-    })
+        if not errors:
+            try:
+                inscription = Inscription.objects.create(
+                    eleve=eleve,
+                    annee_id=annee_id_post,
+                    groupe=groupe,
+                    periode_id=periode_id_post,
+                    statut="VALIDEE",
+                )
 
+                return JsonResponse({
+                    "ok": True,
+                    "message": "Réinscription effectuée ✅",
+                    "redirect_url": reverse("core:eleve_detail", kwargs={"pk": eleve.pk}),
+                    "inscription_id": inscription.pk,
+                })
+
+            except IntegrityError:
+                errors["all"] = "Cet élève est déjà inscrit sur cette année."
+
+        html = render_to_string(
+            template_name,
+            {
+                "eleve": eleve,
+                "annees": annees,
+                "annee_selected": annee_id,
+                "niveaux": niveaux,
+                "niveau_selected": niveau_id,
+                "groupes": groupes,
+                "groupe_selected": groupe_id,
+                "periodes": periodes,
+                "periode_selected": periode_id,
+                "errors": errors,
+                "is_modal": True,
+            },
+            request=request,
+        )
+        return JsonResponse({"ok": False, "html": html}, status=400)
+
+    return render(
+        request,
+        template_name,
+        {
+            "eleve": eleve,
+            "annees": annees,
+            "annee_selected": annee_id,
+            "niveaux": niveaux,
+            "niveau_selected": niveau_id,
+            "groupes": groupes,
+            "groupe_selected": groupe_id,
+            "periodes": periodes,
+            "periode_selected": periode_id,
+            "errors": {},
+            "is_modal": True,
+        },
+    )
 
 @login_required
 def api_periodes_par_groupe(request):
@@ -8994,3 +8799,53 @@ def ajax_eleves_search(request):
         })
 
     return JsonResponse({"items": items, "results": items})
+
+
+
+
+
+
+
+
+
+
+
+from django.http import Http404
+
+@login_required
+@permission_required("core.delete_eleve", raise_exception=True)
+def eleve_delete_modal(request, pk):
+    if request.headers.get("x-requested-with") != "XMLHttpRequest":
+        raise Http404()
+
+    eleve = get_object_or_404(Eleve, pk=pk)
+    nb_inscriptions = eleve.inscriptions.count()
+    nb_paiements = Paiement.objects.filter(inscription__eleve=eleve).count()
+
+    return render(request, "admin/eleves/delete.html", {
+        "eleve": eleve,
+        "nb_inscriptions": nb_inscriptions,
+        "nb_paiements": nb_paiements,
+    })
+  
+@login_required
+@permission_required("core.delete_groupe", raise_exception=True)
+def groupe_delete_modal(request, pk):
+    groupe = get_object_or_404(Groupe, pk=pk)
+
+    return render(request, "admin/groupes/delete.html", {
+        "groupe": groupe
+    })
+    
+@login_required
+@permission_required("core.delete_parent", raise_exception=True)
+def parent_delete_modal(request, pk):
+    p = get_object_or_404(Parent, pk=pk)
+    tx_count = TransactionFinance.objects.filter(parent=p).count()
+
+    return render(request, "admin/parents/delete.html", {
+        "p": p,
+        "tx_count": tx_count,
+    })
+
+

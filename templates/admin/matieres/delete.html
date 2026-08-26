@@ -1,26 +1,32 @@
-{% extends "admin/base_admin.html" %}
+<div class="az-card" style="max-width:100%;margin:0;">
+  <h2 style="margin:0 0 8px 0;">Confirmation</h2>
 
-{% block title %}Supprimer | AZ{% endblock %}
-{% block page_title %}Supprimer une matière{% endblock %}
-{% block current_page %}Pédagogie / Matières{% endblock %}
-
-{% block content %}
-
-<div class="az-card" style="grid-column:span 12;max-width:720px;">
-  <h3>Confirmation</h3>
-  <p class="az-sub">
-    Tu es sûr de vouloir supprimer la matière <b>{{ matiere.nom }}</b> ?
+  <p class="az-sub" style="margin:0 0 12px 0;">
+    Tu es sûr de vouloir <b>désactiver</b> la matière
+    <b>{{ matiere.nom }}</b> ?
   </p>
 
-  <form method="post" style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap;">
+  <div class="az-card" style="padding:14px; margin-bottom:14px; border:1px solid rgba(255,80,80,.25); background:rgba(255,80,80,.04);">
+    <div style="font-weight:800;color:rgba(255,120,120,.95);">
+      Action appliquée
+    </div>
+    <div class="az-sub" style="margin-top:6px;">
+      La matière ne sera pas supprimée définitivement. Elle sera <b>désactivée</b> et l’historique sera conservé.
+    </div>
+  </div>
+
+  <form method="post"
+        action="{% url 'core:matiere_delete' matiere.id %}"
+        style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;">
     {% csrf_token %}
-    <button class="az-btn" type="submit" style="border-color:rgba(255,80,80,.35);">
-      <i class="fa-solid fa-trash"></i> Oui, supprimer
-    </button>
-    <a class="az-btn az-btn-gradient" href="{% url 'core:matiere_list' %}">
+
+    <button type="button" class="az-btn az-btn-outline" data-azm-close>
       Annuler
-    </a>
+    </button>
+
+    <button class="az-btn az-btn-danger" type="submit">
+      <i class="fa-solid fa-ban"></i>
+      Désactiver
+    </button>
   </form>
 </div>
-
-{% endblock %}

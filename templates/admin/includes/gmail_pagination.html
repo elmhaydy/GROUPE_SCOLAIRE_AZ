@@ -1,0 +1,39 @@
+{% if page_obj and page_obj.has_other_pages %}
+<div class="az-gmail-pagination" style="display:flex; align-items:center; gap:12px;">
+  <span class="az-gmail-counter" style="font-size:0.85rem; font-weight:700; color:var(--az-text-secondary, #475569);">
+    <b>{{ page_obj.start_index }} - {{ page_obj.end_index }}</b> sur <b>{{ page_obj.paginator.count }}</b>
+  </span>
+
+  <div style="display:inline-flex; gap:4px;">
+    {% if page_obj.has_previous %}
+      <a class="az-btn az-btn-soft az-btn-sm" 
+         style="width:36px; height:36px; padding:0; display:inline-flex; align-items:center; justify-content:center; border-radius:10px;" 
+         href="?{% querystring page=page_obj.previous_page_number %}"
+         title="Page précédente">
+        <i class="fa-solid fa-chevron-left"></i>
+      </a>
+    {% else %}
+      <button class="az-btn az-btn-soft az-btn-sm" 
+              style="width:36px; height:36px; padding:0; display:inline-flex; align-items:center; justify-content:center; border-radius:10px; opacity:0.4; cursor:not-allowed;" 
+              disabled>
+        <i class="fa-solid fa-chevron-left"></i>
+      </button>
+    {% endif %}
+
+    {% if page_obj.has_next %}
+      <a class="az-btn az-btn-soft az-btn-sm" 
+         style="width:36px; height:36px; padding:0; display:inline-flex; align-items:center; justify-content:center; border-radius:10px;" 
+         href="?{% querystring page=page_obj.next_page_number %}"
+         title="Page suivante">
+        <i class="fa-solid fa-chevron-right"></i>
+      </a>
+    {% else %}
+      <button class="az-btn az-btn-soft az-btn-sm" 
+              style="width:36px; height:36px; padding:0; display:inline-flex; align-items:center; justify-content:center; border-radius:10px; opacity:0.4; cursor:not-allowed;" 
+              disabled>
+        <i class="fa-solid fa-chevron-right"></i>
+      </button>
+    {% endif %}
+  </div>
+</div>
+{% endif %}

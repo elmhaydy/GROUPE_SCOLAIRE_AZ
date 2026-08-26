@@ -1,0 +1,236 @@
+{% extends "admin/base_admin.html" %}
+{% load static %}
+
+{% block title %}Relances automatiques | Groupe Scolaire{% endblock %}
+{% block page_title %}Relances automatiques{% endblock %}
+{% block current_page %}Communication / Relances{% endblock %}
+
+{% block extra_css %}
+<style>
+.rel-hero{background:linear-gradient(135deg,#1a1f36 0%,#2d3561 100%);border-radius:16px;padding:28px 32px;margin-bottom:24px;color:#fff;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;box-shadow:var(--az-shadow-sm, 0 4px 14px rgba(0,0,0,.08))}
+.rel-hero h1{font-size:1.6rem;font-weight:700;margin:0 0 4px;color:#fff}
+.rel-hero p{opacity:.75;margin:0;font-size:.9rem;color:#fff}
+.rel-kpis{display:flex;gap:12px;flex-wrap:wrap}
+.rel-kpi{background:rgba(255,255,255,.1);border-radius:10px;padding:10px 18px;text-align:center}
+.rel-kpi .val{font-size:1.5rem;font-weight:700;display:block;color:#fff}
+.rel-kpi .lbl{font-size:.72rem;opacity:.7;text-transform:uppercase;letter-spacing:.05em;color:#fff}
+
+.rel-actions{display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;align-items:center}
+
+.rel-table-wrap{background:var(--az-bg-primary, #fff);border:1px solid var(--az-border, #e2e8f0);border-radius:14px;box-shadow:var(--az-shadow-sm, 0 2px 16px rgba(0,0,0,.06));overflow:hidden}
+.rel-table{width:100%;border-collapse:collapse}
+.rel-table th{background:var(--az-bg-secondary, #f4f6fb);font-size:.75rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--az-text-tertiary, #6b7280);padding:12px 16px;border-bottom:1px solid var(--az-border, #e5e7eb)}
+.rel-table td{padding:12px 16px;border-bottom:1px solid var(--az-border, #f3f4f6);font-size:.875rem;color:var(--az-text-primary, #374151)}
+.rel-table tr:last-child td{border-bottom:none}
+.rel-table tr:hover td{background:var(--az-bg-secondary, #f9fafb)}
+
+.badge-type{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:.72rem;font-weight:600;text-transform:uppercase}
+.badge-IMPAYE{background:#fef3c7;color:#92400e}
+.badge-ABSENCE{background:#dbeafe;color:#1e40af}
+.badge-RETARD{background:#ede9fe;color:#5b21b6}
+.badge-RENOUVELLEMENT{background:#d1fae5;color:#065f46}
+
+html[data-theme="dark"] .badge-IMPAYE{background:rgba(245,158,11,.18);color:#fde68a}
+html[data-theme="dark"] .badge-ABSENCE{background:rgba(59,130,246,.18);color:#bfdbfe}
+html[data-theme="dark"] .badge-RETARD{background:rgba(139,92,246,.18);color:#ddd6fe}
+html[data-theme="dark"] .badge-RENOUVELLEMENT{background:rgba(16,185,129,.18);color:#bbf7d0}
+
+.badge-niveau{display:inline-block;padding:2px 8px;border-radius:12px;font-size:.72rem;font-weight:600}
+.badge-niveau-1{background:#ecfdf5;color:#059669}
+.badge-niveau-2{background:#fef3c7;color:#d97706}
+.badge-niveau-3{background:#fee2e2;color:#dc2626}
+
+html[data-theme="dark"] .badge-niveau-1{background:rgba(16,185,129,.18);color:#bbf7d0}
+html[data-theme="dark"] .badge-niveau-2{background:rgba(245,158,11,.18);color:#fde68a}
+html[data-theme="dark"] .badge-niveau-3{background:rgba(239,68,68,.18);color:#fecaca}
+
+.toggle-btn{width:40px;height:22px;border-radius:11px;border:none;cursor:pointer;position:relative;transition:background .2s}
+.toggle-btn.on{background:#10b981}
+.toggle-btn.off{background:#d1d5db}
+html[data-theme="dark"] .toggle-btn.off{background:#475569}
+.toggle-btn::after{content:'';position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;transition:transform .2s}
+.toggle-btn.on::after{transform:translateX(18px)}
+
+.trigger-panel{background:var(--az-bg-primary, #fff);border:1px solid var(--az-border, #e2e8f0);border-radius:14px;box-shadow:var(--az-shadow-sm, 0 2px 16px rgba(0,0,0,.06));padding:24px;margin-bottom:20px}
+.trigger-panel h3{font-size:1rem;font-weight:600;margin:0 0 16px;color:var(--az-text-primary, #1f2937)}
+.trigger-form{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end}
+.trigger-form .az-field{display:flex;flex-direction:column;gap:4px}
+.trigger-form label{font-size:.75rem;font-weight:600;color:var(--az-text-tertiary, #6b7280);text-transform:uppercase}
+
+.empty-state{text-align:center;padding:48px 24px;color:var(--az-text-tertiary, #9ca3af)}
+.empty-state i{font-size:2.5rem;margin-bottom:12px;display:block}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="rel-hero">
+  <div>
+    <p style="font-size:.75rem;text-transform:uppercase;letter-spacing:.1em;opacity:.6;margin:0 0 6px">Automatisation</p>
+    <h1>Relances intelligentes</h1>
+    <p>Impayés · Absences · Retards · Renouvellements — SMS automatiques selon vos règles</p>
+  </div>
+  <div class="rel-kpis">
+    <div class="rel-kpi">
+      <span class="val">{{ total_actifs }}</span>
+      <span class="lbl">Règles actives</span>
+    </div>
+    <div class="rel-kpi">
+      <span class="val">{{ logs_7j }}</span>
+      <span class="lbl">SMS / 7 jours</span>
+    </div>
+    <div class="rel-kpi">
+      <span class="val">{{ logs_30j }}</span>
+      <span class="lbl">SMS / 30 jours</span>
+    </div>
+  </div>
+</div>
+
+<!-- Déclenchement manuel -->
+<div class="trigger-panel">
+  <h3><i class="fa-solid fa-bolt" style="color:#f59e0b;margin-right:8px"></i>Lancer les relances maintenant</h3>
+  <form method="post" action="{% url 'core:relance_trigger' %}" class="trigger-form">
+    {% csrf_token %}
+    <div class="az-field">
+      <label>Type</label>
+      <select name="type" class="az-select" style="min-width:160px">
+        <option value="all">Tous les types</option>
+        <option value="impaye">Impayés</option>
+        <option value="absence">Absences</option>
+        <option value="retard">Retards</option>
+        <option value="renouvellement">Renouvellements</option>
+      </select>
+    </div>
+    <div class="az-field">
+      <label>Limite</label>
+      <input type="number" name="limit" value="200" min="1" max="2000" class="az-input" style="width:90px">
+    </div>
+    <div class="az-field">
+      <label>Mode</label>
+      <select name="dry_run" class="az-select">
+        <option value="0">Envoi réel</option>
+        <option value="1">Simulation (dry-run)</option>
+      </select>
+    </div>
+    <button type="submit" class="az-btn az-btn-primary" onclick="return confirm('Lancer les relances ?')">
+      <i class="fa-solid fa-paper-plane"></i> Lancer
+    </button>
+  </form>
+</div>
+
+<div class="rel-actions">
+  <a href="{% url 'core:relance_rule_create' %}" class="az-btn az-btn-primary">
+    <i class="fa-solid fa-plus"></i> Nouvelle règle
+  </a>
+  <a href="{% url 'core:relance_log_list' %}" class="az-btn">
+    <i class="fa-solid fa-clock-rotate-left"></i> Historique des envois
+  </a>
+</div>
+
+{% if messages %}
+  {% for msg in messages %}
+    <div class="az-alert az-alert-{{ msg.tags }}" style="margin-bottom:16px">{{ msg }}</div>
+  {% endfor %}
+{% endif %}
+
+<div class="rel-table-wrap">
+  {% if rules %}
+  <table class="rel-table">
+    <thead>
+      <tr>
+        <th>Active</th>
+        <th>Type</th>
+        <th>Règle</th>
+        <th>Niveau</th>
+        <th>Délai / Seuil</th>
+        <th>Intervalle</th>
+        <th>SMS 7j</th>
+        <th>SMS 30j</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for rule in rules %}
+      <tr>
+        <td>
+          <button
+            class="toggle-btn {% if rule.actif %}on{% else %}off{% endif %}"
+            data-url="{% url 'core:relance_rule_toggle' rule.pk %}"
+            data-pk="{{ rule.pk }}"
+            title="{% if rule.actif %}Désactiver{% else %}Activer{% endif %}"
+          ></button>
+        </td>
+        <td>
+          <span class="badge-type badge-{{ rule.type }}">
+            {% if rule.type == "IMPAYE" %}<i class="fa-solid fa-triangle-exclamation"></i>
+            {% elif rule.type == "ABSENCE" %}<i class="fa-solid fa-user-slash"></i>
+            {% elif rule.type == "RETARD" %}<i class="fa-solid fa-clock"></i>
+            {% else %}<i class="fa-solid fa-rotate"></i>{% endif %}
+            {{ rule.get_type_display }}
+          </span>
+        </td>
+        <td>
+          <strong>{{ rule.nom }}</strong>
+          {% if rule.message_defaut %}
+            <div style="font-size:.75rem;color:#9ca3af;margin-top:2px">{{ rule.message_defaut|truncatechars:60 }}</div>
+          {% endif %}
+        </td>
+        <td>
+          <span class="badge-niveau badge-niveau-{{ rule.niveau_relance }}">
+            Niv. {{ rule.niveau_relance }} — {{ rule.get_niveau_relance_display }}
+          </span>
+        </td>
+        <td>
+          {% if rule.type == "ABSENCE" or rule.type == "RETARD" %}
+            <span title="Seuil occurrences">≥ {{ rule.seuil_occurrences }} / mois</span>
+          {% else %}
+            <span title="Jours après échéance / avant fin">J{% if rule.type == "RENOUVELLEMENT" %}-{% else %}+{% endif %}{{ rule.jours_apres }}</span>
+          {% endif %}
+        </td>
+        <td>{{ rule.intervalle_min_jours }}j min</td>
+        <td style="font-weight:600;color:{% if rule.log_count_7j > 0 %}#059669{% else %}#9ca3af{% endif %}">
+          {{ rule.log_count_7j }}
+        </td>
+        <td style="color:#6b7280">{{ rule.log_count_30j }}</td>
+        <td>
+          <div style="display:flex;gap:6px">
+            <a href="{% url 'core:relance_rule_update' rule.pk %}" class="az-btn az-btn-xs" title="Modifier">
+              <i class="fa-solid fa-pen"></i>
+            </a>
+            <a href="{% url 'core:relance_rule_delete' rule.pk %}" class="az-btn az-btn-xs az-btn-danger" title="Supprimer">
+              <i class="fa-solid fa-trash"></i>
+            </a>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty-state">
+    <i class="fa-solid fa-robot"></i>
+    <p>Aucune règle de relance configurée.</p>
+    <a href="{% url 'core:relance_rule_create' %}" class="az-btn az-btn-primary">Créer la première règle</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.querySelectorAll('.toggle-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const url = btn.dataset.url;
+    fetch(url, {
+      method: 'POST',
+      headers: {'X-CSRFToken': '{{ csrf_token }}', 'Content-Type': 'application/json'},
+    })
+    .then(r => r.json())
+    .then(data => {
+      btn.classList.toggle('on', data.actif);
+      btn.classList.toggle('off', !data.actif);
+      btn.title = data.actif ? 'Désactiver' : 'Activer';
+    });
+  });
+});
+</script>
+{% endblock %}

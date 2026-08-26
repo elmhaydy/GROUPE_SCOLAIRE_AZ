@@ -1,7 +1,7 @@
-{% extends "admin/base_admin.html" %}
+{% extends base_template|default:"admin/base_admin.html" %}
 {% load static %}
 
-{% block title %}Mon profil | AZ{% endblock %}
+{% block title %}Mon profil | Groupe Scolaire{% endblock %}
 {% block page_title %}Mon profil{% endblock %}
 {% block breadcrumb %}Compte / Mon profil{% endblock %}
 
@@ -15,8 +15,32 @@
 
   <!-- HERO -->
   <div class="az-profile-hero">
-    <div class="az-profile-avatar" aria-hidden="true">
-      <i class="fa-solid fa-user"></i>
+    <div class="az-avatar-container">
+      <form method="post" enctype="multipart/form-data" id="avatarForm" class="az-avatar-form">
+        {% csrf_token %}
+        <div class="az-profile-avatar-wrap">
+          {% if avatar_url %}
+            <img src="{{ avatar_url }}" alt="Photo de {{ u.username }}" class="az-profile-avatar-img">
+          {% else %}
+            <div class="az-profile-avatar">
+              <i class="fa-solid fa-user" style="font-size: 1.5rem;"></i>
+            </div>
+          {% endif %}
+          <label for="avatarInput" class="az-avatar-upload-btn" title="Changer ma photo de profil">
+            <i class="fa-solid fa-camera"></i>
+          </label>
+          <input type="file" id="avatarInput" name="avatar" accept="image/*" style="display:none;" onchange="document.getElementById('avatarForm').submit();">
+        </div>
+      </form>
+      {% if avatar_url %}
+        <form method="post" style="margin-top: 4px;">
+          {% csrf_token %}
+          <input type="hidden" name="remove_avatar" value="1">
+          <button type="submit" class="az-btn-remove-photo" title="Supprimer la photo">
+            <i class="fa-solid fa-trash"></i> Supprimer
+          </button>
+        </form>
+      {% endif %}
     </div>
 
     <div class="az-profile-hero-info">

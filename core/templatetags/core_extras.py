@@ -1,6 +1,11 @@
 from django import template
+from accounts.models import get_user_avatar_url
 
 register = template.Library()
+
+@register.filter
+def avatar_url(user):
+    return get_user_avatar_url(user)
 
 @register.filter
 def get_item(d, key):
@@ -10,6 +15,7 @@ def get_item(d, key):
     if not isinstance(d, dict):
         return None
     return d.get(key) if isinstance(d, dict) else None
+
 @register.simple_tag
 def test_tag():
     return "OK TAG"

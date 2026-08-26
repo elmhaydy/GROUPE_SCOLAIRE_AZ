@@ -1,0 +1,29 @@
+{
+  "name": "groupe_scolaire_az",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "tailwind:build": "tailwindcss -i ./static/src/tailwind.css -o ./static/dist/tailwind.css --minify",
+    "tailwind:watch": "tailwindcss -i ./static/src/tailwind.css -o ./static/dist/tailwind.css --watch",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/elmhaydy/GROUPE_SCOLAIRE_AZ.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/elmhaydy/GROUPE_SCOLAIRE_AZ/issues"
+  },
+  "homepage": "https://github.com/elmhaydy/GROUPE_SCOLAIRE_AZ#readme",
+  "description": "",
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.2.2",
+    "autoprefixer": "^10.4.27",
+    "lightningcss-win32-x64-msvc": "^1.32.0",
+    "postcss": "^8.5.8",
+    "tailwindcss": "^4.2.2"
+  }
+}

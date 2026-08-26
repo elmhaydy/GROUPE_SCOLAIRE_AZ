@@ -44,7 +44,7 @@
         const saved = localStorage.getItem(this.STORAGE_THEME);
         return (saved === "light" || saved === "dark") ? saved : "dark";
       } catch (e) {
-        return "dark";
+        return "light"; // thème par défaut si localStorage non dispo
       }
     }
 

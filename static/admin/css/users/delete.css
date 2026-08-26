@@ -126,3 +126,11 @@
 .btn-delete-cancel:hover {
     background: rgba(0, 0, 0, 0.1);
 }
+
+/* Mobile Responsive */
+@media (max-width: 480px) {
+    .delete-modal-content { width: 94%; margin: 10px auto; }
+    .delete-modal-body { padding: 1.5rem; }
+    .modal-actions { flex-direction: column; }
+    .btn-delete-confirm, .btn-delete-cancel { width: 100%; }
+}

@@ -1,14 +1,23 @@
-{% extends "admin/base_admin.html" %}
-{% block page_title %}🗑️ Supprimer avis{% endblock %}
-{% block content %}
+<div class="az-card" style="max-width:100%;margin:0;">
+  <h2 style="margin:0 0 8px 0;">Confirmation</h2>
 
-<div class="az-card">
-  <p>Confirmer la suppression de : <b>{{ obj.titre }}</b> ?</p>
-  <form method="post">
+  <p class="az-sub" style="margin:0 0 12px 0;">
+    Confirmer la suppression de :
+    <b>{{ obj.titre }}</b> ?
+  </p>
+
+  <form method="post"
+        action="{% url 'core:avis_delete' obj.pk %}"
+        style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;">
     {% csrf_token %}
-    <button class="az-btn az-btn-danger" type="submit">Oui, supprimer</button>
-    <a class="az-btn az-btn-ghost" href="{% url 'core:avis_list' %}">Annuler</a>
+
+    <button type="button" class="az-btn az-btn-outline" data-azm-close>
+      Annuler
+    </button>
+
+    <button class="az-btn az-btn-danger" type="submit">
+      <i class="fa-solid fa-trash"></i>
+      Supprimer
+    </button>
   </form>
 </div>
-
-{% endblock %}

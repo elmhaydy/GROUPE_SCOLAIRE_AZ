@@ -2,7 +2,7 @@
 {% load static %}
 {% load core_extras %}
 
-{% block title %}Emploi du temps | AZ{% endblock %}
+{% block title %}Emploi du temps | Groupe Scolaire{% endblock %}
 {% block page_title %}Emploi du temps (Semaine){% endblock %}
 {% block breadcrumb %}Pédagogie / Emploi du temps / Semaine{% endblock %}
 
@@ -82,8 +82,13 @@
                                 <span><i class="far fa-clock"></i> {{ s.heure_debut }} – {{ s.heure_fin }}</span>
                                 <div class="az-session-actions">
                                     <a class="az-action-link edit" href="{% url 'core:seance_update' s.id %}" title="Modifier"><i class="fas fa-pen"></i></a>
-                                    <a class="az-action-link delete" href="{% url 'core:seance_delete' s.id %}" title="Supprimer"><i class="fas fa-trash"></i></a>
-                                    <a class="az-action-link absence" href="{% url 'core:absence_create' %}?annee={{ annee_selected }}&groupe={{ groupe_selected }}&date={{ date_selected|default:'' }}&seance={{ s.id }}" title="Signaler absence"><i class="fas fa-user-slash"></i></a>
+<button type="button"
+        class="az-action-link delete"
+        title="Supprimer"
+        data-delete-modal
+        data-modal-url="{% url 'core:seance_delete_modal' s.id %}">
+  <i class="fas fa-trash"></i>
+</button>                                    <a class="az-action-link absence" href="{% url 'core:absence_create' %}?annee={{ annee_selected }}&groupe={{ groupe_selected }}&date={{ date_selected|default:'' }}&seance={{ s.id }}" title="Signaler absence"><i class="fas fa-user-slash"></i></a>
                                 </div>
                             </div>
 

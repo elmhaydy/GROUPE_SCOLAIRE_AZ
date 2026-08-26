@@ -1,0 +1,118 @@
+{% extends base_template|default:"admin/base_admin.html" %}
+{% load static %}
+
+{% block title %}Aide & Support | Groupe Scolaire{% endblock %}
+
+{% block content %}
+<div class="az-page">
+  <!-- HERO HEADER -->
+  <div style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #1e1b4b 100%); border-radius: 20px; padding: 36px 32px; color: #fff; margin-bottom: 28px; box-shadow: 0 10px 25px rgba(0,0,0,0.15);">
+    <div style="max-width: 700px;">
+      <span style="background: rgba(99,102,241,0.25); color: #a5b4fc; padding: 4px 14px; border-radius: 20px; font-size: 0.82rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; display: inline-block; margin-bottom: 12px;">
+        <i class="fa-solid fa-circle-question"></i> Centre d'Assistance
+      </span>
+      <h1 style="font-size: 1.8rem; font-weight: 800; margin-bottom: 8px;">Aide & Documentation Groupe Scolaire</h1>
+      <p style="color: #cbd5e1; font-size: 0.95rem; line-height: 1.5;"> Retrouvez toutes les réponses à vos questions pour gérer facilement les élèves, inscriptions, paiements et relevés au sein de la plateforme.</p>
+    </div>
+  </div>
+
+  <!-- QUICK ACTION CARDS -->
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; margin-bottom: 32px;">
+    <a href="{% url 'core:eleve_create' %}" class="az-card" style="padding: 20px; display: flex; align-items: center; gap: 16px; text-decoration: none; color: inherit; transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='none'">
+      <div style="width: 48px; height: 48px; border-radius: 14px; background: #e0e7ff; color: #4338ca; display: flex; align-items: center; justify-content: center; font-size: 1.3rem;">
+        <i class="fa-solid fa-user-plus"></i>
+      </div>
+      <div>
+        <h3 style="font-size: 0.95rem; font-weight: 700; margin-bottom: 2px;">Inscrire un Élève</h3>
+        <p style="font-size: 0.8rem; color: #64748b; margin: 0;">Ajouter un nouvel élève et ses tuteurs</p>
+      </div>
+    </a>
+
+    <a href="{% url 'core:transaction_wizard' %}" class="az-card" style="padding: 20px; display: flex; align-items: center; gap: 16px; text-decoration: none; color: inherit; transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='none'">
+      <div style="width: 48px; height: 48px; border-radius: 14px; background: #dcfce7; color: #15803d; display: flex; align-items: center; justify-content: center; font-size: 1.3rem;">
+        <i class="fa-solid fa-receipt"></i>
+      </div>
+      <div>
+        <h3 style="font-size: 0.95rem; font-weight: 700; margin-bottom: 2px;">Saisir un Règlement</h3>
+        <p style="font-size: 0.8rem; color: #64748b; margin: 0;">Paiement mensuel, espèces ou chèque</p>
+      </div>
+    </a>
+
+    <a href="{% url 'core:impayes_mensuels_list' %}" class="az-card" style="padding: 20px; display: flex; align-items: center; gap: 16px; text-decoration: none; color: inherit; transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='none'">
+      <div style="width: 48px; height: 48px; border-radius: 14px; background: #ffe4e6; color: #be123c; display: flex; align-items: center; justify-content: center; font-size: 1.3rem;">
+        <i class="fa-solid fa-hand-holding-dollar"></i>
+      </div>
+      <div>
+        <h3 style="font-size: 0.95rem; font-weight: 700; margin-bottom: 2px;">Suivi des Impayés</h3>
+        <p style="font-size: 0.8rem; color: #64748b; margin: 0;">Relancer les familles en retard</p>
+      </div>
+    </a>
+
+    <a href="{% url 'core:contact' %}" class="az-card" style="padding: 20px; display: flex; align-items: center; gap: 16px; text-decoration: none; color: inherit; transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='none'">
+      <div style="width: 48px; height: 48px; border-radius: 14px; background: #f3e8ff; color: #7e22ce; display: flex; align-items: center; justify-content: center; font-size: 1.3rem;">
+        <i class="fa-solid fa-headset"></i>
+      </div>
+      <div>
+        <h3 style="font-size: 0.95rem; font-weight: 700; margin-bottom: 2px;">Support Technique</h3>
+        <p style="font-size: 0.8rem; color: #64748b; margin: 0;">Contacter l'équipe d’assistance</p>
+      </div>
+    </a>
+  </div>
+
+  <!-- FAQ SECTION -->
+  <div class="az-card" style="padding: 32px; border-radius: 20px; margin-bottom: 32px;">
+    <h2 style="font-size: 1.25rem; font-weight: 800; margin-bottom: 24px; display: flex; align-items: center; gap: 10px;">
+      <i class="fa-solid fa-lightbulb" style="color: #eab308;"></i> Foire Aux Questions (FAQ)
+    </h2>
+
+    <div style="display: grid; gap: 16px;">
+      <details style="background: var(--az-bg-subtle, #f8fafc); border: 1px solid var(--az-border, #e2e8f0); border-radius: 14px; padding: 16px 20px; cursor: pointer;">
+        <summary style="font-weight: 700; font-size: 0.95rem; color: var(--az-text, #0f172a); outline: none;">
+          <i class="fa-solid fa-user-graduate" style="color: #4f46e5; margin-right: 8px;"></i> Comment ajouter une nouvelle année scolaire et inscrire des élèves ?
+        </summary>
+        <p style="margin-top: 12px; font-size: 0.88rem; color: #64748b; line-height: 1.6;">
+          Rendez-vous dans la section <strong>Années Scolaires</strong> du menu latéral. Activez l'année souhaitée, puis allez dans <strong>Élèves ➔ Inscrire un élève</strong>. Complétez les données de l'élève et sélectionnez son groupe d'affectation.
+        </p>
+      </details>
+
+      <details style="background: var(--az-bg-subtle, #f8fafc); border: 1px solid var(--az-border, #e2e8f0); border-radius: 14px; padding: 16px 20px; cursor: pointer;">
+        <summary style="font-weight: 700; font-size: 0.95rem; color: var(--az-text, #0f172a); outline: none;">
+          <i class="fa-solid fa-money-bill-wave" style="color: #10b981; margin-right: 8px;"></i> Comment enregistrer un paiement partiel ou total ?
+        </summary>
+        <p style="margin-top: 12px; font-size: 0.88rem; color: #64748b; line-height: 1.6;">
+          Cliquez sur <strong>Nouveau Règlement</strong> dans le menu Finance. Recherchez l'élève par son nom ou matricule, cochez les mois à régler (ou saisissez un montant partiel), puis validez. Vous pourrez imprimer le reçu officiel en un clic.
+        </p>
+      </details>
+
+      <details style="background: var(--az-bg-subtle, #f8fafc); border: 1px solid var(--az-border, #e2e8f0); border-radius: 14px; padding: 16px 20px; cursor: pointer;">
+        <summary style="font-weight: 700; font-size: 0.95rem; color: var(--az-text, #0f172a); outline: none;">
+          <i class="fa-solid fa-key" style="color: #f59e0b; margin-right: 8px;"></i> Un utilisateur a oublié son mot de passe, comment le réinitialiser ?
+        </summary>
+        <p style="margin-top: 12px; font-size: 0.88rem; color: #64748b; line-height: 1.6;">
+          L'utilisateur peut cliquer sur <strong>« Mot de passe oublié »</strong> sur l'écran de connexion pour recevoir un <strong>Code de vérification</strong> à 6 chiffres par email. En tant qu'administrateur, vous pouvez également réinitialiser le mot de passe depuis la page <strong>Gestion des Utilisateurs</strong>.
+        </p>
+      </details>
+
+      <details style="background: var(--az-bg-subtle, #f8fafc); border: 1px solid var(--az-border, #e2e8f0); border-radius: 14px; padding: 16px 20px; cursor: pointer;">
+        <summary style="font-weight: 700; font-size: 0.95rem; color: var(--az-text, #0f172a); outline: none;">
+          <i class="fa-solid fa-file-invoice-dollar" style="color: #ef4444; margin-right: 8px;"></i> Comment relancer automatiquement les parents en retard de paiement ?
+        </summary>
+        <p style="margin-top: 12px; font-size: 0.88rem; color: #64748b; line-height: 1.6;">
+          Allez dans <strong>Relances Impayés</strong> pour consulter la liste des échéances dépassées. Le système propose des boutons d'envoi rapide par WhatsApp, SMS ou notification en un clic.
+        </p>
+      </details>
+    </div>
+  </div>
+
+  <!-- CONTACT BANNER -->
+  <div style="background: #e0e7ff; border-radius: 16px; padding: 24px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;">
+    <div>
+      <h3 style="font-size: 1.05rem; font-weight: 800; color: #3730a3; margin-bottom: 4px;">Vous ne trouvez pas la réponse à votre question ?</h3>
+      <p style="font-size: 0.85rem; color: #4338ca; margin: 0;">Notre équipe d’assistance technique est disponible du lundi au vendredi de 8h à 18h.</p>
+    </div>
+    <a href="{% url 'core:contact' %}" class="az-btn az-btn-primary" style="background: #4338ca; color: #fff; border-radius: 12px; padding: 12px 24px; font-weight: 700; text-decoration: none;">
+      <i class="fa-solid fa-paper-plane"></i> Poser une question
+    </a>
+  </div>
+</div>
+{% endblock %}

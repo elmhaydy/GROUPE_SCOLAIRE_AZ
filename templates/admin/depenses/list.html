@@ -1,7 +1,7 @@
 {% extends "admin/base_admin.html" %}
 {% load static %}
 
-{% block title %}Dépenses | AZ{% endblock %}
+{% block title %}Dépenses | Groupe Scolaire{% endblock %}
 {% block page_title %}Dépenses{% endblock %}
 {% block current_page %}Finance / Dépenses{% endblock %}
 
@@ -122,12 +122,12 @@
 
 <!-- ===== Card ===== -->
 <div class="az-depense-card">
-  <div class="az-card-head">
+  <div class="az-card-head" style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
     <h3 class="az-card-title">
       <i class="fa-solid fa-receipt"></i>
       <span>Liste des dépenses</span>
     </h3>
-    <div class="az-muted">Résultats : <b>{{ depenses|length }}</b></div>
+    {% include "admin/includes/gmail_pagination.html" %}
   </div>
 
   <div class="az-table">
@@ -183,9 +183,13 @@
           <a class="az-btn az-btn-ghost" href="{% url 'core:depense_edit' d.id %}" title="Modifier">
             <i class="fa-solid fa-pen"></i>
           </a>
-          <a class="az-btn az-btn-danger" href="{% url 'core:depense_delete' d.id %}" title="Supprimer">
-            <i class="fa-solid fa-trash"></i>
-          </a>
+<a class="az-btn az-btn-danger"
+   href="{% url 'core:depense_delete_modal' d.id %}"
+   data-delete-modal
+   data-modal-url="{% url 'core:depense_delete_modal' d.id %}"
+   title="Supprimer">
+  <i class="fa-solid fa-trash"></i>
+</a> 
         </div>
 
       </div>

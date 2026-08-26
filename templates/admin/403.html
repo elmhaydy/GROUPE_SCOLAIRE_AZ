@@ -1,16 +1,107 @@
 {% extends "admin/base_admin.html" %}
-{% block title %}Accès refusé | AZ{% endblock %}
+{% load static %}
+
+{% block title %}Accès refusé | Groupe Scolaire{% endblock %}
 {% block page_title %}Accès refusé{% endblock %}
 {% block breadcrumb %}Sécurité{% endblock %}
 
 {% block content %}
-<div class="az-card" style="grid-column:span 12;max-width:760px;">
-  <h3>⛔ Vous n’avez pas l’autorisation</h3>
-  <p class="az-sub">
-    Votre rôle ne permet pas d’accéder à cette page.
-  </p>
-  <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap;">
-    <a class="az-btn az-btn-gradient" href="{% url 'core:dashboard' %}">🏠 Retour dashboard</a>
-  </div>
+<div class="az-container" style="display:grid;grid-template-columns:repeat(12,1fr);gap:16px;">
+
+  <section class="az-card" style="grid-column:span 12;max-width:860px;margin-inline:auto;overflow:hidden;position:relative;">
+    {# glow decor (safe) #}
+    <div aria-hidden="true" style="position:absolute;inset:-2px;pointer-events:none;opacity:.55;
+      background:
+        radial-gradient(600px 200px at 20% 0%, rgba(114,9,183,.35), transparent 60%),
+        radial-gradient(520px 220px at 95% 15%, rgba(67,97,238,.28), transparent 60%),
+        radial-gradient(420px 180px at 40% 110%, rgba(56,189,248,.12), transparent 55%);
+      filter: blur(0px);
+    "></div>
+
+    <div style="position:relative;display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap;padding:18px 18px 14px;">
+      <div style="width:54px;height:54px;border-radius:16px;display:grid;place-items:center;
+                  background:linear-gradient(135deg, rgba(114,9,183,.18), rgba(67,97,238,.12));
+                  border:1px solid rgba(148,163,184,.18);
+                  box-shadow:0 10px 30px rgba(0,0,0,.12);">
+        <i class="fa-solid fa-shield-halved" style="font-size:22px;"></i>
+      </div>
+
+      <div style="flex:1;min-width:260px;">
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+          <h2 style="margin:0;font-size:20px;letter-spacing:.2px;">
+            Accès refusé
+          </h2>
+
+          <span class="az-chip" style="display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border-radius:999px;
+                border:1px solid rgba(148,163,184,.18);
+                background:rgba(15,23,42,.35);
+                font-weight:700;font-size:12px;">
+            <span style="width:8px;height:8px;border-radius:999px;background:#f59e0b;display:inline-block;"></span>
+            Code 403
+          </span>
+
+          {% if request.user.is_authenticated %}
+          <span class="az-chip" style="display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border-radius:999px;
+                border:1px solid rgba(148,163,184,.18);
+                background:rgba(15,23,42,.35);
+                font-weight:600;font-size:12px;">
+            <i class="fa-solid fa-user"></i>
+            {{ request.user.get_username }}
+          </span>
+          {% endif %}
+        </div>
+
+        <p class="az-sub" style="margin:8px 0 0;max-width:62ch;">
+          Votre rôle ne permet pas d’accéder à cette page. Si vous pensez que c’est une erreur, contactez un administrateur.
+        </p>
+      </div>
+    </div>
+
+    <div style="position:relative;padding:0 18px 18px;">
+      <div style="display:grid;grid-template-columns:1fr;gap:12px;">
+
+        <div style="border:1px solid rgba(148,163,184,.16);
+                    background:rgba(2,6,23,.35);
+                    border-radius:16px;padding:12px 12px;">
+          <div style="display:flex;gap:10px;align-items:flex-start;">
+            <div style="width:34px;height:34px;border-radius:12px;display:grid;place-items:center;
+                        background:rgba(67,97,238,.12);
+                        border:1px solid rgba(148,163,184,.16);">
+              <i class="fa-solid fa-circle-info"></i>
+            </div>
+            <div style="flex:1;">
+              <div style="font-weight:800;">Conseil</div>
+              <div class="az-sub" style="margin-top:4px;">
+                Retournez au tableau de bord, ou changez de compte avec les droits nécessaires.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+          <a class="az-btn az-btn-gradient" href="{% url 'core:dashboard' %}">
+            <i class="fa-solid fa-house"></i>
+            Retour au dashboard
+          </a>
+
+          <a class="az-btn az-btn-outline" href="javascript:history.back()">
+            <i class="fa-solid fa-arrow-left"></i>
+            Page précédente
+          </a>
+
+          <a class="az-btn az-btn-ghost" href="{% url 'accounts:logout' %}">
+            <i class="fa-solid fa-right-from-bracket"></i>
+            Changer de compte
+          </a>
+        </div>
+
+        <div class="az-sub" style="opacity:.85;">
+          <i class="fa-regular fa-clock"></i>
+          Tentative : {{ now|default_if_none:"" }}
+        </div>
+      </div>
+    </div>
+  </section>
+
 </div>
 {% endblock %}

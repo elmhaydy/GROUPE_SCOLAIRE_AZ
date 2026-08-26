@@ -7,7 +7,7 @@ from .models import Eleve
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from core.utils_users import get_or_create_user_with_group
-from core.models import TempPassword, ParentEleve, Enseignant
+from core.models import TempPassword, ParentEleve, Enseignant, SmsSettings
 from .models import Seance, AnneeScolaire, Groupe, Enseignant, EnseignantGroupe
 from .models import Absence
 import json
@@ -1301,3 +1301,152 @@ class AvisForm(forms.ModelForm):
 
 
 
+
+class InscriptionFullFlexibleForm(forms.Form):
+    """
+    Formulaire flexible:
+    - parents_json = liste des parents
+    - eleves_json  = liste des élèves
+    """
+
+    parents_json = forms.CharField(widget=forms.HiddenInput(), required=False)
+    eleves_json = forms.CharField(widget=forms.HiddenInput(), required=False)
+
+    def clean_parents_json(self):
+        raw = self.cleaned_data.get("parents_json") or "[]"
+        try:
+            data = json.loads(raw)
+        except Exception:
+            raise ValidationError("Données parents invalides.")
+
+        if not isinstance(data, list):
+            raise ValidationError("Format parents invalide.")
+
+        cleaned = []
+        for i, p in enumerate(data, start=1):
+            if not isinstance(p, dict):
+                raise ValidationError(f"Parent #{i} invalide.")
+
+            nom = (p.get("nom") or "").strip()
+            prenom = (p.get("prenom") or "").strip()
+            telephone = (p.get("telephone") or "").strip()
+            email = (p.get("email") or "").strip()
+            adresse = (p.get("adresse") or "").strip()
+            lien = (p.get("lien") or "").strip()
+
+            if not nom or not prenom:
+                raise ValidationError(f"Parent #{i}: nom et prénom obligatoires.")
+
+            if lien not in {"PERE", "MERE", "TUTEUR", "AUTRE"}:
+                raise ValidationError(f"Parent #{i}: lien invalide.")
+
+            cleaned.append({
+                "temp_id": str(p.get("temp_id") or f"p{i}"),
+                "nom": nom,
+                "prenom": prenom,
+                "telephone": telephone,
+                "email": email,
+                "adresse": adresse,
+                "lien": lien,
+            })
+
+        if not cleaned:
+            raise ValidationError("Ajoute au moins un parent.")
+
+        return cleaned
+
+    def clean_eleves_json(self):
+        raw = self.cleaned_data.get("eleves_json") or "[]"
+        try:
+            data = json.loads(raw)
+        except Exception:
+            raise ValidationError("Données élèves invalides.")
+
+        if not isinstance(data, list):
+            raise ValidationError("Format élèves invalide.")
+
+        cleaned = []
+        for i, e in enumerate(data, start=1):
+            if not isinstance(e, dict):
+                raise ValidationError(f"Élève #{i} invalide.")
+
+            nom = (e.get("nom") or "").strip()
+            prenom = (e.get("prenom") or "").strip()
+            sexe = (e.get("sexe") or "").strip()
+            date_naissance = (e.get("date_naissance") or "").strip()
+            lieu_naissance = (e.get("lieu_naissance") or "").strip()
+            telephone = (e.get("telephone") or "").strip()
+            adresse = (e.get("adresse") or "").strip()
+            dernier_etablissement = (e.get("dernier_etablissement") or "").strip()
+            annee_id = e.get("annee_id")
+            groupe_id = e.get("groupe_id")
+            statut = (e.get("statut") or "VALIDEE").strip()
+            parent_ids = e.get("parent_ids") or []
+            photo_field = (e.get("photo_field") or "").strip()
+
+            if not nom or not prenom:
+                raise ValidationError(f"Élève #{i}: nom et prénom obligatoires.")
+
+            if sexe and sexe not in {"M", "F"}:
+                raise ValidationError(f"Élève #{i}: sexe invalide.")
+
+            if statut not in {"VALIDEE", "EN_COURS"}:
+                raise ValidationError(f"Élève #{i}: statut invalide.")
+
+            if not annee_id:
+                raise ValidationError(f"Élève #{i}: année obligatoire.")
+
+            if not groupe_id:
+                raise ValidationError(f"Élève #{i}: groupe obligatoire.")
+
+            if not isinstance(parent_ids, list) or not parent_ids:
+                raise ValidationError(f"Élève #{i}: sélectionne au moins un parent.")
+
+            try:
+                annee = AnneeScolaire.objects.get(pk=annee_id)
+            except AnneeScolaire.DoesNotExist:
+                raise ValidationError(f"Élève #{i}: année invalide.")
+
+            try:
+                groupe = Groupe.objects.select_related("annee").get(pk=groupe_id)
+            except Groupe.DoesNotExist:
+                raise ValidationError(f"Élève #{i}: groupe invalide.")
+
+            if groupe.annee_id != annee.id:
+                raise ValidationError(f"Élève #{i}: le groupe n'appartient pas à l'année choisie.")
+
+            cleaned.append({
+                "temp_id": str(e.get("temp_id") or f"e{i}"),
+                "nom": nom,
+                "prenom": prenom,
+                "sexe": sexe,
+                "date_naissance": date_naissance or None,
+                "lieu_naissance": lieu_naissance,
+                "telephone": telephone,
+                "adresse": adresse,
+                "dernier_etablissement": dernier_etablissement,
+                "annee": annee,
+                "groupe": groupe,
+                "statut": statut,
+                "parent_ids": [str(x) for x in parent_ids],
+                "photo_field": photo_field,
+            })
+
+        if not cleaned:
+            raise ValidationError("Ajoute au moins un élève.")
+
+        return cleaned
+
+    def clean(self):
+        cd = super().clean()
+        parents = cd.get("parents_json") or []
+        eleves = cd.get("eleves_json") or []
+
+        if parents and eleves:
+            parent_ids = {p["temp_id"] for p in parents}
+            for idx, e in enumerate(eleves, start=1):
+                missing = [pid for pid in e["parent_ids"] if pid not in parent_ids]
+                if missing:
+                    raise ValidationError(f"Élève #{idx}: parent introuvable dans la liste.")
+
+        return cd
