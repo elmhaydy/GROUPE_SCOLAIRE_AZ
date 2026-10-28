@@ -137,21 +137,17 @@ WSGI_APPLICATION = "config.wsgi.application"
 # =============================
 # DATABASE (PostgreSQL / Render DATABASE_URL)
 # =============================
-DATABASE_URL = os.getenv("DATABASE_URL")
+DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
 if DATABASE_URL:
-    try:
-        import dj_database_url
-        DATABASES = {
-            "default": dj_database_url.config(
-                default=DATABASE_URL,
-                conn_max_age=int(os.getenv("DB_CONN_MAX_AGE", "60")),
-                ssl_require=not DEBUG,
-            )
-        }
-    except Exception:
-        DATABASE_URL = None
-
-if not DATABASE_URL:
+    import dj_database_url
+    DATABASES = {
+        "default": dj_database_url.parse(
+            DATABASE_URL,
+            conn_max_age=int(os.getenv("DB_CONN_MAX_AGE", "60")),
+            ssl_require=True if ("render.com" in DATABASE_URL or not DEBUG) else False,
+        )
+    }
+else:
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.postgresql",
