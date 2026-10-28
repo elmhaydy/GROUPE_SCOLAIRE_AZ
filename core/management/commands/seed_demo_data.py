@@ -1,8 +1,11 @@
 # core/management/commands/seed_demo_data.py
+import os
 import sys
 from decimal import Decimal
 from datetime import date, time, timedelta, datetime
 
+from django.conf import settings
+from django.core.files import File
 from django.core.management.base import BaseCommand
 from django.core.management import call_command
 from django.contrib.auth import get_user_model
@@ -20,6 +23,23 @@ from core.models import (
     Evaluation, Note, CategorieDepense, Depense
 )
 from accounts.models import UserSecurityProfile
+
+
+def set_profile_photo(obj, field_name: str, filename: str):
+    """Attache une photo depuis static/img/demo/ vers l'ImageField spécifié."""
+    try:
+        static_dir = settings.BASE_DIR / "static" / "img" / "demo"
+        img_path = static_dir / filename
+        if not img_path.exists():
+            img_path = settings.BASE_DIR / "media" / "demo_avatars" / filename
+        if not img_path.exists():
+            return
+        current_file = getattr(obj, field_name, None)
+        if not current_file or not current_file.name:
+            with open(img_path, "rb") as f:
+                getattr(obj, field_name).save(filename, File(f), save=True)
+    except Exception:
+        pass
 
 
 class Command(BaseCommand):
@@ -349,6 +369,13 @@ class Command(BaseCommand):
             }
         )
 
+        # Photos de profil réalistes pour les comptes démo
+        set_profile_photo(UserSecurityProfile.get_for(user_admin), "avatar", "admin_directeur.jpg")
+        set_profile_photo(UserSecurityProfile.get_for(user_caisse), "avatar", "caisse_comptable.jpg")
+        set_profile_photo(UserSecurityProfile.get_for(user_prof), "avatar", "prof_karim.jpg")
+        set_profile_photo(ens_prof, "photo", "prof_karim.jpg")
+        set_profile_photo(UserSecurityProfile.get_for(user_parent), "avatar", "admin_directeur.jpg")
+
         # -------------------------------------------------------------
         # 5. ÉLÈVES & INSCRIPTIONS (30 ÉLÈVES AVEC 2 FRATRIES)
         # -------------------------------------------------------------
@@ -411,6 +438,17 @@ class Command(BaseCommand):
                     "user": user_link,
                 }
             )
+
+            # Photo de profil élève selon cycle (primaire vs secondaire) et sexe
+            is_primary = item["grp"].niveau.degre.code in ["PRIMAIRE", "MATERNELLE"]
+            if is_primary:
+                photo_file = "eleve_garcon_ce.jpg" if item["sexe"] == "M" else "eleve_fille_cp.jpg"
+            else:
+                photo_file = "eleve_ado_garcon.jpg" if item["sexe"] == "M" else "eleve_ado_fille.jpg"
+
+            set_profile_photo(el, "photo", photo_file)
+            if user_link:
+                set_profile_photo(UserSecurityProfile.get_for(user_link), "avatar", photo_file)
 
             # Rattachement au parent si applicable
             if item.get("parent"):
