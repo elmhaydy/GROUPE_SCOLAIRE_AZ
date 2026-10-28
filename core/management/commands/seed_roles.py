@@ -64,6 +64,6 @@ class Command(BaseCommand):
                 if perm:
                     group.permissions.add(perm)
 
-            self.stdout.write(self.style.SUCCESS(f"✅ Rôle prêt : {role_name}"))
+            self.stdout.write(self.style.SUCCESS(f"[OK] Role pret : {role_name}"))
 
-        self.stdout.write(self.style.SUCCESS("✅ Seed roles terminé."))
+        self.stdout.write(self.style.SUCCESS("[OK] Seed roles termine."))

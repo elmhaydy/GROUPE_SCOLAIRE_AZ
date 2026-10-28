@@ -27,17 +27,34 @@ SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "CHANGE_ME")
 
 DEBUG = os.getenv("DJANGO_DEBUG", "False").strip().lower() in ("1", "true", "yes", "on")
 
-# ALLOWED_HOSTS CSV: "ip,domain.com,www.domain.com"
+# ALLOWED_HOSTS & CSRF
 ALLOWED_HOSTS = [
-    "groupescolaireaz.com",
-    "www.groupescolaireaz.com",
     "127.0.0.1",
     "localhost",
 ]
+
 CSRF_TRUSTED_ORIGINS = [
-    "https://groupescolaireaz.com",
-    "https://www.groupescolaireaz.com",
+    "http://127.0.0.1",
+    "http://localhost",
 ]
+
+# Support automatique de Render.com
+RENDER_HOSTNAME = os.getenv("RENDER_EXTERNAL_HOSTNAME")
+if RENDER_HOSTNAME:
+    ALLOWED_HOSTS.append(RENDER_HOSTNAME)
+    CSRF_TRUSTED_ORIGINS.append(f"https://{RENDER_HOSTNAME}")
+
+# Support de domaines personnalisés via variable d'environnement
+CUSTOM_HOSTS = os.getenv("DJANGO_ALLOWED_HOSTS", "").split(",")
+for h in CUSTOM_HOSTS:
+    h = h.strip()
+    if h and h not in ALLOWED_HOSTS:
+        ALLOWED_HOSTS.append(h)
+        if not h.startswith("http"):
+            CSRF_TRUSTED_ORIGINS.append(f"https://{h}")
+
+if DEBUG:
+    ALLOWED_HOSTS.append("*")
 
 
 # Security headers (baseline)
@@ -118,19 +135,34 @@ TEMPLATES = [
 WSGI_APPLICATION = "config.wsgi.application"
 
 # =============================
-# DATABASE (PostgreSQL)
+# DATABASE (PostgreSQL / Render DATABASE_URL)
 # =============================
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": os.getenv("DB_NAME", "az_db_groups"),
-        "USER": os.getenv("DB_USER", "az_user_groups"),
-        "PASSWORD": os.getenv("DB_PASSWORD", ""),
-        "HOST": os.getenv("DB_HOST", "127.0.0.1"),
-        "PORT": os.getenv("DB_PORT", "5432"),
-        "CONN_MAX_AGE": int(os.getenv("DB_CONN_MAX_AGE", "60")),
+DATABASE_URL = os.getenv("DATABASE_URL")
+if DATABASE_URL:
+    try:
+        import dj_database_url
+        DATABASES = {
+            "default": dj_database_url.config(
+                default=DATABASE_URL,
+                conn_max_age=int(os.getenv("DB_CONN_MAX_AGE", "60")),
+                ssl_require=not DEBUG,
+            )
+        }
+    except Exception:
+        DATABASE_URL = None
+
+if not DATABASE_URL:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": os.getenv("DB_NAME", "az_db_groups"),
+            "USER": os.getenv("DB_USER", "az_user_groups"),
+            "PASSWORD": os.getenv("DB_PASSWORD", ""),
+            "HOST": os.getenv("DB_HOST", "127.0.0.1"),
+            "PORT": os.getenv("DB_PORT", "5432"),
+            "CONN_MAX_AGE": int(os.getenv("DB_CONN_MAX_AGE", "60")),
+        }
     }
-}
 
 # =============================
 # PASSWORD VALIDATION
@@ -169,7 +201,7 @@ MEDIA_ROOT = BASE_DIR / "media"
 # WhiteNoise storage (hash + gzip + brotli)
 STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
-    "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
+    "staticfiles": {"BACKEND": "whitenoise.storage.CompressedStaticFilesStorage"},
 }
 
 WHITENOISE_MAX_AGE = int(os.getenv("WHITENOISE_MAX_AGE", "31536000"))  # 1 an

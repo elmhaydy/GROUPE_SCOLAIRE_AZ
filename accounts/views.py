@@ -17,11 +17,16 @@ def _get_ip(request):
     return xff.split(",")[0].strip() if xff else request.META.get("REMOTE_ADDR")
 
 
+from django.db.models import Q
+
+
 def _redirect_after_login(user):
     if user.groups.filter(name="PROF").exists():
         return redirect("prof:dashboard")
-    if user.groups.filter(name="ELEVE").exists():
+    if user.groups.filter(name__in=["ELEVE", "PARENT"]).exists():
         return redirect("eleve:dashboard")
+    if user.groups.filter(name="COMPTABLE").exists() and not user.is_superuser:
+        return redirect("core:dashboard_finance")
     return redirect("core:dashboard")
 
 
@@ -46,9 +51,8 @@ def login_view(request):
         password = (request.POST.get("password") or "").strip()
 
         User = get_user_model()
-        try:
-            u = User.objects.get(username=username)
-        except User.DoesNotExist:
+        u = User.objects.filter(Q(username__iexact=username) | Q(email__iexact=username)).first()
+        if not u:
             return render(request, "accounts/login.html", {"error": "Identifiants invalides."})
 
         profile = UserSecurityProfile.get_for(u)
@@ -59,7 +63,7 @@ def login_view(request):
                 "error": f"Compte bloqué après trop d'échecs. Réessayez après {unlock}."
             })
 
-        user = authenticate(request, username=username, password=password)
+        user = authenticate(request, username=u.username, password=password)
 
         if user is None:
             profile.record_failed_attempt()

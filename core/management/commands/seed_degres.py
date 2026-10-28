@@ -24,4 +24,4 @@ class Command(BaseCommand):
             if created:
                 created_count += 1
 
-        self.stdout.write(self.style.SUCCESS(f"✅ Seed degrés terminé. Nouveaux: {created_count}"))
+        self.stdout.write(self.style.SUCCESS(f"[OK] Seed degres termine. Nouveaux: {created_count}"))
