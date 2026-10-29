@@ -303,19 +303,35 @@ class Command(BaseCommand):
             groups=["PROF"]
         )
 
-        # Enseignant lié
-        ens_prof, _ = Enseignant.objects.update_or_create(
-            user=user_prof,
-            defaults={
-                "matricule": "ENS-0001",
-                "nom": "Alami",
-                "prenom": "Karim",
-                "email": "prof@demo.ma",
-                "telephone": "0661123456",
-                "specialite": "Mathematiques",
-                "is_active": True,
-            }
-        )
+        # Enseignant lié (sécurisé contre les conflits de matricule / user existants)
+        ens_prof = Enseignant.objects.filter(matricule="ENS-0001").first()
+        if not ens_prof:
+            ens_prof = Enseignant.objects.filter(user=user_prof).first()
+
+        # Détacher tout autre enseignant lié à ce user pour respecter OneToOneField
+        Enseignant.objects.filter(user=user_prof).exclude(id=getattr(ens_prof, "id", None)).update(user=None)
+
+        if ens_prof:
+            ens_prof.user = user_prof
+            ens_prof.matricule = "ENS-0001"
+            ens_prof.nom = "Alami"
+            ens_prof.prenom = "Karim"
+            ens_prof.email = "prof@demo.ma"
+            ens_prof.telephone = "0661123456"
+            ens_prof.specialite = "Mathematiques"
+            ens_prof.is_active = True
+            ens_prof.save()
+        else:
+            ens_prof = Enseignant.objects.create(
+                user=user_prof,
+                matricule="ENS-0001",
+                nom="Alami",
+                prenom="Karim",
+                email="prof@demo.ma",
+                telephone="0661123456",
+                specialite="Mathematiques",
+                is_active=True,
+            )
         mat_math.enseignants.add(ens_prof)
 
         # Affectations de Karim Alami aux 4 classes
@@ -345,17 +361,31 @@ class Command(BaseCommand):
             groups=["ELEVE", "PARENT"]
         )
 
-        parent_rachid, _ = Parent.objects.update_or_create(
-            user=user_parent,
-            defaults={
-                "nom": "El Mansouri",
-                "prenom": "Rachid",
-                "telephone": "0662987654",
-                "email": "parent@demo.ma",
-                "adresse": "14 Avenue Mohammed V, Casablanca",
-                "is_active": True,
-            }
-        )
+        parent_rachid = Parent.objects.filter(email="parent@demo.ma").first()
+        if not parent_rachid:
+            parent_rachid = Parent.objects.filter(user=user_parent).first()
+
+        Parent.objects.filter(user=user_parent).exclude(id=getattr(parent_rachid, "id", None)).update(user=None)
+
+        if parent_rachid:
+            parent_rachid.user = user_parent
+            parent_rachid.nom = "El Mansouri"
+            parent_rachid.prenom = "Rachid"
+            parent_rachid.telephone = "0662987654"
+            parent_rachid.email = "parent@demo.ma"
+            parent_rachid.adresse = "14 Avenue Mohammed V, Casablanca"
+            parent_rachid.is_active = True
+            parent_rachid.save()
+        else:
+            parent_rachid = Parent.objects.create(
+                user=user_parent,
+                nom="El Mansouri",
+                prenom="Rachid",
+                telephone="0662987654",
+                email="parent@demo.ma",
+                adresse="14 Avenue Mohammed V, Casablanca",
+                is_active=True,
+            )
 
         # Parent 2 (pour la Fratrie 2)
         parent_nadia, _ = Parent.objects.update_or_create(
@@ -426,6 +456,8 @@ class Command(BaseCommand):
         for idx, item in enumerate(STUDENTS, start=1):
             matr = f"AZ-2025-{idx:03d}"
             user_link = user_parent if item.get("link_parent_user") else None
+            if user_link:
+                Eleve.objects.filter(user=user_link).exclude(matricule=matr).update(user=None)
 
             el, _ = Eleve.objects.update_or_create(
                 matricule=matr,
@@ -555,32 +587,34 @@ class Command(BaseCommand):
                     )
                     tx_ref = f"TX-{annee.date_debut.year}-{el.id}-{mois_idx}"
 
-                    Paiement.objects.create(
-                        inscription=insc,
-                        nature="SCOLARITE",
-                        echeance=ech,
-                        montant=montant_verse,
-                        mode=mode_used,
-                        reference=tx_ref,
-                        note=f"Reglement scolarite {ech.mois_nom} ({ref_doc})" if ref_doc else f"Reglement scolarite {ech.mois_nom}",
-                    )
+                    if not Paiement.objects.filter(reference=tx_ref).exists():
+                        Paiement.objects.create(
+                            inscription=insc,
+                            nature="SCOLARITE",
+                            echeance=ech,
+                            montant=montant_verse,
+                            mode=mode_used,
+                            reference=tx_ref,
+                            note=f"Reglement scolarite {ech.mois_nom} ({ref_doc})" if ref_doc else f"Reglement scolarite {ech.mois_nom}",
+                        )
 
-                    tx = TransactionFinance.objects.create(
-                        inscription=insc,
-                        parent=meta.get("parent"),
-                        type_transaction="SCOLARITE",
-                        montant_total=montant_verse,
-                        mode=mode_used,
-                        reference=tx_ref,
-                        note=f"Reglement scolarite {ech.mois_nom} ({ref_doc})" if ref_doc else f"Reglement scolarite {ech.mois_nom}",
-                    )
+                    if not TransactionFinance.objects.filter(reference=tx_ref).exists():
+                        tx = TransactionFinance.objects.create(
+                            inscription=insc,
+                            parent=meta.get("parent"),
+                            type_transaction="SCOLARITE",
+                            montant_total=montant_verse,
+                            mode=mode_used,
+                            reference=tx_ref,
+                            note=f"Reglement scolarite {ech.mois_nom} ({ref_doc})" if ref_doc else f"Reglement scolarite {ech.mois_nom}",
+                        )
 
-                    TransactionLigne.objects.create(
-                        transaction=tx,
-                        echeance=ech,
-                        montant=montant_verse,
-                        libelle=f"Mensualite {ech.mois_nom}",
-                    )
+                        TransactionLigne.objects.create(
+                            transaction=tx,
+                            echeance=ech,
+                            montant=montant_verse,
+                            libelle=f"Mensualite {ech.mois_nom}",
+                        )
 
         # -------------------------------------------------------------
         # 7. EMPLOI DU TEMPS (SÉANCES) & ABSENCES

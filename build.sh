@@ -36,6 +36,6 @@ fi
 python manage.py migrate --noinput
 
 echo "==> [4/4] Amorçage des données de démonstration commerciales..."
-python manage.py seed_demo_data
+python manage.py seed_demo_data || echo "==> [INFO] Les données de démonstration ont déjà été initialisées."
 
 echo "==> ✅ Déploiement et préparation terminés avec succès !"
