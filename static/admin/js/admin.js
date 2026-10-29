@@ -416,34 +416,29 @@
      AVATAR FALLBACK: En cas d'erreur de chargement d'image
      ========================================================= */
   document.addEventListener('error', function(e) {
-    if (e.target && e.target.tagName === 'IMG' && (e.target.classList.contains('az-avatar') || e.target.classList.contains('fin-hero-photo') || e.target.closest('.az-avatar') || e.target.closest('.az-avatar-wrapper'))) {
+    if (e.target && e.target.tagName === 'IMG') {
       const img = e.target;
-      const alt = img.getAttribute('alt') || '';
-      let clean = alt.replace(/^photo(\s+de)?\s+/i, '').trim();
-      let parts = clean.split(/\s+/).filter(Boolean);
-      let initials = '';
-      if (parts.length >= 2) {
-        initials = (parts[0][0] + parts[1][0]).toUpperCase();
-      } else if (parts.length === 1 && parts[0].length >= 2) {
-        initials = parts[0].slice(0, 2).toUpperCase();
-      } else if (parts.length === 1) {
-        initials = parts[0][0].toUpperCase();
-      } else {
-        initials = 'AZ';
+      img.style.display = 'none';
+
+      // 1. Si un élément de secours existe déjà dans le template HTML, on l'affiche et on s'arrête
+      const sibling = img.nextElementSibling;
+      if (sibling && (sibling.classList.contains('az-avatar-fallback') || sibling.classList.contains('az-avatar-placeholder') || sibling.getAttribute('data-fallback') === 'initials')) {
+        sibling.style.display = 'flex';
+        return;
       }
-      const fallback = document.createElement('div');
-      fallback.className = 'az-avatar az-avatar-fallback';
-      fallback.textContent = initials;
-      if (img.classList.contains('fin-hero-photo')) {
-        fallback.style.fontSize = '1.35rem';
-        fallback.style.fontWeight = '900';
-        fallback.style.width = '100%';
-        fallback.style.height = '100%';
-        fallback.style.display = 'flex';
-        fallback.style.alignItems = 'center';
-        fallback.style.justifyContent = 'center';
+
+      // 2. Si et seulement si aucun secours n'existait, on remplace l'image
+      if (img.classList.contains('az-avatar') || img.classList.contains('fin-hero-photo') || img.closest('.az-avatar') || img.closest('.az-avatar-wrapper')) {
+        const alt = img.getAttribute('alt') || '';
+        let clean = alt.replace(/^photo(\s+de)?\s+/i, '').trim();
+        let parts = clean.split(/\s+/).filter(Boolean);
+        let initials = parts.length >= 2 ? (parts[0][0] + parts[1][0]).toUpperCase() : (parts[0] ? parts[0].slice(0, 2).toUpperCase() : 'AZ');
+        
+        const fallback = document.createElement('div');
+        fallback.className = 'az-avatar az-avatar-fallback';
+        fallback.textContent = initials;
+        img.replaceWith(fallback);
       }
-      img.replaceWith(fallback);
     }
   }, true);
 })();
