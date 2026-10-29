@@ -6,7 +6,7 @@
 {% block current_page %}Finance / Suivi Inscription{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'admin/css/nebula/az-lists.css' %}?v=8">
+<link rel="stylesheet" href="{% static 'admin/css/nebula/az-lists.css' %}?v=10">
 <style>
 /* =========================================
    SUIVI FINANCIER ELEVE — PREMIUM DESIGN SYSTEM
@@ -382,6 +382,47 @@ html[data-theme="dark"] .month-badge {
   margin-bottom: 10px;
   opacity: 0.5;
 }
+
+/* RESPONSIVE MOBILE (320px - 768px) */
+@media (max-width: 768px) {
+  .fin-hero {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 18px 16px;
+    gap: 16px;
+  }
+  .fin-hero-left {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  .fin-hero-tags {
+    justify-content: center;
+  }
+  .fin-hero-right {
+    flex-direction: column;
+    width: 100%;
+    gap: 8px;
+  }
+  .fin-btn-glow, .fin-btn-ghost {
+    width: 100%;
+    justify-content: center;
+  }
+  .fin-kpi-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .fin-kpi-card {
+    padding: 16px 18px;
+  }
+  .fin-kpi-amount {
+    font-size: 1.45rem;
+  }
+  .fin-table th, .fin-table td {
+    padding: 10px 12px;
+    font-size: 0.8rem;
+  }
+}
 </style>
 {% endblock %}
 
@@ -395,9 +436,14 @@ html[data-theme="dark"] .month-badge {
     <div class="fin-hero-left">
       <div class="fin-hero-avatar">
         {% if insc.eleve.photo %}
-          <img src="{{ insc.eleve.photo.url }}" alt="{{ insc.eleve.nom }}" class="fin-hero-photo">
+          <img src="{{ insc.eleve.photo.url }}" alt="{{ insc.eleve.nom }}" class="fin-hero-photo" onerror="this.onerror=null; this.style.display='none'; this.nextElementSibling.style.display='flex';" data-zoomable>
+          <span style="display:none; font-weight:900; font-size:1.35rem; letter-spacing:-0.02em; width:100%; height:100%; align-items:center; justify-content:center;">
+            {{ insc.eleve.nom|default:""|slice:":1"|upper }}{{ insc.eleve.prenom|default:""|slice:":1"|upper }}
+          </span>
         {% else %}
-          <i class="fa-solid fa-graduation-cap"></i>
+          <span style="font-weight:900; font-size:1.35rem; letter-spacing:-0.02em; display:flex; align-items:center; justify-content:center; width:100%; height:100%;">
+            {{ insc.eleve.nom|default:""|slice:":1"|upper }}{{ insc.eleve.prenom|default:""|slice:":1"|upper }}
+          </span>
         {% endif %}
       </div>
       <div class="fin-hero-info">

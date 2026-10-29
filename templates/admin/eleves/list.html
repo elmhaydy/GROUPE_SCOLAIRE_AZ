@@ -6,7 +6,7 @@
 {% block current_page %}Scolaire / Élèves{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'admin/css/nebula/az-lists.css' %}?v=6">
+<link rel="stylesheet" href="{% static 'admin/css/nebula/az-lists.css' %}?v=10">
 {% endblock %}
 
 {% block content %}
@@ -159,10 +159,13 @@
 
             <div class="az-cell" data-label="Photo">
               {% if e.photo %}
-                <img class="az-avatar" src="{{ e.photo.url }}" alt="Photo">
+                <img class="az-avatar" src="{{ e.photo.url }}" alt="Photo de {{ e.nom }} {{ e.prenom }}" onerror="this.onerror=null; this.style.display='none'; this.nextElementSibling.style.display='flex';" data-zoomable>
+                <div class="az-avatar az-avatar-fallback" style="display:none;">
+                  {{ e.nom|default:""|slice:":1"|upper }}{{ e.prenom|default:""|slice:":1"|upper }}
+                </div>
               {% else %}
                 <div class="az-avatar az-avatar-fallback">
-                  <i class="fa-solid fa-user"></i>
+                  {{ e.nom|default:""|slice:":1"|upper }}{{ e.prenom|default:""|slice:":1"|upper }}
                 </div>
               {% endif %}
             </div>

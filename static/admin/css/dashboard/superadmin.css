@@ -1191,3 +1191,153 @@
 [data-theme="light"] .cmdk-item span {
   color: #64748b !important;
 }
+
+/* ==========================================================================
+   SUPERADMIN DASHBOARD - RESPONSIVE MOBILE OPTIMIZATIONS (320px - 768px)
+   ========================================================================== */
+@media (max-width: 900px) {
+  .sa-hero {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 1.5rem 1.25rem;
+    gap: 1.25rem;
+  }
+  
+  .sa-hero__actions {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    width: 100%;
+    gap: 0.6rem;
+  }
+
+  .sa-hero__actions .sa-btn {
+    width: 100%;
+    justify-content: center;
+    padding: 0.65rem 0.85rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .az-content {
+    padding: 0.85rem 0.65rem !important;
+  }
+
+  .sa-hero {
+    padding: 1.25rem 1rem;
+    border-radius: var(--sa-radius-md);
+    margin-bottom: 1rem;
+  }
+
+  .sa-hero__title {
+    font-size: 1.35rem;
+  }
+
+  .sa-hero__subtitle {
+    font-size: 0.84rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .sa-meta-chips {
+    gap: 0.4rem;
+  }
+
+  .chip-item {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.6rem;
+  }
+
+  .sa-hero__actions {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+
+  .sa-period-bar {
+    margin-bottom: 1rem;
+  }
+
+  .sa-filter-group {
+    display: flex;
+    flex-wrap: wrap;
+    width: 100%;
+    gap: 0.35rem;
+  }
+
+  .sa-filter-label {
+    width: 100%;
+    padding: 0.2rem 0.25rem;
+  }
+
+  .sa-filter-btn {
+    flex: 1 1 auto;
+    text-align: center;
+    padding: 0.45rem 0.5rem;
+    font-size: 0.76rem;
+  }
+
+  .sa-kpi-card {
+    padding: 1.1rem;
+  }
+
+  .sa-kpi-value {
+    font-size: 1.6rem;
+  }
+
+  .sa-card {
+    padding: 1.1rem;
+  }
+
+  .sa-card-head {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+
+  .sa-card-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .sa-tab-buttons {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .sa-tab-btn {
+    flex: 1;
+    text-align: center;
+    white-space: nowrap;
+    padding: 0.4rem 0.6rem;
+    font-size: 0.75rem;
+  }
+
+  .sa-chart-container {
+    max-width: 100%;
+    overflow: hidden;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .activity-row {
+    padding: 0.6rem 0;
+    gap: 0.6rem;
+  }
+
+  .sa-cmdk-box {
+    width: 95%;
+    max-width: 95%;
+    margin: 0 auto;
+  }
+}
+
+@media (max-width: 480px) {
+  .sa-kpi-value {
+    font-size: 1.45rem;
+  }
+
+  .pres-subcard-head {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+}
+

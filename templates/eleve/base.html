@@ -24,6 +24,19 @@
   <link rel="icon" type="image/png" sizes="32x32" href="{% static 'img/logo-embw.png' %}">
   <link rel="icon" type="image/png" sizes="16x16" href="{% static 'img/logo-embw.png' %}">
   <link rel="apple-touch-icon" href="{% static 'img/logo-embw.png' %}">
+  <script>
+    /* Intercepteur global immédiat : supprime tout icône d'image brisée instantanément */
+    window.addEventListener('error', function(e) {
+      var img = e.target;
+      if (img && img.tagName === 'IMG') {
+        img.style.display = 'none';
+        var fb = img.nextElementSibling;
+        if (fb && (fb.classList.contains('az-avatar-fallback') || fb.getAttribute('data-fallback') === 'initials')) {
+          fb.style.display = 'flex';
+        }
+      }
+    }, true);
+  </script>
 </head>
 
 <body class="dashboard-container az-eleve">
@@ -47,11 +60,14 @@
 
   <!-- mini profil (optionnel, si tu veux garder) -->
   <div class="user-profile azs-user">
-    <div class="avatar" style="overflow:hidden; display:flex; align-items:center; justify-content:center;">
+    <div class="avatar" style="overflow:hidden; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:0.95rem; background:linear-gradient(135deg, #6366f1, #4f46e5); color:#ffffff;">
       {% if user_avatar_url %}
-        <img src="{{ user_avatar_url }}" alt="Avatar" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">
+        <img src="{{ user_avatar_url }}" alt="Avatar" style="width:100%; height:100%; object-fit:cover; border-radius:50%;" onerror="this.onerror=null; this.style.display='none'; this.nextElementSibling.style.display='flex';">
+        <span data-fallback="initials" style="display:none; width:100%; height:100%; align-items:center; justify-content:center;">
+          {{ request.user.first_name|default:request.user.username|slice:":1"|upper }}{{ request.user.last_name|default:""|slice:":1"|upper }}
+        </span>
       {% else %}
-        <i class="fa-solid fa-user"></i>
+        {{ request.user.first_name|default:request.user.username|slice:":1"|upper }}{{ request.user.last_name|default:""|slice:":1"|upper }}
       {% endif %}
     </div>
     <div class="user-info">
@@ -281,11 +297,14 @@
     <button class="user-avatar-btn azn-userbtn" type="button" id="userMenuToggle" aria-expanded="false">
       <div class="azn-avatar">
         <div class="azn-avatar-ring"></div>
-        <div class="azn-avatar-inner" style="overflow:hidden; display:flex; align-items:center; justify-content:center;">
+        <div class="azn-avatar-inner" style="overflow:hidden; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:0.85rem; background:linear-gradient(135deg, #6366f1, #4f46e5); color:#ffffff;">
           {% if user_avatar_url %}
-            <img src="{{ user_avatar_url }}" alt="Avatar" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">
+            <img src="{{ user_avatar_url }}" alt="Avatar" style="width:100%; height:100%; object-fit:cover; border-radius:50%;" onerror="this.onerror=null; this.style.display='none'; this.nextElementSibling.style.display='flex';">
+            <span data-fallback="initials" style="display:none; width:100%; height:100%; align-items:center; justify-content:center;">
+              {{ request.user.first_name|default:request.user.username|slice:":1"|upper }}{{ request.user.last_name|default:""|slice:":1"|upper }}
+            </span>
           {% else %}
-            <i class="fa-solid fa-user"></i>
+            {{ request.user.first_name|default:request.user.username|slice:":1"|upper }}{{ request.user.last_name|default:""|slice:":1"|upper }}
           {% endif %}
         </div>
       </div>

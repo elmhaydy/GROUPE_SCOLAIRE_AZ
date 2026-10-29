@@ -6,7 +6,7 @@
 {% block current_page %}Pédagogie / Enseignants{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'admin/css/nebula/az-lists.css' %}?v=3">
+<link rel="stylesheet" href="{% static 'admin/css/nebula/az-lists.css' %}?v=10">
 {% endblock %}
 
 {% block content %}
@@ -179,7 +179,19 @@
           </div>
 
           <div class="az-cell" data-label="Nom">
-            {{ e.nom }} {{ e.prenom }}
+            <div style="display:flex; align-items:center; gap:10px;">
+              <div class="az-avatar" style="width:36px; height:36px; border-radius:10px; flex-shrink:0; overflow:hidden; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg, rgba(99,102,241,0.16), rgba(139,92,246,0.22)); color:#4f46e5; font-weight:800; font-size:0.85rem; border:1.5px solid rgba(99,102,241,0.4);">
+                {% if e.photo %}
+                  <img src="{{ e.photo.url }}" alt="{{ e.nom }}" style="width:100%; height:100%; object-fit:cover;" onerror="this.onerror=null; this.style.display='none'; this.nextElementSibling.style.display='flex';" data-zoomable>
+                  <span data-fallback="initials" style="display:none; width:100%; height:100%; align-items:center; justify-content:center;">
+                    {{ e.nom|default:""|slice:":1"|upper }}{{ e.prenom|default:""|slice:":1"|upper }}
+                  </span>
+                {% else %}
+                  {{ e.nom|default:""|slice:":1"|upper }}{{ e.prenom|default:""|slice:":1"|upper }}
+                {% endif %}
+              </div>
+              <span class="az-strong">{{ e.nom }} {{ e.prenom }}</span>
+            </div>
           </div>
 
           <div class="az-cell" data-label="Spécialité">

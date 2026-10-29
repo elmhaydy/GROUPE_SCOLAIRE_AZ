@@ -22,11 +22,13 @@
   <div class="p2-left">
     <div class="p2-avatar">
       {% if eleve.photo %}
-        <img src="{{ eleve.photo.url }}" alt="Photo">
+        <img src="{{ eleve.photo.url }}" alt="Photo" onerror="this.onerror=null; this.style.display='none'; this.nextElementSibling.style.display='flex';">
+        <div class="p2-fallback" style="display:none;">{{ eleve.prenom|slice:":1"|upper }}{{ eleve.nom|slice:":1"|upper }}</div>
       {% elif user_avatar_url %}
-        <img src="{{ user_avatar_url }}" alt="Photo">
+        <img src="{{ user_avatar_url }}" alt="Photo" onerror="this.onerror=null; this.style.display='none'; this.nextElementSibling.style.display='flex';">
+        <div class="p2-fallback" style="display:none;">{{ eleve.prenom|slice:":1"|upper }}{{ eleve.nom|slice:":1"|upper }}</div>
       {% else %}
-        <div class="p2-fallback">{{ eleve.prenom|slice:":1" }}{{ eleve.nom|slice:":1" }}</div>
+        <div class="p2-fallback">{{ eleve.prenom|slice:":1"|upper }}{{ eleve.nom|slice:":1"|upper }}</div>
       {% endif %}
     </div>
 

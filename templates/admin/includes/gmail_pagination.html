@@ -1,20 +1,20 @@
 {% if page_obj and page_obj.has_other_pages %}
-<div class="az-gmail-pagination" style="display:flex; align-items:center; gap:12px;">
-  <span class="az-gmail-counter" style="font-size:0.85rem; font-weight:700; color:var(--az-text-secondary, #475569);">
+<div class="az-gmail-pagination" style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+  <span class="az-gmail-counter" style="font-size:0.82rem; font-weight:700; color:var(--az-text-secondary, #475569); white-space:nowrap;">
     <b>{{ page_obj.start_index }} - {{ page_obj.end_index }}</b> sur <b>{{ page_obj.paginator.count }}</b>
   </span>
 
-  <div style="display:inline-flex; gap:4px;">
+  <div class="az-gmail-nav" style="display:inline-flex; gap:6px; flex-shrink:0;">
     {% if page_obj.has_previous %}
       <a class="az-btn az-btn-soft az-btn-sm" 
-         style="width:36px; height:36px; padding:0; display:inline-flex; align-items:center; justify-content:center; border-radius:10px;" 
+         style="width:36px !important; height:36px !important; min-width:36px !important; max-width:36px !important; flex:0 0 36px !important; padding:0 !important; display:inline-flex !important; align-items:center !important; justify-content:center !important; border-radius:10px;" 
          href="?{% querystring page=page_obj.previous_page_number %}"
          title="Page précédente">
         <i class="fa-solid fa-chevron-left"></i>
       </a>
     {% else %}
       <button class="az-btn az-btn-soft az-btn-sm" 
-              style="width:36px; height:36px; padding:0; display:inline-flex; align-items:center; justify-content:center; border-radius:10px; opacity:0.4; cursor:not-allowed;" 
+              style="width:36px !important; height:36px !important; min-width:36px !important; max-width:36px !important; flex:0 0 36px !important; padding:0 !important; display:inline-flex !important; align-items:center !important; justify-content:center !important; border-radius:10px; opacity:0.4; cursor:not-allowed;" 
               disabled>
         <i class="fa-solid fa-chevron-left"></i>
       </button>
@@ -22,14 +22,14 @@
 
     {% if page_obj.has_next %}
       <a class="az-btn az-btn-soft az-btn-sm" 
-         style="width:36px; height:36px; padding:0; display:inline-flex; align-items:center; justify-content:center; border-radius:10px;" 
+         style="width:36px !important; height:36px !important; min-width:36px !important; max-width:36px !important; flex:0 0 36px !important; padding:0 !important; display:inline-flex !important; align-items:center !important; justify-content:center !important; border-radius:10px;" 
          href="?{% querystring page=page_obj.next_page_number %}"
          title="Page suivante">
         <i class="fa-solid fa-chevron-right"></i>
       </a>
     {% else %}
       <button class="az-btn az-btn-soft az-btn-sm" 
-              style="width:36px; height:36px; padding:0; display:inline-flex; align-items:center; justify-content:center; border-radius:10px; opacity:0.4; cursor:not-allowed;" 
+              style="width:36px !important; height:36px !important; min-width:36px !important; max-width:36px !important; flex:0 0 36px !important; padding:0 !important; display:inline-flex !important; align-items:center !important; justify-content:center !important; border-radius:10px; opacity:0.4; cursor:not-allowed;" 
               disabled>
         <i class="fa-solid fa-chevron-right"></i>
       </button>

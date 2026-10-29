@@ -39,8 +39,8 @@
             </div>
             <div class="az-card-body">
                 <div class="az-identity-header">
-                    <div class="az-avatar-placeholder">
-                        <i class="fas fa-user-tie"></i>
+                    <div class="az-avatar-placeholder" style="display:flex; align-items:center; justify-content:center; font-weight:900; font-size:1.6rem; color:#4f46e5; background:linear-gradient(135deg, rgba(99,102,241,0.18), rgba(79,70,229,0.28)); border:2px solid rgba(99,102,241,0.4); border-radius:18px;">
+                        {{ p.nom|default:""|slice:":1"|upper }}{{ p.prenom|default:""|slice:":1"|upper }}
                     </div>
                     <div class="az-identity-text">
                         <h2 class="az-name">{{ p.nom }} {{ p.prenom }}</h2>
@@ -83,11 +83,14 @@
             <div class="az-children-list">
                 {% for l in liens %}
                     <div class="az-child-item">
-                        <div class="az-child-avatar">
+                        <div class="az-child-avatar" style="overflow:hidden; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:0.95rem; color:#4f46e5; background:linear-gradient(135deg, rgba(99,102,241,0.15), rgba(79,70,229,0.25)); border:1.5px solid rgba(99,102,241,0.35); border-radius:12px;">
                             {% if l.eleve.photo %}
-                                <img src="{{ l.eleve.photo.url }}" alt="Photo">
+                                <img src="{{ l.eleve.photo.url }}" alt="Photo de {{ l.eleve.nom }}" style="width:100%; height:100%; object-fit:cover;" onerror="this.onerror=null; this.style.display='none'; this.nextElementSibling.style.display='flex';" data-zoomable>
+                                <span data-fallback="initials" style="display:none; width:100%; height:100%; align-items:center; justify-content:center;">
+                                    {{ l.eleve.nom|default:""|slice:":1"|upper }}{{ l.eleve.prenom|default:""|slice:":1"|upper }}
+                                </span>
                             {% else %}
-                                <i class="fas fa-user-graduate"></i>
+                                {{ l.eleve.nom|default:""|slice:":1"|upper }}{{ l.eleve.prenom|default:""|slice:":1"|upper }}
                             {% endif %}
                         </div>
                         <div class="az-child-info">

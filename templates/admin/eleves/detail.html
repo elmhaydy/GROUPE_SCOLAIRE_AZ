@@ -6,7 +6,7 @@
 {% block breadcrumb %}Scolaire / Élèves / {{ eleve.matricule }}{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'admin/css/eleves/detail.css' %}?v=7">
+<link rel="stylesheet" href="{% static 'admin/css/eleves/detail.css' %}?v=8">
 {% endblock %}
 
 {% block content %}
@@ -59,10 +59,13 @@
       <div class="az-identity-content">
         <div class="az-avatar-wrapper" aria-label="Avatar élève">
           {% if eleve.photo %}
-            <img src="{{ eleve.photo.url }}" alt="Photo de {{ eleve.nom }} {{ eleve.prenom }}" class="az-avatar">
+            <img src="{{ eleve.photo.url }}" alt="Photo de {{ eleve.nom }} {{ eleve.prenom }}" class="az-avatar" onerror="this.onerror=null; this.style.display='none'; this.nextElementSibling.style.display='flex';" data-zoomable>
+            <div class="az-avatar-placeholder" aria-hidden="true" style="display:none;">
+              {{ eleve.nom|default:""|slice:":1"|upper }}{{ eleve.prenom|default:""|slice:":1"|upper }}
+            </div>
           {% else %}
             <div class="az-avatar-placeholder" aria-hidden="true">
-              <i class="fas fa-user"></i>
+              {{ eleve.nom|default:""|slice:":1"|upper }}{{ eleve.prenom|default:""|slice:":1"|upper }}
             </div>
           {% endif %}
           <span class="az-status-badge {% if eleve.is_active %}active{% else %}inactive{% endif %}"

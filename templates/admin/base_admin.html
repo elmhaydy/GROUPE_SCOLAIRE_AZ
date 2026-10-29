@@ -51,6 +51,19 @@
         } catch (e) {}
       })();
     </script>
+    <script>
+      /* Intercepteur global immédiat : supprime tout icône d'image brisée instantanément */
+      window.addEventListener('error', function(e) {
+        var img = e.target;
+        if (img && img.tagName === 'IMG') {
+          img.style.display = 'none';
+          var fb = img.nextElementSibling;
+          if (fb && (fb.classList.contains('az-avatar-fallback') || fb.classList.contains('az-avatar-placeholder') || fb.classList.contains('az-initials-fallback') || fb.getAttribute('data-fallback') === 'initials')) {
+            fb.style.display = 'flex';
+          }
+        }
+      }, true);
+    </script>
 
 
     <!-- Font Awesome -->
@@ -64,9 +77,20 @@
 
 
     <!-- CSS principal -->
-    <link rel="stylesheet" href="{% static 'admin/css/_core/admin.css' %}?v=9">
+    <link rel="stylesheet" href="{% static 'admin/css/_core/admin.css' %}?v=13">
     <link rel="stylesheet" href="{% static 'dist/tailwind.css' %}?v=1">
     <link rel="stylesheet" href="{% static 'admin/css/notifications/inbox.css' %}?v=2">
+    <style>
+      /* Bouton fermer drawer : masqué sur écran desktop */
+      .az-sidebar-close {
+        display: none !important;
+      }
+      @media (max-width: 768px) {
+        .az-sidebar-close {
+          display: inline-flex !important;
+        }
+      }
+    </style>
     {% block extra_css %}{% endblock %}
 
     <!-- Favicon -->
@@ -95,6 +119,11 @@
       </h1>
       <div class="az-brand-subtitle">Administration</div>
     </div>
+
+    <!-- Mobile Close Button -->
+    <button class="az-sidebar-close" id="sidebarClose" type="button" aria-label="Fermer le menu">
+      <i class="fa-solid fa-xmark"></i>
+    </button>
   </div>
 
         <!-- Navigation -->
@@ -378,11 +407,14 @@
         <!-- Footer Sidebar -->
         <div class="az-sidebar-footer">
             <div class="az-user-info">
-                <div class="az-user-avatar">
+                <div class="az-user-avatar" style="overflow:hidden; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:0.92rem; background:linear-gradient(135deg, rgba(99,102,241,0.2), rgba(79,70,229,0.3)); color:#6366f1;">
                     {% if user_avatar_url %}
-                        <img src="{{ user_avatar_url }}" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">
+                        <img src="{{ user_avatar_url }}" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" onerror="this.onerror=null; this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                        <span data-fallback="initials" style="display:none; width:100%; height:100%; align-items:center; justify-content:center;">
+                            {{ request.user.first_name|default:request.user.username|slice:":1"|upper }}{{ request.user.last_name|default:""|slice:":1"|upper }}
+                        </span>
                     {% else %}
-                        <i class="fas fa-user"></i>
+                        {{ request.user.first_name|default:request.user.username|slice:":1"|upper }}{{ request.user.last_name|default:""|slice:":1"|upper }}
                     {% endif %}
                 </div>
                 <div class="az-user-details">
@@ -474,9 +506,12 @@
 
                 <div class="az-user-dropdown" id="userDropdown">
                     <button class="az-user-menu-toggle" id="userMenuToggle">
-                        <div class="az-user-avatar-sm">
+                        <div class="az-user-avatar-sm" style="display:flex; align-items:center; justify-content:center; overflow:hidden;">
                             {% if user_avatar_url %}
-                                <img src="{{ user_avatar_url }}" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">
+                                <img src="{{ user_avatar_url }}" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" onerror="this.onerror=null; this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                <span data-fallback="initials" style="display:none; width:100%; height:100%; align-items:center; justify-content:center; font-weight:700;">
+                                    {{ request.user.first_name|first|default:"A" }}{{ request.user.last_name|first|default:"Z" }}
+                                </span>
                             {% else %}
                                 {{ request.user.first_name|first|default:"A" }}{{ request.user.last_name|first|default:"Z" }}
                             {% endif %}
@@ -489,9 +524,12 @@
                     
                     <div class="az-user-menu" id="userMenu">
                         <div class="az-user-menu-header">
-                            <div class="az-user-avatar-lg">
+                            <div class="az-user-avatar-lg" style="display:flex; align-items:center; justify-content:center; overflow:hidden;">
                                 {% if user_avatar_url %}
-                                    <img src="{{ user_avatar_url }}" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">
+                                    <img src="{{ user_avatar_url }}" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" onerror="this.onerror=null; this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                    <span data-fallback="initials" style="display:none; width:100%; height:100%; align-items:center; justify-content:center; font-weight:800; font-size:1.4rem;">
+                                        {{ request.user.first_name|first|default:"A" }}{{ request.user.last_name|first|default:"Z" }}
+                                    </span>
                                 {% else %}
                                     {{ request.user.first_name|first|default:"A" }}{{ request.user.last_name|first|default:"Z" }}
                                 {% endif %}
@@ -621,7 +659,7 @@
 
 
 <!-- Scripts -->
-<script src="{% static 'admin/js/admin.js' %}?v=3"></script>
+<script src="{% static 'admin/js/admin.js' %}?v=4"></script>
 <script src="{% static 'admin/js/_ui/az-actions-menu.js' %}?v=10"></script>
 {% block extra_js %}{% endblock %}
 
@@ -710,7 +748,7 @@
   <div class="az-photo-lightbox-backdrop" data-az-lightbox-close></div>
   <div class="az-photo-lightbox-content">
     <button type="button" class="az-photo-lightbox-close" data-az-lightbox-close aria-label="Fermer">&times;</button>
-    <img id="azLightboxImg" src="" alt="Photo d'élève" class="az-photo-lightbox-img">
+    <img id="azLightboxImg" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'/%3E" alt="Photo d'élève" class="az-photo-lightbox-img">
     <div id="azLightboxCaption" class="az-photo-lightbox-caption"></div>
   </div>
 </div>

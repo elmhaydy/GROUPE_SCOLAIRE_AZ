@@ -167,10 +167,23 @@
         });
       }
 
+      // close button (mobile drawer)
+      const sidebarClose = document.getElementById("sidebarClose");
+      if (sidebarClose) {
+        sidebarClose.addEventListener("click", () => this.closeMobileSidebar());
+      }
+
       // overlay click => close drawer (mobile)
       if (overlay) {
         overlay.addEventListener("click", () => this.closeMobileSidebar());
       }
+
+      // Escape key => close drawer (mobile)
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && this._isMobileNow() && sidebar.classList.contains("active")) {
+          this.closeMobileSidebar();
+        }
+      });
 
       // click sur liens => close drawer (mobile)
       document.querySelectorAll(".az-nav-item").forEach((a) => {
@@ -398,4 +411,39 @@
   window.AZForm = window.AZForm || {};
   window.AZModal = window.AZModal || {};
   window.AZTable = window.AZTable || {};
+
+  /* =========================================================
+     AVATAR FALLBACK: En cas d'erreur de chargement d'image
+     ========================================================= */
+  document.addEventListener('error', function(e) {
+    if (e.target && e.target.tagName === 'IMG' && (e.target.classList.contains('az-avatar') || e.target.classList.contains('fin-hero-photo') || e.target.closest('.az-avatar') || e.target.closest('.az-avatar-wrapper'))) {
+      const img = e.target;
+      const alt = img.getAttribute('alt') || '';
+      let clean = alt.replace(/^photo(\s+de)?\s+/i, '').trim();
+      let parts = clean.split(/\s+/).filter(Boolean);
+      let initials = '';
+      if (parts.length >= 2) {
+        initials = (parts[0][0] + parts[1][0]).toUpperCase();
+      } else if (parts.length === 1 && parts[0].length >= 2) {
+        initials = parts[0].slice(0, 2).toUpperCase();
+      } else if (parts.length === 1) {
+        initials = parts[0][0].toUpperCase();
+      } else {
+        initials = 'AZ';
+      }
+      const fallback = document.createElement('div');
+      fallback.className = 'az-avatar az-avatar-fallback';
+      fallback.textContent = initials;
+      if (img.classList.contains('fin-hero-photo')) {
+        fallback.style.fontSize = '1.35rem';
+        fallback.style.fontWeight = '900';
+        fallback.style.width = '100%';
+        fallback.style.height = '100%';
+        fallback.style.display = 'flex';
+        fallback.style.alignItems = 'center';
+        fallback.style.justifyContent = 'center';
+      }
+      img.replaceWith(fallback);
+    }
+  }, true);
 })();

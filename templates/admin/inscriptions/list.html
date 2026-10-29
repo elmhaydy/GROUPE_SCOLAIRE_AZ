@@ -6,7 +6,7 @@
 {% block current_page %}Scolaire / Inscriptions{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'admin/css/nebula/az-lists.css' %}?v=6">
+<link rel="stylesheet" href="{% static 'admin/css/nebula/az-lists.css' %}?v=10">
 {% endblock %}
 
 {% block content %}
@@ -150,8 +150,22 @@
           <div class="az-row">
 
             <div class="az-cell" data-label="Élève">
-              <span class="az-strong">{{ i.eleve.matricule }}</span>
-              <span class="az-muted"> — {{ i.eleve.nom }} {{ i.eleve.prenom }}</span>
+              <div style="display:flex; align-items:center; gap:10px;">
+                <div class="az-avatar" style="width:36px; height:36px; border-radius:10px; flex-shrink:0; overflow:hidden; display:flex; align-items:center; justify-content:center; background:rgba(99,102,241,0.15); color:#4f46e5; font-weight:800; font-size:0.85rem; border:1px solid rgba(99,102,241,0.3);">
+                  {% if i.eleve.photo %}
+                    <img src="{{ i.eleve.photo.url }}" alt="{{ i.eleve.nom }}" style="width:100%; height:100%; object-fit:cover;" onerror="this.onerror=null; this.style.display='none'; this.nextElementSibling.style.display='flex';" data-zoomable>
+                    <span data-fallback="initials" style="display:none; width:100%; height:100%; align-items:center; justify-content:center;">
+                      {{ i.eleve.nom|default:""|slice:":1"|upper }}{{ i.eleve.prenom|default:""|slice:":1"|upper }}
+                    </span>
+                  {% else %}
+                    {{ i.eleve.nom|default:""|slice:":1"|upper }}{{ i.eleve.prenom|default:""|slice:":1"|upper }}
+                  {% endif %}
+                </div>
+                <div>
+                  <span class="az-strong">{{ i.eleve.matricule }}</span>
+                  <span class="az-muted"> — {{ i.eleve.nom }} {{ i.eleve.prenom }}</span>
+                </div>
+              </div>
             </div>
 
             <div class="az-cell" data-label="Année">

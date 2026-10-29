@@ -68,7 +68,8 @@ img{ max-width:100%; height:auto; display:block; }
 
 .dashboard-container{
   display:flex;
-  height:100vh;         /* plein écran */
+  height:100vh;         /* plein écran fallback */
+  height:100dvh;
   overflow:hidden;      /* pas de scroll global */
   background: radial-gradient(circle at top, #020617 0, #020617 55%, #020617 100%);
 }
@@ -81,6 +82,7 @@ img{ max-width:100%; height:auto; display:block; }
   bottom:0;
   width:260px;
   height:100vh;
+  height:100dvh;
   overflow-y:auto;
   overscroll-behavior:contain;
   z-index:20;
@@ -99,6 +101,7 @@ img{ max-width:100%; height:auto; display:block; }
   min-width:0;
   margin-left:260px;   /* = largeur sidebar */
   height:100vh;
+  height:100dvh;
   overflow-y:auto;
   overflow-x:hidden;
   overscroll-behavior:contain;
@@ -1000,3 +1003,29 @@ body.az-modal-open{ overflow:hidden; }
 @media (max-width:560px){
   .az-modal__dialog{ margin: 7vh auto; width: calc(100vw - 16px); }
 }
+
+/* =========================================================
+   PORTAIL ÉLÈVE — RESPONSIVE MOBILE OPTIMIZATIONS (320px - 768px)
+   ========================================================= */
+@media (max-width: 768px) {
+  .content-wrapper {
+    padding: 12px 10px 16px !important;
+  }
+  .content-card {
+    padding: 14px 12px !important;
+    border-radius: 12px;
+  }
+  .table-responsive, .table-wrapper, .table-scroll {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+  table.table, table.az-table, table.bul-table, table.az-week {
+    max-width: 100%;
+  }
+  .topbar-mobile {
+    padding: 10px 14px;
+  }
+}
+

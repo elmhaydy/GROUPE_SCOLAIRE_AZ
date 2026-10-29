@@ -349,3 +349,53 @@ html[data-theme="dark"] .fd-kpi--purple .fd-kpi__ic { background: rgba(139,92,24
 }
 .fd-taux-bar span { font-size: .78rem; font-weight: 600; color: var(--txt-primary); white-space: nowrap; }
 
+/* ── Mobile Responsive (320px - 768px) ────────── */
+@media (max-width: 768px) {
+  .fd-hero {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 18px 16px;
+    gap: 16px;
+  }
+  .fd-hero h1 {
+    font-size: 1.35rem;
+  }
+  .fd-hero__actions {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    gap: 8px;
+  }
+  .fd-hero__actions .fd-btn {
+    width: 100%;
+    justify-content: center;
+  }
+  .fd-card__head {
+    padding: 14px 16px 12px;
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .fd-card__body {
+    padding: 14px 16px;
+  }
+  .fd-transport-grid {
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+  }
+  .fd-transport-stats {
+    width: 100%;
+    grid-template-columns: 1fr;
+  }
+  .fd-table-wrap {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .fd-table th, .fd-table td {
+    padding: 8px 10px;
+    font-size: .78rem;
+  }
+}
+
+

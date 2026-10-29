@@ -27,7 +27,15 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     if (sidebarToggle) sidebarToggle.addEventListener('click', toggleSidebar);
+    const sidebarClose = document.getElementById('sidebarClose');
+    if (sidebarClose) sidebarClose.addEventListener('click', () => body.classList.remove('sidebar-open'));
     if (overlay) overlay.addEventListener('click', () => body.classList.remove('sidebar-open'));
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && body.classList.contains('sidebar-open')) {
+            body.classList.remove('sidebar-open');
+        }
+    });
 
     // --- User Menu Dropdown ---
     if (userMenuToggle && userMenu) {

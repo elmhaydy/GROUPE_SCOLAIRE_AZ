@@ -20,10 +20,13 @@
         {% csrf_token %}
         <div class="az-profile-avatar-wrap">
           {% if avatar_url %}
-            <img src="{{ avatar_url }}" alt="Photo de {{ u.username }}" class="az-profile-avatar-img">
+            <img src="{{ avatar_url }}" alt="Photo de {{ u.username }}" class="az-profile-avatar-img" onerror="this.onerror=null; this.style.display='none'; this.nextElementSibling.style.display='flex';">
+            <div class="az-profile-avatar" style="display:none; align-items:center; justify-content:center; font-weight:800; font-size:1.6rem; color:#6366f1;">
+              {{ u.first_name|default:u.username|slice:":1"|upper }}{{ u.last_name|default:""|slice:":1"|upper }}
+            </div>
           {% else %}
-            <div class="az-profile-avatar">
-              <i class="fa-solid fa-user" style="font-size: 1.5rem;"></i>
+            <div class="az-profile-avatar" style="display:flex; align-items:center; justify-content:center; font-weight:800; font-size:1.6rem; color:#6366f1;">
+              {{ u.first_name|default:u.username|slice:":1"|upper }}{{ u.last_name|default:""|slice:":1"|upper }}
             </div>
           {% endif %}
           <label for="avatarInput" class="az-avatar-upload-btn" title="Changer ma photo de profil">

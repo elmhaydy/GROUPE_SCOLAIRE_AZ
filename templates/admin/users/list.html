@@ -6,7 +6,7 @@
 {% block current_page %}Admin / Utilisateurs{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'admin/css/nebula/az-lists.css' %}?v=8">
+<link rel="stylesheet" href="{% static 'admin/css/nebula/az-lists.css' %}?v=10">
 {% endblock %}
 
 {% block content %}
@@ -103,11 +103,14 @@
           <div class="az-cell" data-label="Utilisateur">
             <div class="az-user">
               {% with img_url=u|avatar_url %}
-              <div class="az-avatar" style="overflow: hidden; display: flex; align-items: center; justify-content: center;">
+              <div class="az-avatar" style="overflow:hidden; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg, rgba(99,102,241,0.16), rgba(139,92,246,0.22)); color:#4f46e5; font-weight:800; font-size:0.9rem; border:1.5px solid rgba(99,102,241,0.4); border-radius:14px;">
                 {% if img_url %}
-                  <img src="{{ img_url }}" alt="{{ u.username }}" style="width:100%; height:100%; object-fit:cover; border-radius:12px;" data-zoomable>
+                  <img src="{{ img_url }}" alt="{{ u.username }}" style="width:100%; height:100%; object-fit:cover; border-radius:12px;" onerror="this.onerror=null; this.style.display='none'; this.nextElementSibling.style.display='flex';" data-zoomable>
+                  <span data-fallback="initials" style="display:none; width:100%; height:100%; align-items:center; justify-content:center;">
+                    {{ u.first_name|default:u.username|slice:":1"|upper }}{{ u.last_name|default:""|slice:":1"|upper }}
+                  </span>
                 {% else %}
-                  {{ u.last_name|default:u.username|slice:":1"|upper }}
+                  {{ u.first_name|default:u.username|slice:":1"|upper }}{{ u.last_name|default:""|slice:":1"|upper }}
                 {% endif %}
               </div>
               {% endwith %}

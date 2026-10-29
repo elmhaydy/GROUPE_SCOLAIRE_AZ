@@ -47,9 +47,14 @@
       <div class="az-photo-box az-photo-box--modern">
         <div class="az-photo-preview">
           {% if eleve and eleve.photo %}
-            <img src="{{ eleve.photo.url }}" alt="Photo élève" id="photoPreview">
+            <img src="{{ eleve.photo.url }}" alt="Photo élève" id="photoPreview" onerror="this.onerror=null; this.style.display='none'; this.nextElementSibling.style.display='flex';">
+            <div class="az-photo-placeholder" id="photoFallback" style="display:none; align-items:center; justify-content:center; font-weight:900; font-size:1.6rem; color:#4f46e5; background:linear-gradient(135deg, rgba(99,102,241,0.18), rgba(79,70,229,0.28)); border:2px solid rgba(99,102,241,0.4); border-radius:18px;">
+              {% if eleve.nom %}{{ eleve.nom|slice:":1"|upper }}{{ eleve.prenom|default:""|slice:":1"|upper }}{% else %}<i class="fas fa-camera" style="opacity:.6;"></i>{% endif %}
+            </div>
           {% else %}
-            <div class="az-photo-placeholder" id="photoPreview">👤</div>
+            <div class="az-photo-placeholder" id="photoPreview" style="display:flex; align-items:center; justify-content:center; font-weight:900; font-size:1.6rem; color:#4f46e5; background:linear-gradient(135deg, rgba(99,102,241,0.18), rgba(79,70,229,0.28)); border:2px solid rgba(99,102,241,0.4); border-radius:18px;">
+              {% if eleve.nom %}{{ eleve.nom|slice:":1"|upper }}{{ eleve.prenom|default:""|slice:":1"|upper }}{% else %}<i class="fas fa-camera" style="opacity:.6;"></i>{% endif %}
+            </div>
           {% endif %}
         </div>
 

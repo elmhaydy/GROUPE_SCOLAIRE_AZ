@@ -6,7 +6,7 @@
 {% block current_page %}Scolaire / Parents{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'admin/css/nebula/az-lists.css' %}?v=6">
+<link rel="stylesheet" href="{% static 'admin/css/nebula/az-lists.css' %}?v=10">
 {% endblock %}
 
 {% block content %}
@@ -134,7 +134,14 @@
         {% for p in parents %}
           <div class="az-row">
 
-            <div class="az-cell az-strong" data-label="Nom">{{ p.nom }}</div>
+            <div class="az-cell az-strong" data-label="Nom">
+              <div style="display:flex; align-items:center; gap:10px;">
+                <div class="az-avatar" style="width:36px; height:36px; border-radius:10px; flex-shrink:0; overflow:hidden; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg, rgba(99,102,241,0.16), rgba(139,92,246,0.22)); color:#4f46e5; font-weight:800; font-size:0.85rem; border:1.5px solid rgba(99,102,241,0.4);">
+                  {{ p.nom|default:""|slice:":1"|upper }}{{ p.prenom|default:""|slice:":1"|upper }}
+                </div>
+                <span>{{ p.nom }}</span>
+              </div>
+            </div>
             <div class="az-cell" data-label="Prénom">{{ p.prenom }}</div>
             <div class="az-cell" data-label="Téléphone">{{ p.telephone|default:"—" }}</div>
             <div class="az-cell" data-label="Email">{{ p.email|default:"—" }}</div>

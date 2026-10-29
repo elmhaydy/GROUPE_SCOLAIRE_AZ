@@ -68,7 +68,10 @@
       <div class="az-ensd-ident">
         <div class="az-ensd-avatar">
           {% if ens.photo %}
-            <img src="{{ ens.photo.url }}" alt="Photo {{ ens.nom }} {{ ens.prenom }}">
+            <img src="{{ ens.photo.url }}" alt="Photo {{ ens.nom }} {{ ens.prenom }}" onerror="this.onerror=null; this.style.display='none'; this.nextElementSibling.style.display='flex';" data-zoomable>
+            <span class="az-ensd-initials" style="display:none;">
+              {{ ens.nom|default:""|slice:":1"|upper }}{{ ens.prenom|default:""|slice:":1"|upper }}
+            </span>
           {% else %}
             <span class="az-ensd-initials">
               {{ ens.nom|default:""|slice:":1"|upper }}{{ ens.prenom|default:""|slice:":1"|upper }}

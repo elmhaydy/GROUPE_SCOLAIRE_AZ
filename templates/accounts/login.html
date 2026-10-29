@@ -5,248 +5,248 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Atlas School ERP | Connexion Démo 1-Clic</title>
+  <title>Connexion | Groupe Scolaire AZ</title>
 
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-  <link rel="icon" type="image/png" sizes="32x32" href="{% static 'img/logo-embf.png' %}" media="(prefers-color-scheme: light)">
-  <link rel="icon" type="image/png" sizes="32x32" href="{% static 'img/logo-embf.png' %}" media="(prefers-color-scheme: dark)">
-  <link rel="icon" type="image/png" sizes="16x16" href="{% static 'img/logo-embf.png' %}" media="(prefers-color-scheme: light)">
-  <link rel="icon" type="image/png" sizes="16x16" href="{% static 'img/logo-embf.png' %}" media="(prefers-color-scheme: dark)">
+  <link rel="icon" type="image/png" sizes="32x32" href="{% static 'img/logo-embf.png' %}">
   <link rel="apple-touch-icon" href="{% static 'img/logo-embf.png' %}">
 
   <style>
     :root {
-      --primary: #2563eb;
-      --primary-dark: #1e40af;
-      --primary-light: #60a5fa;
-      --secondary: #f59e0b;
-      --secondary-dark: #d97706;
-      --success: #10b981;
-      --danger: #ef4444;
-      --dark: #0f172a;
-      --light: #f8fafc;
-      --gray: #64748b;
-      --gray-light: #e2e8f0;
-      --shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
-      --glass: rgba(255, 255, 255, 0.92);
-      --glass-border: rgba(255, 255, 255, 0.3);
+      --primary: #4f46e5;
+      --primary-hover: #4338ca;
+      --primary-subtle: #eef2ff;
+      --slate-900: #0f172a;
+      --slate-800: #1e293b;
+      --slate-700: #334155;
+      --slate-600: #475569;
+      --slate-500: #64748b;
+      --slate-400: #94a3b8;
+      --slate-300: #cbd5e1;
+      --slate-200: #e2e8f0;
+      --slate-100: #f1f5f9;
+      --slate-50: #f8fafc;
+      --radius: 10px;
+      --radius-sm: 6px;
     }
 
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    html { scroll-behavior: smooth; }
 
     body {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      color: var(--dark);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      color: var(--slate-900);
       min-height: 100vh;
+      min-height: 100dvh;
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 20px;
+      padding: 20px 16px;
       position: relative;
-      overflow: hidden;
+      background-color: #0b1120;
+      -webkit-font-smoothing: antialiased;
     }
 
+    /* Fond carrousel avec voilage sombre institutionnel */
     .background-carousel {
       position: fixed;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      z-index: -1;
+      inset: 0;
+      z-index: 0;
       overflow: hidden;
-      background-color: var(--dark);
+      background-color: #0b1120;
     }
 
     .carousel-slide {
       position: absolute;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
+      inset: 0;
       opacity: 0;
-      transition: opacity 2s ease-in-out, transform 8s ease-out;
+      transition: opacity 1.8s ease-in-out;
       background-size: cover;
       background-position: center;
       background-repeat: no-repeat;
-      transform: scale(1.1);
     }
-    .carousel-slide.active { opacity: 1; transform: scale(1); }
+    .carousel-slide.active { opacity: 1; }
 
     .slide-1 {
-      background-image: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.5)),
+      background-image: linear-gradient(135deg, rgba(11, 17, 32, 0.72), rgba(15, 23, 42, 0.85)),
                         url("{% static 'login/1.png' %}");
     }
     .slide-2 {
-      background-image: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.5)),
+      background-image: linear-gradient(135deg, rgba(11, 17, 32, 0.72), rgba(15, 23, 42, 0.85)),
                         url("{% static 'login/2.png' %}");
     }
     .slide-3 {
-      background-image: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.5)),
+      background-image: linear-gradient(135deg, rgba(11, 17, 32, 0.72), rgba(15, 23, 42, 0.85)),
                         url("{% static 'login/3.png' %}");
     }
     .slide-4 {
-      background-image: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.5)),
+      background-image: linear-gradient(135deg, rgba(11, 17, 32, 0.72), rgba(15, 23, 42, 0.85)),
                         url("{% static 'login/4.png' %}");
     }
 
     .carousel-overlay {
       position: absolute;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      background: radial-gradient(circle, transparent 20%, rgba(0,0,0,0.4) 100%);
+      inset: 0;
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      background: radial-gradient(circle at center, transparent 0%, rgba(11, 17, 32, 0.5) 100%);
       z-index: 1;
     }
 
+    /* Carte de connexion épurée et professionnelle */
     .login-container {
       width: 100%;
-      max-width: 500px;
+      max-width: 440px;
       position: relative;
       z-index: 10;
-      opacity: 0;
-      transform: translateY(30px);
-      transition: all 1s cubic-bezier(0.22, 1, 0.36, 1);
+      animation: fadeIn 0.4s ease-out;
     }
-    .login-container.visible { opacity: 1; transform: translateY(0); }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
 
     .login-card {
-      background: var(--glass);
-      backdrop-filter: blur(15px);
-      border: 1px solid var(--glass-border);
-      border-radius: 28px;
-      padding: 38px 36px;
-      box-shadow: var(--shadow);
-      position: relative;
-      overflow: hidden;
+      background: #ffffff;
+      border: 1px solid rgba(226, 232, 240, 0.9);
+      border-radius: 16px;
+      padding: 36px 32px 28px;
+      box-shadow: 0 20px 25px -5px rgba(15, 23, 42, 0.25), 0 8px 10px -6px rgba(15, 23, 42, 0.15);
     }
 
-    .login-header { text-align: center; margin-bottom: 35px; }
-
-    .logo-section {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      background: transparent !important;
-      padding: 0 !important;
-      border-radius: 0 !important;
-      border: none !important;
-      box-shadow: none !important;
-      margin-bottom: 20px;
+    /* En-tête : Logo officiel et Titres sobres */
+    .login-header {
+      text-align: center;
+      margin-bottom: 28px;
     }
 
-    .logo-image {
-      width: 90px;
-      height: 90px;
+    .logo-img-brand {
+      height: 52px;
+      width: auto;
+      max-width: 160px;
       object-fit: contain;
-      display: none;
-    }
-
-    .logo-image-light {
-      display: block;
-    }
-
-    @media (prefers-color-scheme: dark) {
-      .logo-section {
-        background: transparent !important;
-        border: none !important;
-        box-shadow: none !important;
-      }
-
-      .logo-image-light {
-        display: none;
-      }
-
-      .logo-image-dark {
-        display: block;
-      }
+      margin-bottom: 14px;
     }
 
     .login-title {
-      font-size: 28px;
-      font-weight: 800;
-      color: var(--dark);
-      margin-bottom: 8px;
-      letter-spacing: -0.5px;
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--slate-900);
+      letter-spacing: -0.02em;
+      margin-bottom: 4px;
     }
 
-    .login-subtitle { font-size: 15px; color: var(--gray); font-weight: 500; }
+    .login-subtitle {
+      font-size: 0.875rem;
+      color: var(--slate-500);
+      font-weight: 400;
+    }
 
-    .form-group { margin-bottom: 22px; }
+    /* Messages d'erreur */
+    .alert-error {
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      color: #b91c1c;
+      padding: 10px 14px;
+      border-radius: var(--radius-sm);
+      margin-bottom: 18px;
+      font-size: 0.825rem;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .alert-error ul { margin-left: 14px; }
+
+    /* Champs de formulaire */
+    .form-group {
+      margin-bottom: 18px;
+    }
 
     .form-label {
       display: block;
-      font-size: 14px;
+      font-size: 0.815rem;
       font-weight: 600;
-      color: var(--dark);
-      margin-bottom: 8px;
-      padding-left: 4px;
+      color: var(--slate-700);
+      margin-bottom: 6px;
     }
 
-    .input-wrapper { position: relative; transition: all 0.3s ease; }
+    .input-wrapper {
+      position: relative;
+    }
 
     .input-icon {
       position: absolute;
-      left: 18px;
+      left: 14px;
       top: 50%;
       transform: translateY(-50%);
-      color: var(--gray);
-      font-size: 18px;
-      transition: all 0.3s ease;
+      color: var(--slate-400);
+      font-size: 0.875rem;
       pointer-events: none;
     }
 
     .form-input {
       width: 100%;
-      padding: 16px 16px 16px 52px;
-      background: white;
-      border: 2px solid var(--gray-light);
-      border-radius: 14px;
-      font-size: 15px;
-      font-weight: 500;
-      color: var(--dark);
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      padding: 10px 14px 10px 38px;
+      background: #ffffff;
+      border: 1px solid var(--slate-300);
+      border-radius: var(--radius-sm);
+      font-size: 0.9rem;
+      color: var(--slate-900);
       outline: none;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
     }
 
     .form-input:focus {
       border-color: var(--primary);
-      box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
     }
 
-    .form-input:focus + .input-icon { color: var(--primary); }
+    .form-input::placeholder {
+      color: var(--slate-400);
+    }
 
     .password-toggle {
       position: absolute;
-      right: 18px;
+      right: 12px;
       top: 50%;
       transform: translateY(-50%);
       background: none;
       border: none;
-      color: var(--gray);
+      color: var(--slate-400);
       cursor: pointer;
-      font-size: 16px;
-      padding: 5px;
-      transition: color 0.3s;
+      font-size: 0.875rem;
+      padding: 4px;
     }
-    .password-toggle:hover { color: var(--primary); }
+    .password-toggle:hover {
+      color: var(--slate-700);
+    }
 
+    /* Options de connexion */
     .login-options {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 28px;
-      font-size: 14px;
+      margin-bottom: 22px;
+      font-size: 0.825rem;
     }
 
     .remember-me {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
       cursor: pointer;
+      color: var(--slate-600);
       font-weight: 500;
-      color: var(--gray);
+      user-select: none;
     }
     .remember-me input {
-      width: 18px;
-      height: 18px;
+      width: 15px;
+      height: 15px;
       accent-color: var(--primary);
       cursor: pointer;
     }
@@ -254,207 +254,146 @@
     .forgot-password {
       color: var(--primary);
       text-decoration: none;
-      font-weight: 600;
+      font-weight: 500;
     }
-    .forgot-password:hover { text-decoration: underline; }
+    .forgot-password:hover {
+      text-decoration: underline;
+    }
 
+    /* Bouton principal de connexion */
     .login-button {
       width: 100%;
-      padding: 18px;
-      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-      color: white;
+      padding: 11px 16px;
+      background: var(--primary);
+      color: #ffffff;
       border: none;
-      border-radius: 14px;
-      font-size: 16px;
-      font-weight: 700;
+      border-radius: var(--radius-sm);
+      font-size: 0.925rem;
+      font-weight: 600;
       cursor: pointer;
-      transition: all 0.3s ease;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 12px;
-      box-shadow: 0 10px 20px rgba(37, 99, 235, 0.2);
+      gap: 8px;
+      transition: background-color 0.15s ease, transform 0.1s ease;
     }
 
     .login-button:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 15px 30px rgba(37, 99, 235, 0.3);
-      filter: brightness(1.1);
+      background: var(--primary-hover);
     }
-    .login-button:active { transform: translateY(0); }
+    .login-button:active {
+      transform: scale(0.99);
+    }
 
     .spinner {
-      width: 20px;
-      height: 20px;
-      border: 3px solid rgba(255,255,255,0.3);
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255,255,255,0.35);
       border-radius: 50%;
-      border-top-color: white;
+      border-top-color: #ffffff;
       animation: spin 0.8s linear infinite;
       display: none;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    .loading .spinner { display: block; }
+    .loading .spinner { display: inline-block; }
     .loading i { display: none; }
 
-    /* Bloc erreurs */
-    .alert-error {
-      background: rgba(239, 68, 68, 0.12);
-      border: 1px solid rgba(239, 68, 68, 0.35);
-      color: #991b1b;
-      padding: 12px 14px;
-      border-radius: 14px;
-      margin-bottom: 18px;
-      font-size: 14px;
-      font-weight: 600;
+    /* =========================================================
+       ACCÈS TEST RAPIDE : Sobre, discret et institutionnel
+       ========================================================= */
+    .demo-quick-bar {
+      margin-top: 24px;
+      padding-top: 18px;
+      border-top: 1px solid var(--slate-200);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
     }
-    .alert-error ul { margin-left: 18px; font-weight: 600; }
 
-    .login-footer {
-      margin-top: 35px;
+    .demo-quick-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.725rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--slate-500);
+    }
+
+    .demo-pills-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+    }
+
+    .demo-pill {
+      background: var(--slate-50);
+      border: 1px solid var(--slate-200);
+      border-radius: var(--radius-sm);
+      color: var(--slate-700);
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 6px 4px;
       text-align: center;
-      border-top: 1px solid var(--gray-light);
-      padding-top: 25px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .demo-pill:hover {
+      background: #ffffff;
+      border-color: var(--primary);
+      color: var(--primary);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
+
+    /* Pied de page sobre */
+    .login-footer {
+      margin-top: 24px;
+      text-align: center;
     }
 
     .copyright {
-      font-size: 13px;
-      color: var(--gray);
-      margin-bottom: 12px;
+      font-size: 0.75rem;
+      color: var(--slate-500);
+      margin-bottom: 8px;
     }
 
     .footer-links {
       display: flex;
       justify-content: center;
-      gap: 20px;
-      font-size: 13px;
+      gap: 14px;
+      font-size: 0.75rem;
     }
 
     .footer-link {
-      color: var(--primary);
+      color: var(--slate-500);
       text-decoration: none;
-      font-weight: 500;
+      transition: color 0.15s;
     }
-    .footer-link:hover { text-decoration: underline; }
+    .footer-link:hover {
+      color: var(--slate-800);
+      text-decoration: underline;
+    }
 
-    /* Encart Démo 1-Clic */
-    .demo-box {
-      background: linear-gradient(135deg, rgba(240, 249, 255, 0.95), rgba(248, 250, 252, 0.9));
-      border: 1px solid #bfdbfe;
-      border-radius: 18px;
-      padding: 16px;
-      margin-bottom: 22px;
-      box-shadow: 0 4px 15px rgba(37, 99, 235, 0.07);
-    }
-    .demo-box-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 12px;
-    }
-    .demo-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 11.5px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      color: #1e40af;
-      background: #dbeafe;
-      padding: 4px 10px;
-      border-radius: 20px;
-    }
-    .demo-helper {
-      font-size: 11.5px;
-      color: #64748b;
-      font-weight: 600;
-    }
-    .demo-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 10px;
-    }
-    .demo-btn {
-      display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 3px;
-      background: #ffffff;
-      border: 1.5px solid #e2e8f0;
-      border-radius: 12px;
-      padding: 10px 12px;
-      cursor: pointer;
-      text-align: left;
-      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
-    }
-    .demo-btn:hover {
-      transform: translateY(-2px);
-      border-color: #2563eb;
-      box-shadow: 0 6px 14px rgba(37, 99, 235, 0.14);
-      background: #f8faff;
-    }
-    .demo-btn:active {
-      transform: translateY(0);
-    }
-    .demo-btn-title {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 12.5px;
-      font-weight: 700;
-      color: #0f172a;
-    }
-    .demo-btn-sub {
-      font-size: 11px;
-      color: #64748b;
-      font-family: monospace;
-      font-weight: 500;
-    }
-    .demo-btn-tag {
-      font-size: 9.5px;
-      font-weight: 700;
-      padding: 2px 6px;
-      border-radius: 5px;
-      margin-top: 2px;
-    }
-    .tag-admin { background: #ede9fe; color: #6d28d9; }
-    .tag-caisse { background: #d1fae5; color: #065f46; }
-    .tag-prof { background: #e0f2fe; color: #0369a1; }
-    .tag-parent { background: #fef3c7; color: #92400e; }
-
-    .separator-demo {
-      display: flex;
-      align-items: center;
-      text-align: center;
-      margin: 16px 0 20px;
-      color: #94a3b8;
-      font-size: 11px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.8px;
-    }
-    .separator-demo::before, .separator-demo::after {
-      content: '';
-      flex: 1;
-      border-bottom: 1px solid #e2e8f0;
-    }
-    .separator-demo::before { margin-right: 12px; }
-    .separator-demo::after { margin-left: 12px; }
-
-    @media (max-width: 576px) {
-      body { padding: 15px; }
-      .login-card { padding: 30px 20px; }
-      .login-title { font-size: 24px; }
-      .demo-grid { grid-template-columns: 1fr; }
+    @media (max-width: 480px) {
+      .login-card {
+        padding: 26px 20px 22px;
+      }
+      .demo-pills-row {
+        grid-template-columns: repeat(2, 1fr);
+      }
     }
   </style>
 </head>
 
 <body>
-  <!-- Carrousel d'Arrière-plan -->
-  <div class="background-carousel">
+  <!-- Carrousel d'arrière-plan avec overlay épuré -->
+  <div class="background-carousel" aria-hidden="true">
     <div class="carousel-slide slide-1 active"></div>
     <div class="carousel-slide slide-2"></div>
     <div class="carousel-slide slide-3"></div>
@@ -462,121 +401,89 @@
     <div class="carousel-overlay"></div>
   </div>
 
-  <!-- Conteneur de Connexion -->
+  <!-- Conteneur principal de connexion -->
   <div class="login-container" id="loginContainer">
     <div class="login-card">
+
+      <!-- En-tête : Logo Officiel et Titre -->
       <div class="login-header">
-        {% if error %}
-          <div class="alert-error">{{ error }}</div>
-        {% endif %}
-        <div class="logo-section">
-          <div style="width: 58px; height: 58px; border-radius: 16px; background: linear-gradient(135deg, #2563eb, #1e40af); display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 16px rgba(37,99,235,0.3); color: white; font-size: 26px;">
-            <i class="fas fa-graduation-cap"></i>
+        <img
+          src="{% static 'img/logo-embf.png' %}"
+          alt="Groupe Scolaire AZ"
+          class="logo-img-brand"
+          onerror="this.onerror=null; this.src='{% static 'img/logo-emb.png' %}';"
+        >
+        <h1 class="login-title">Groupe Scolaire AZ</h1>
+        <p class="login-subtitle">Portail de gestion et scolarité</p>
+      </div>
+
+      <!-- Messages d'erreur Django -->
+      {% if error %}
+        <div class="alert-error">
+          <i class="fa-solid fa-circle-exclamation"></i>
+          <span>{{ error }}</span>
+        </div>
+      {% endif %}
+
+      {% if form and form.non_field_errors %}
+        <div class="alert-error">
+          <i class="fa-solid fa-circle-exclamation"></i>
+          <span>{{ form.non_field_errors }}</span>
+        </div>
+      {% endif %}
+
+      {% if messages %}
+        {% for message in messages %}
+          <div class="alert-error">
+            <i class="fa-solid fa-circle-exclamation"></i>
+            <span>{{ message }}</span>
           </div>
-        </div>
-        <h1 class="login-title">Atlas School ERP</h1>
-        <p class="login-subtitle">Système Intégré de Gestion Scolaire</p>
-      </div>
+        {% endfor %}
+      {% endif %}
 
-      <!-- 🚀 ENCART ACCÈS DÉMO 1-CLIC -->
-      <div class="demo-box">
-        <div class="demo-box-header">
-          <span class="demo-badge">
-            <i class="fas fa-bolt" style="color: #f59e0b;"></i> Accès Démo 1-Clic
-          </span>
-          <span class="demo-helper">Cliquez pour tester</span>
-        </div>
-        <div class="demo-grid">
-          <!-- Admin / Direction -->
-          <button type="button" class="demo-btn" onclick="quickLogin('admin@demo.ma', 'Demo2026!*', this)">
-            <span class="demo-btn-title">
-              <i class="fas fa-user-shield" style="color: #6d28d9;"></i> Direction / Admin
-            </span>
-            <span class="demo-btn-sub">admin@demo.ma</span>
-            <span class="demo-btn-tag tag-admin">Accès Total</span>
-          </button>
-
-          <!-- Comptable / Caisse -->
-          <button type="button" class="demo-btn" onclick="quickLogin('caisse@demo.ma', 'Demo2026!*', this)">
-            <span class="demo-btn-title">
-              <i class="fas fa-cash-register" style="color: #059669;"></i> Comptable / Caisse
-            </span>
-            <span class="demo-btn-sub">caisse@demo.ma</span>
-            <span class="demo-btn-tag tag-caisse">Finance & Impayés</span>
-          </button>
-
-          <!-- Enseignant -->
-          <button type="button" class="demo-btn" onclick="quickLogin('prof@demo.ma', 'Demo2026!*', this)">
-            <span class="demo-btn-title">
-              <i class="fas fa-chalkboard-teacher" style="color: #0284c7;"></i> Enseignant
-            </span>
-            <span class="demo-btn-sub">prof@demo.ma</span>
-            <span class="demo-btn-tag tag-prof">Notes & Absences</span>
-          </button>
-
-          <!-- Parent -->
-          <button type="button" class="demo-btn" onclick="quickLogin('parent@demo.ma', 'Demo2026!*', this)">
-            <span class="demo-btn-title">
-              <i class="fas fa-user-friends" style="color: #d97706;"></i> Parent d'Élève
-            </span>
-            <span class="demo-btn-sub">parent@demo.ma</span>
-            <span class="demo-btn-tag tag-parent">Portail Famille</span>
-          </button>
-        </div>
-      </div>
-
-      <div class="separator-demo">Ou identifiant classique</div>
-
-      <!-- ✅ IMPORTANT: action + post + csrf -->
-      <form id="loginForm" method="post" action="{% url 'accounts:login'%}">
+      <!-- Formulaire de Connexion -->
+      <form id="loginForm" method="post" action="{% url 'accounts:login' %}">
         {% csrf_token %}
 
-        <!-- ✅ Affichage erreurs Django -->
-        {% if form and form.non_field_errors %}
-          <div class="alert-error">
-            {{ form.non_field_errors }}
-          </div>
-        {% endif %}
-
         <div class="form-group">
-          <label class="form-label" for="username">Identifiant</label>
+          <label class="form-label" for="username">Identifiant ou E-mail</label>
           <div class="input-wrapper">
-            <i class="input-icon fas fa-user-graduate"></i>
+            <i class="input-icon fa-regular fa-user"></i>
             <input
               type="text"
               id="username"
               name="username"
               class="form-input"
-              placeholder="Ex: jean.dupont"
+              placeholder="ex : admin ou nom@domaine.ma"
               autocomplete="username"
               required
               value="{{ form.username.value|default_if_none:'' }}"
             >
           </div>
           {% if form and form.username.errors %}
-            <div class="alert-error">{{ form.username.errors }}</div>
+            <div class="alert-error" style="margin-top: 6px;">{{ form.username.errors }}</div>
           {% endif %}
         </div>
 
         <div class="form-group">
           <label class="form-label" for="password">Mot de passe</label>
           <div class="input-wrapper">
-            <i class="input-icon fas fa-key"></i>
+            <i class="input-icon fa-solid fa-lock"></i>
             <input
               type="password"
               id="password"
               name="password"
               class="form-input"
-              placeholder="••••••••"
+              placeholder="••••••••••••"
               autocomplete="current-password"
               required
             >
-            <button type="button" class="password-toggle" id="passwordToggle">
-              <i class="fas fa-eye"></i>
+            <button type="button" class="password-toggle" id="passwordToggle" aria-label="Afficher ou masquer le mot de passe">
+              <i class="fa-regular fa-eye"></i>
             </button>
           </div>
           {% if form and form.password.errors %}
-            <div class="alert-error">{{ form.password.errors }}</div>
+            <div class="alert-error" style="margin-top: 6px;">{{ form.password.errors }}</div>
           {% endif %}
         </div>
 
@@ -588,19 +495,29 @@
         </div>
 
         <button type="submit" class="login-button" id="submitBtn">
-          <i class="fas fa-sign-in-alt"></i>
           <span class="spinner"></span>
           <span>Se connecter</span>
         </button>
-      </form>
-{% if messages %}
-  {% for message in messages %}
-    <div class="alert-error">{{ message }}</div>
-  {% endfor %}
-{% endif %}
 
+        <!-- Accès test rapide discret (pour la démonstration) -->
+        <div class="demo-quick-bar">
+          <div class="demo-quick-head">
+            <span>Comptes de test</span>
+            <span style="font-weight: 400; text-transform: none; color: var(--slate-400);">1 clic pour tester</span>
+          </div>
+          <div class="demo-pills-row">
+            <button type="button" class="demo-pill" onclick="quickLogin('admin@demo.ma', 'Demo2026!*', this)" title="Connexion Direction / Admin">Direction</button>
+            <button type="button" class="demo-pill" onclick="quickLogin('caisse@demo.ma', 'Demo2026!*', this)" title="Connexion Comptabilité / Caisse">Comptable</button>
+            <button type="button" class="demo-pill" onclick="quickLogin('prof@demo.ma', 'Demo2026!*', this)" title="Connexion Enseignant">Professeur</button>
+            <button type="button" class="demo-pill" onclick="quickLogin('parent@demo.ma', 'Demo2026!*', this)" title="Connexion Parent d'élève">Parent</button>
+          </div>
+        </div>
+
+      </form>
+
+      <!-- Pied de page sobre -->
       <div class="login-footer">
-        <p class="copyright">© 2026 Atlas School ERP • Démonstration Interactive • Créé par <a href="https://www.linkedin.com/in/el-mehdi-bougrin" target="_blank" rel="noopener noreferrer" style="color: #2563eb; font-weight: 700; text-decoration: none;"><i class="fab fa-linkedin"></i> El_Mehdi_Bougrin</a></p>
+        <p class="copyright">© 2026 Groupe Scolaire AZ • Tous droits réservés</p>
         <div class="footer-links">
           <a href="{% url 'core:aide' %}" class="footer-link">Aide</a>
           <a href="{% url 'core:confidentialite' %}" class="footer-link">Confidentialité</a>
@@ -608,11 +525,12 @@
           <a href="{% url 'core:contact' %}" class="footer-link">Contact</a>
         </div>
       </div>
+
     </div>
   </div>
 
   <script>
-    // --- Démo en 1 Clic : Pré-remplissage et soumission instantanée ---
+    // --- Accès Démo 1-Clic discret ---
     function quickLogin(identifiant, motDePasse, btnElement) {
       const uInput = document.getElementById('username');
       const pInput = document.getElementById('password');
@@ -625,69 +543,63 @@
       pInput.value = motDePasse;
 
       if (btnElement) {
-        btnElement.style.opacity = '0.75';
+        const originalText = btnElement.textContent;
+        btnElement.textContent = '...';
         btnElement.style.pointerEvents = 'none';
-        const titleSpan = btnElement.querySelector('.demo-btn-title');
-        if (titleSpan) {
-          titleSpan.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Connexion...';
-        }
       }
 
       if (submitBtn) {
         submitBtn.classList.add('loading');
         const label = submitBtn.querySelector('span:last-child');
-        if (label) label.textContent = 'Connexion démo en cours...';
+        if (label) label.textContent = 'Connexion en cours...';
       }
 
       setTimeout(() => {
         form.submit();
-      }, 150);
+      }, 120);
     }
-    // --- Gestion du Carrousel ---
+
+    // --- Carrousel discret d'arrière-plan ---
     const slides = document.querySelectorAll('.carousel-slide');
     let currentSlide = 0;
 
     function nextSlide() {
+      if (!slides.length) return;
       slides[currentSlide].classList.remove('active');
       currentSlide = (currentSlide + 1) % slides.length;
       slides[currentSlide].classList.add('active');
     }
-    setInterval(nextSlide, 6000);
-
-    // --- Animations d'entrée ---
-    document.addEventListener('DOMContentLoaded', () => {
-      setTimeout(() => {
-        document.getElementById('loginContainer').classList.add('visible');
-      }, 300);
-    });
+    if (slides.length > 1) {
+      setInterval(nextSlide, 7000);
+    }
 
     // --- Toggle Mot de Passe ---
     const passwordToggle = document.getElementById('passwordToggle');
     const passwordInput = document.getElementById('password');
 
-    passwordToggle.addEventListener('click', () => {
-      const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
-      passwordInput.setAttribute('type', type);
-      passwordToggle.querySelector('i').classList.toggle('fa-eye');
-      passwordToggle.querySelector('i').classList.toggle('fa-eye-slash');
-    });
+    if (passwordToggle && passwordInput) {
+      passwordToggle.addEventListener('click', () => {
+        const isPassword = passwordInput.getAttribute('type') === 'password';
+        passwordInput.setAttribute('type', isPassword ? 'text' : 'password');
+        const icon = passwordToggle.querySelector('i');
+        if (icon) {
+          icon.classList.toggle('fa-eye', !isPassword);
+          icon.classList.toggle('fa-eye-slash', isPassword);
+        }
+      });
+    }
 
-    // --- Loading UI au submit (Django gère le POST/redirect) ---
+    // --- Loading au submit standard ---
     const loginForm = document.getElementById('loginForm');
     const submitBtn = document.getElementById('submitBtn');
 
-    loginForm.addEventListener('submit', () => {
-      submitBtn.classList.add('loading');
-      const label = submitBtn.querySelector('span:last-child');
-      if (label) label.textContent = 'Vérification...';
-    });
-
-    // --- Effet Parallaxe Doux (sans casser le CSS initial) ---
-    document.addEventListener('mousemove', (e) => {
-      const moveX = (e.clientX - window.innerWidth / 2) * 0.01;
-      const moveY = (e.clientY - window.innerHeight / 2) * 0.01;
-      document.getElementById('loginContainer').style.transform = `translate(${moveX}px, ${moveY}px)`;
-    });
+    if (loginForm && submitBtn) {
+      loginForm.addEventListener('submit', () => {
+        submitBtn.classList.add('loading');
+        const label = submitBtn.querySelector('span:last-child');
+        if (label) label.textContent = 'Vérification...';
+      });
+    }
   </script>
 </body>
 </html>
